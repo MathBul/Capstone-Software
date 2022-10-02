@@ -1,3 +1,6 @@
+#include "driverlib/msp432e401y.h"
+
+
 void Clock_Init(void) {
     // Set MOSC as system clock
     SYSCTL->RSCLKCFG |= SYSCTL_RSCLKCFG_OSCSRC_MOSC;

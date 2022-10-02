@@ -1,3 +1,6 @@
+#include "driverlib/msp432e401y.h"
+//#define UART_MAIN
+
 void UART_Init(void) {
     // Enable UART module 6 (pins P0 and P1)
     SYSCTL->RCGCUART |= SYSCTL_RCGCUART_R6;
@@ -22,7 +25,7 @@ void UART_Init(void) {
     // Enable UART
     UART6->CTL |= UART_CTL_UARTEN;
 }
-
+#ifdef UART_MAIN
 int main(void)
 {
 //    Clock_Init();
@@ -36,3 +39,4 @@ int main(void)
         GPION->DATA |= 1;
     }
 }
+#endif

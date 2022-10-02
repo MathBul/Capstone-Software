@@ -65,4 +65,5 @@ RemoteSystemsTempFiles
 .jxbrowser.userdata
 *.cmd
 ccs/
+Debug/
 
