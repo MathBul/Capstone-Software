@@ -1,20 +1,3 @@
-/* DriverLib Includes */
-#include <ti/devices/msp432e4/driverlib/driverlib.h>
-
-/* Standard Includes */
-#include <stdint.h>
-#include <stdbool.h>
-
-#define PORT            GPIO_PORTN_BASE
-#define PIN             GPIO_PIN_0
-
-void Clock_Init(void) {
-    // Set MOSC as system clock
-    SYSCTL->RSCLKCFG |= SYSCTL_RSCLKCFG_OSCSRC_MOSC;
-    // Set high frequency range
-    SYSCTL->MOSCCTL |= SYSCTL_MOSCCTL_OSCRNG;
-}
-
 void UART_Init(void) {
     // Enable UART module 6 (pins P0 and P1)
     SYSCTL->RCGCUART |= SYSCTL_RCGCUART_R6;
