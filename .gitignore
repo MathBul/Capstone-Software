@@ -56,11 +56,13 @@ dkms.conf
 .settings
 .launches
 targetConfigs
-.cssproject
+.ccsproject
 .cproject
 .project
 .metadata
 dvt
 RemoteSystemsTempFiles
 .jxbrowser.userdata
+*.cmd
+ccs/
 
