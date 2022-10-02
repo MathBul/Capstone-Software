@@ -1,4 +1,4 @@
-#include "driverlib/msp432e401y.h"
+#include "msp.h"
 //#define UART_MAIN
 
 void UART_Init(void) {

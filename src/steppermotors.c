@@ -9,20 +9,20 @@
 void initializeStepper1GPIO(void)
 {
     // Enable pin is active low
-    gpioSetAsOutput(STEPPER_1_ENABLE_PORT, STEPPER_1_ENABLE_PIN, STEPPER_1_ENABLE_SYSCTL);
+    gpioSetAsOutput(STEPPER_1_ENABLE_PORT, STEPPER_1_ENABLE_PIN);
 
     // MS1 | MS2 | MS3
     //   0 |   0 |  0    <=> Full Step
-    gpioSetAsOutput(STEPPER_1_MS1_PORT, STEPPER_1_MS1_PIN, STEPPER_1_MS1_SYSCTL);
-    gpioSetAsOutput(STEPPER_1_MS2_PORT, STEPPER_1_MS2_PIN, STEPPER_1_MS2_SYSCTL);
-    gpioSetAsOutput(STEPPER_1_MS3_PORT, STEPPER_1_MS3_PIN, STEPPER_1_MS3_SYSCTL);
+    gpioSetAsOutput(STEPPER_1_MS1_PORT, STEPPER_1_MS1_PIN);
+    gpioSetAsOutput(STEPPER_1_MS2_PORT, STEPPER_1_MS2_PIN);
+    gpioSetAsOutput(STEPPER_1_MS3_PORT, STEPPER_1_MS3_PIN);
 
     // Set the direction: 1 <=> Clockwise; 0 <=> Clockwise
-    gpioSetAsOutput(STEPPER_1_DIR_PORT, STEPPER_1_DIR_PIN, STEPPER_1_DIR_SYSCTL);
+    gpioSetAsOutput(STEPPER_1_DIR_PORT, STEPPER_1_DIR_PIN);
     gpioSetOutputHigh(STEPPER_1_DIR_PORT, STEPPER_1_DIR_PIN);
 
     // STEP is toggled to perform the stepping
-    gpioSetAsOutput(STEPPER_1_STEP_PORT, STEPPER_1_STEP_PIN, STEPPER_1_STEP_SYSCTL);
+    gpioSetAsOutput(STEPPER_1_STEP_PORT, STEPPER_1_STEP_PIN);
 }
 
 void initializeStepperMotor(StepperMotorType *StepperMotor, uint8_t StepperMotorID)

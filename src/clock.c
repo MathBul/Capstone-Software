@@ -1,4 +1,4 @@
-#include "driverlib/msp432e401y.h"
+#include "msp.h"
 
 
 void Clock_Init(void) {

@@ -1,12 +1,12 @@
 #include "gpio.h"
-#include "driverlib/rom_map.h"
+
 
 /* GPIO Output Functions */
 
 /*
  * Sets the specified GPIO port/pin as an output, then resets the output value
  */
-void gpioSetAsOutput(GPIO_Type* Port, uint8_t Pin, uint32_t sysctl)
+void gpioSetAsOutput(GPIO_Type* Port, uint8_t Pin)
 {
     Port->DIR |= Pin;
     Port->DEN |= Pin;
@@ -43,7 +43,7 @@ void gpioSetOutputToggle(GPIO_Type* Port, uint8_t Pin)
 /*
  * Sets the specified GPIO port/pin as an output, then resets the output value
  */
-void gpioSetAsInput(GPIO_Type* Port, uint8_t Pin, uint32_t sysctl)
+void gpioSetAsInput(GPIO_Type* Port, uint8_t Pin)
 {
     Port->DIR &= ~Pin;
     Port->DEN |= Pin;
