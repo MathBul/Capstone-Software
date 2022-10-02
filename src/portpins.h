@@ -1,7 +1,7 @@
 #ifndef PORTPINS_H_
 #define PORTPINS_H_
 
-#include "msp432e401y.h"
+#include "driverlib/msp432e401y.h"
 #include "driverlib/sysctl.h"
 
 // Stepper 1 (x-axis)

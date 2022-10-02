@@ -1,7 +1,7 @@
 #ifndef STEPPER_MOTORS_H_
 #define STEPPER_MOTORS_H_
 
-#include "msp432e401y.h"
+#include "driverlib/msp432e401y.h"
 
 // Information on whether the stepper motor is enabled or disabled
 typedef enum {
