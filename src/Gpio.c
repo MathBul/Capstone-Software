@@ -1,15 +1,17 @@
-#include "Gpio.h"
+#include "gpio.h"
+#include "driverlib/rom_map.h"
 
-//////////////////////// GPIO Output Functions
+/* GPIO Output Functions */
 
 /*
  * Sets the specified GPIO port/pin as an output, then resets the output value
  */
-void gpioSetAsOutput(GPIO_Type* Port, uint8_t Pin)
+void gpioSetAsOutput(GPIO_Type* Port, uint8_t Pin, uint32_t sysctl)
 {
     Port->DIR |= Pin;
     Port->DEN |= Pin;
     Port->DATA &= ~Pin;
+//    MAP_SysCtlPeripheralEnable(sysctl);
 }
 
 /*
@@ -36,13 +38,16 @@ void gpioSetOutputToggle(GPIO_Type* Port, uint8_t Pin)
     Port->DATA ^= Pin;
 }
 
-//////////////////////// GPIO Input Functions
+/* GPIO Input Functions */
 
 /*
  * Sets the specified GPIO port/pin as an output, then resets the output value
  */
-void gpioSetAsInput(GPIO_Type* Port, uint8_t Pin)
+void gpioSetAsInput(GPIO_Type* Port, uint8_t Pin, uint32_t sysctl)
 {
     Port->DIR &= ~Pin;
     Port->DEN |= Pin;
+//    MAP_SysCtlPeripheralEnable(sysctl);
 }
+
+// End gpio.c

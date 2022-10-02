@@ -1,8 +1,12 @@
-#include <ti/devices/msp432e4/driverlib/driverlib.h>
+// Project-specific source code
+#include "steppermotors.h"
+#include "portpins.h"
+#include "defines.h"
+
+// Driver library and standard includes necessary for base functionality
+//#include "driverlib/sysctl.h"
+#include "driverlib/rom_map.h"
 #include <stdint.h>
-#include "StepperMotors.h"
-#include "PortPins.h"
-#include "Defines.h"
 
 StepperMotorType StepperMotors[NUMBER_OF_STEPPER_MOTORS];
 StepperMotorType* StepperMotorX = &StepperMotors[0];
@@ -25,7 +29,7 @@ int main(void)
     }
 
     // Initialize the stepper motor(s)
-    initializeStepperMotor(StepperMotorX, STEPPER_X_ID);
+    initializeStepperMotor(StepperMotorX, STEPPER_1_ID);
     goToPosition(StepperMotorX, ColA, Row1, 0, 1);
 
     // Enable the SysTick timer to generate an interrupt every [1/12?] second
@@ -36,7 +40,7 @@ int main(void)
     // This program drivers the arm back and forth, spreading farther from the center each time
     while(1)
     {
-        if ((StepperMotorX->CurrentState == Disabled) && (counter < 6)) {
+        if ((StepperMotorX->CurrentState == Disabled) && (counter < 5)) {
             goToPosition(StepperMotorX, ColA, Row1, counter, parity);
             counter += 1;
             parity ^= 1;
@@ -56,3 +60,5 @@ void STEPPER_HANDLER(void)
         StepperMotorX->CurrentState = Disabled;
     }
 }
+
+// End main.c

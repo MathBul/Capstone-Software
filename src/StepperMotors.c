@@ -1,42 +1,41 @@
-#include <ti/devices/msp432e4/driverlib/driverlib.h>
-#include "StepperMotors.h"
-#include "PortPins.h"
-#include "Defines.h"
-#include "Gpio.h"
+#include "steppermotors.h"
+#include "portpins.h"
+#include "defines.h"
+#include "gpio.h"
 
 /*
  * Initialize the first stepper (the X-direction stepper)
  */
-void initializeStepperXGPIO(void)
+void initializeStepper1GPIO(void)
 {
     // Enable pin is active low
-    gpioSetAsOutput(STEPPER_X_ENABLE_PORT, STEPPER_X_ENABLE_PIN);
+    gpioSetAsOutput(STEPPER_1_ENABLE_PORT, STEPPER_1_ENABLE_PIN, STEPPER_1_ENABLE_SYSCTL);
 
     // MS1 | MS2 | MS3
     //   0 |   0 |  0    <=> Full Step
-    gpioSetAsOutput(STEPPER_X_MS1_PORT, STEPPER_X_MS1_PIN);
-    gpioSetAsOutput(STEPPER_X_MS2_PORT, STEPPER_X_MS2_PIN);
-    gpioSetAsOutput(STEPPER_X_MS3_PORT, STEPPER_X_MS3_PIN);
+    gpioSetAsOutput(STEPPER_1_MS1_PORT, STEPPER_1_MS1_PIN, STEPPER_1_MS1_SYSCTL);
+    gpioSetAsOutput(STEPPER_1_MS2_PORT, STEPPER_1_MS2_PIN, STEPPER_1_MS2_SYSCTL);
+    gpioSetAsOutput(STEPPER_1_MS3_PORT, STEPPER_1_MS3_PIN, STEPPER_1_MS3_SYSCTL);
 
     // Set the direction: 1 <=> Clockwise; 0 <=> Clockwise
-    gpioSetAsOutput(STEPPER_X_DIR_PORT, STEPPER_X_DIR_PIN);
-    gpioSetOutputHigh(STEPPER_X_DIR_PORT, STEPPER_X_DIR_PIN);
+    gpioSetAsOutput(STEPPER_1_DIR_PORT, STEPPER_1_DIR_PIN, STEPPER_1_DIR_SYSCTL);
+    gpioSetOutputHigh(STEPPER_1_DIR_PORT, STEPPER_1_DIR_PIN);
 
     // STEP is toggled to perform the stepping
-    gpioSetAsOutput(STEPPER_X_STEP_PORT, STEPPER_X_STEP_PIN);
+    gpioSetAsOutput(STEPPER_1_STEP_PORT, STEPPER_1_STEP_PIN, STEPPER_1_STEP_SYSCTL);
 }
 
 void initializeStepperMotor(StepperMotorType *StepperMotor, uint8_t StepperMotorID)
 {
-    if (StepperMotorID == STEPPER_X_ID) {
-        initializeStepperXGPIO();
+    if (StepperMotorID == STEPPER_1_ID) {
+        initializeStepper1GPIO();
         StepperMotor->MotorID            = StepperMotorID;
-        StepperMotor->DirPort            = STEPPER_X_DIR_PORT;
-        StepperMotor->DirPin             = STEPPER_X_DIR_PIN;
-        StepperMotor->StepPort           = STEPPER_X_STEP_PORT;
-        StepperMotor->StepPin            = STEPPER_X_STEP_PIN;
-        StepperMotor->EnablePort         = STEPPER_X_ENABLE_PORT;
-        StepperMotor->EnablePin          = STEPPER_X_ENABLE_PIN;
+        StepperMotor->DirPort            = STEPPER_1_DIR_PORT;
+        StepperMotor->DirPin             = STEPPER_1_DIR_PIN;
+        StepperMotor->StepPort           = STEPPER_1_STEP_PORT;
+        StepperMotor->StepPin            = STEPPER_1_STEP_PIN;
+        StepperMotor->EnablePort         = STEPPER_1_ENABLE_PORT;
+        StepperMotor->EnablePin          = STEPPER_1_ENABLE_PIN;
         StepperMotor->CurrentState       = Disabled;
         StepperMotor->CurrentXPosition   = ColA;
         StepperMotor->CurrentYPosition   = Row1;
@@ -104,3 +103,5 @@ void goToPosition(StepperMotorType *StepperMotor, ArmXPosition desiredXPosition,
     gpioSetOutputLow(StepperMotor->EnablePort, StepperMotor->EnablePin);
     StepperMotor->CurrentState = Enabled;
 }
+
+// End steppermotors.c

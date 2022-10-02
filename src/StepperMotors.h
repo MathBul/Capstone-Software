@@ -1,6 +1,8 @@
 #ifndef STEPPER_MOTORS_H_
 #define STEPPER_MOTORS_H_
 
+#include "msp432e401y.h"
+
 // Information on whether the stepper motor is enabled or disabled
 typedef enum {
     Disabled, Enabled
@@ -39,7 +41,7 @@ typedef struct {
 } StepperMotorType;
 
 // Stepper motor function declarations
-void initializeStepperXGPIO(void);
+void initializeStepper1GPIO(void);
 void initializeStepperMotor(StepperMotorType *StepperMotor, uint8_t MotorID);
 void toggleDirection(StepperMotorType *StepperMotor);
 void halfStep(StepperMotorType *StepperMotor);
