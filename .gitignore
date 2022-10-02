@@ -52,11 +52,11 @@ Mkfile.old
 dkms.conf
 
 # CCS stuff
-*/.include
-*/.settings
-*/.launches
-*/targetConfigs
-*.cssproject
-*.cproject
-*.project
+.include
+.settings
+.launches
+targetConfigs
+.cssproject
+.cproject
+.project
 
