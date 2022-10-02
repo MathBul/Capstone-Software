@@ -59,4 +59,8 @@ targetConfigs
 .cssproject
 .cproject
 .project
+.metadata
+dvt
+RemoteSystemsTempFiles
+.jxbrowser.userdata
 
