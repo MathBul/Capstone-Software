@@ -22,4 +22,7 @@ void gpio_set_output_toggle(GPIO_Type* port, uint8_t pin);
 // Functions for GPIO input
 void gpio_set_as_input(GPIO_Type* port, uint8_t pin);
 
+// Misc
+void gpio_select_alternate(GPIO_Type* port, uint8_t pin, uint8_t multiplex_val);
+
 #endif /* GPIO_H_ */

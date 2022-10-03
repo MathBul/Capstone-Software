@@ -2,14 +2,28 @@
 #include "steppermotors.h"
 #include "clock.h"
 #include "gpio.h"
+#include "uart.h"
 
 // Standard includes necessary for base functionality
 #include "msp.h"
 #include <stdint.h>
 
+//#define STEPPER_DEBUG
+#define UART_DEBUG
+
 
 int main(void)
 {
+#ifdef UART_DEBUG
+    sysclock_initialize();
+    uart_init(UART_CHANNEL_0);
+
+    while (1)
+    {
+        uart_out_byte(UART_CHANNEL_0, 'h');
+    }
+#endif
+#ifdef STEPPER_DEBUG
     // Initialize the system clock
     sysclock_initialize();
     timer_0a_initialize();
@@ -23,6 +37,7 @@ int main(void)
     while(1)
     {
     }
+#endif
 }
 
 // End main.c

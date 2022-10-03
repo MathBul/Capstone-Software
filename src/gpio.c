@@ -50,4 +50,27 @@ void gpio_set_as_input(GPIO_Type* port, uint8_t pin)
     utils_gpio_clock_enable(port);
 }
 
+void gpio_select_alternate(GPIO_Type* port, uint8_t pin, uint8_t multiplex_val)
+{
+    // TODO: assert at least 1 bit in pin is set
+    uint8_t lcb = 0;
+    uint8_t shift_pin = pin;
+    port->AFSEL |= pin;
+
+    // Doesn't really handle if there are no bits set
+    for (lcb = 0; lcb < 8; lcb++)
+    {
+        if ((shift_pin & 1) != 1)
+        {
+            shift_pin = shift_pin >> 1;
+        }
+        else
+        {
+            break;
+        }
+    }
+    port->PCTL |= (multiplex_val << (lcb << 2));
+}
+
+
 // End gpio.c

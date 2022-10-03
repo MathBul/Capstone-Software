@@ -11,9 +11,6 @@
 
 #include "fifo.h"
 
-static FIFO_TYPE fifo[FIFO_SIZE];
-static uint16_t head;
-static uint16_t tail;
 /*
 Dev notes:
 Implemented as a ring buffer
@@ -27,34 +24,34 @@ when they're equal it's empty
  * @brief Initializes the FIFO. Starts empty.
  * 
  */
-void fifo_init() 
+void fifo_init(fifo_t* fifo)
 {
-    head = 0;
-    tail = 0;
+    fifo->head = 0;
+    fifo->tail = 0;
 }
 /**
  * @brief Pushes an element into the FIFO. If the FIFO is full, this will do nothing. 
  * @param value The value to be put on the queue. 
  */
-bool fifo_push(FIFO_TYPE value) 
+bool fifo_push(fifo_t* fifo, FIFO_TYPE value)
 {
     // If the FIFO is full, return
-    if (head == tail - 1 || (head == FIFO_SIZE - 1 && tail == 0)) 
+    if (fifo_get_size(fifo) == FIFO_SIZE)
     {
         return false;
     }
     else
     {
         // Advance the head
-        head++;
+        fifo->head++;
         // Wrap
-        if (head >= FIFO_SIZE)
+        if (fifo->head >= FIFO_SIZE)
         {
-            head = 0;
+            fifo->head = 0;
         }
 
         // Put the value in
-        fifo[head] = value;
+        fifo->fifo[fifo->head] = value;
 
         // Success
         return true;
@@ -66,23 +63,23 @@ bool fifo_push(FIFO_TYPE value)
  * @param p_value A pointer to where the value will be stored
  * 
  */
-bool fifo_pop(FIFO_TYPE* p_value) 
+bool fifo_pop(fifo_t* fifo, FIFO_TYPE* p_value)
 {
     // If it's empty do nothing
-    if (head == tail)
+    if (fifo_is_empty(fifo))
     {
         return false;
     }
     else 
     {
         // Get the value
-        *p_value = fifo[tail];
+        *p_value = fifo->fifo[fifo->tail];
 
         // Advance the tail
-        tail++;
-        if (tail >= FIFO_SIZE)
+        fifo->tail++;
+        if (fifo->tail >= FIFO_SIZE)
         {
-            tail = 0;
+            fifo->tail = 0;
         }
         
         // Success
@@ -93,14 +90,19 @@ bool fifo_pop(FIFO_TYPE* p_value)
  * @brief Gives the number of elements currently in the FIFO
  * 
  */
-uint16_t fifo_get_size()
+uint16_t fifo_get_size(fifo_t* fifo)
 {
-    if (head >= tail) // When they are equal the size is 0
+    if (fifo->head >= fifo->tail) // When they are equal the size is 0
     {
-        return (head - tail) / (sizeof(FIFO_TYPE));
+        return fifo->head - fifo->tail;
     }
     else 
     {
-        return FIFO_SIZE - ((tail - head) / sizeof(FIFO_TYPE));
+        return FIFO_SIZE - (fifo->tail - fifo->head) + 1;
     }
+}
+
+bool fifo_is_empty(fifo_t* fifo)
+{
+    return fifo->head == fifo->tail;
 }
