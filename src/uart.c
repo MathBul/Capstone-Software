@@ -1,8 +1,29 @@
+/**
+ * @file uart.c
+ * @author Keenan Alchaar (ka5nt@virginia.edu) and Eli Jelesko (ebj5hec@virginia.edu)
+ * @brief Code for the UART communications on the MSP432e401Y
+ * @version 0.1
+ * @date 2022-10-03
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
 #include "uart.h"
+#include <stdint.h>
 
-//#define UART_MAIN
+#define UART_CHANNEL_0          (0)
+#define UART_CHANNEL_1          (1)
+#define UART_CHANNEL_2          (2)
+#define UART_CHANNEL_3          (3)
+#define UART_CHANNEL_4          (4)
+#define UART_CHANNEL_5          (5)
+#define UART_CHANNEL_6          (6)
 
-void uart_init(void) {
+
+
+
+
+void uart_init(uint8_t uart_channel) {
     // Enable UART module 6 (pins P0 and P1)
     SYSCTL->RCGCUART |= SYSCTL_RCGCUART_R6;
     // Run port P = R13 (13th bit)
@@ -27,18 +48,4 @@ void uart_init(void) {
     UART6->CTL |= UART_CTL_UARTEN;
 }
 
-#ifdef UART_MAIN
-int main(void)
-{
-//    sysclock_initialize();
-//    uart_init();
-    int i = 0;
-    SYSCTL->RCGCGPIO |= SYSCTL_RCGCGPIO_R12;
-    GPION->DEN |= 1;
-    GPION->DIR |= 1;
-    while(1)
-    {
-        GPION->DATA |= 1;
-    }
-}
-#endif
+/* End uart.c */
