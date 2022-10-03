@@ -36,8 +36,8 @@ void uart_init(uint8_t uart_channel) {
 
             // Enable the GPIO pins
             utils_gpio_clock_enable(GPIOA);
-            gpio_set_as_output(GPIOA, GPIO_PIN_0); // U0Rx
-            gpio_set_as_output(GPIOA, GPIO_PIN_1); // U0Rx
+            gpio_set_as_input(GPIOA, GPIO_PIN_0); // U0Rx
+            gpio_set_as_output(GPIOA, GPIO_PIN_1); // U0Tx
             gpio_select_alternate(GPIOA, GPIO_PIN_0, 1); // 1st alternate
             gpio_select_alternate(GPIOA, GPIO_PIN_1, 1); // 1st alternate
 
@@ -88,7 +88,8 @@ bool uart_out_byte(uint8_t uart_channel, uint8_t byte)
 
 bool uart_read_byte(uint8_t uart_channel, uint8_t* byte)
 {
-    return fifo_pop(&uart_0_rx, byte);
+    while (!fifo_pop(&uart_0_rx, byte)){}
+    return true;
 }
 
 static void copy_hardware_to_software(uint8_t uart_channel)
@@ -99,7 +100,7 @@ static void copy_hardware_to_software(uint8_t uart_channel)
     {
         case UART_CHANNEL_0:
             // While the Rx FIFO is not empty and the software FIFO is not full, copy over
-            while ((UART0->FR & UART_FR_RXFE == 0) && (fifo_get_size(&uart_0_rx) < FIFO_SIZE))
+            while (((UART0->FR & UART_FR_RXFE) == 0) && (fifo_get_size(&uart_0_rx) < FIFO_SIZE))
             {
                 byte = (UART0->DR & UART_DR_DATA_M);
                 fifo_push(&uart_0_rx, byte);

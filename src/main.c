@@ -15,12 +15,22 @@
 int main(void)
 {
 #ifdef UART_DEBUG
+    char message[64];
+    int i = 0;
+
     sysclock_initialize();
     uart_init(UART_CHANNEL_0);
 
+    // Read whatever comes in to the message string.
     while (1)
     {
-        uart_out_byte(UART_CHANNEL_0, 'h');
+        // This is "blocking"
+        uart_read_byte(UART_CHANNEL_0, (uint8_t*)&message[i]);
+        i++;
+        if (i > 63)
+        {
+            i = 0;
+        }
     }
 #endif
 #ifdef STEPPER_DEBUG
