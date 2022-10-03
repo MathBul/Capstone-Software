@@ -103,3 +103,5 @@ bool fifo_is_empty(fifo_t* fifo)
 {
     return fifo->head == fifo->tail;
 }
+
+/* End fifo.c */
