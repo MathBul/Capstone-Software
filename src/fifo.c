@@ -11,15 +11,6 @@
 
 #include "fifo.h"
 
-/*
-Dev notes:
-Implemented as a ring buffer
-Tail is the end of the buffer, head is the start
-So when head = tail - 1, it's full
-when they're equal it's empty
-
-*/
-
 /**
  * @brief Initializes the FIFO. Starts empty.
  * 
@@ -101,7 +92,13 @@ uint16_t fifo_get_size(fifo_t* fifo)
         return FIFO_SIZE - (fifo->tail - fifo->head) + 1;
     }
 }
-
+/**
+ * @brief Checks if the FIFO is empty or not
+ * 
+ * @param fifo The particular FIFO
+ * @return true The FIFO is empty
+ * @return false There are elements still in the FIFO
+ */
 bool fifo_is_empty(fifo_t* fifo)
 {
     return fifo->head == fifo->tail;

@@ -17,11 +17,15 @@
 static fifo_t uart_0_rx;
 static fifo_t uart_0_tx;
 
-
+// private functions declarations
 static void copy_hardware_to_software(uint8_t uart_channel);
 static void copy_software_to_hardware(uint8_t uart_channel);
 
-
+/**
+ * @brief Initializes the specified UART channel
+ * 
+ * @param uart_channel One of UART_CHANNEL_X
+ */
 void uart_init(uint8_t uart_channel) {
     // Currently only does UART0
     switch (uart_channel)
@@ -75,6 +79,14 @@ void uart_init(uint8_t uart_channel) {
 
 }
 
+/**
+ * @brief Sends a single byte (uint8_t) to the specified UART channel
+ * 
+ * @param uart_channel One of UART_CHANNEL_X
+ * @param byte The uint8_t to be sent
+ * @return true The byte was sent
+ * @return false The byte could not be sent
+ */
 bool uart_out_byte(uint8_t uart_channel, uint8_t byte)
 {
     bool output = fifo_push(&uart_0_tx, byte);
@@ -86,12 +98,26 @@ bool uart_out_byte(uint8_t uart_channel, uint8_t byte)
     return output;
 }
 
+/**
+ * @brief Reads the last byte in the Rx FIFO. This may not nessisarily be the last byte received by the
+ * hardware. This function spins until something is received. 
+ * 
+ * @param uart_channel One of UART_CHANNEL_X
+ * @param byte A pointer to where the byte will be stored
+ * @return true The byte was read
+ * @return false The byte could not be read
+ */
 bool uart_read_byte(uint8_t uart_channel, uint8_t* byte)
 {
     while (!fifo_pop(&uart_0_rx, byte)){}
     return true;
 }
 
+/**
+ * @brief Moves the data from the hardware FIFO to our software one. 
+ * 
+ * @param uart_channel One of UART_CHANNEL_X
+ */
 static void copy_hardware_to_software(uint8_t uart_channel)
 {
     uint8_t byte;
@@ -137,6 +163,12 @@ static void copy_hardware_to_software(uint8_t uart_channel)
 
     }
 }
+
+/**
+ * @brief Moves the data from our software FIFO to the hardware
+ * 
+ * @param uart_channel One of UART_CHANNEL_X
+ */
 static void copy_software_to_hardware(uint8_t uart_channel)
 {
     uint8_t byte;
@@ -191,6 +223,11 @@ static void copy_software_to_hardware(uint8_t uart_channel)
     }
 }
 
+/**
+ * @brief Called when the Tx FIFO has 2 or fewer elements, when the Rx FIFO has 2 or more elements,
+ * or when there is 1 or fewer elements in the Rx FIFO and it timesout. 
+ * 
+ */
 __interrupt void UART0_IRQHandler(void)
 {
     // The Tx interrupt occurred

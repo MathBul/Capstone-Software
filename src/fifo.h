@@ -45,4 +45,11 @@ bool fifo_pop(fifo_t* fifo, FIFO_TYPE* p_value);
  */
 uint16_t fifo_get_size(fifo_t* fifo);
 
+/**
+ * @brief Checks if the FIFO is empty or not
+ * 
+ * @param fifo The particular FIFO
+ * @return true The FIFO is empty
+ * @return false There are elements still in the FIFO
+ */
 bool fifo_is_empty(fifo_t* fifo);
