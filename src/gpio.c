@@ -50,6 +50,14 @@ void gpio_set_as_input(GPIO_Type* port, uint8_t pin)
     utils_gpio_clock_enable(port);
 }
 
+/**
+ * @brief Selects the alternate pin functionality. Modfies the GPIO alternate select and port control 
+ * registers
+ * 
+ * @param port The GPIO_Type for the port being used
+ * @param pin Which pin. Should be one of GPIO_PIN_X
+ * @param multiplex_val The select to multiplexer
+ */
 void gpio_select_alternate(GPIO_Type* port, uint8_t pin, uint8_t multiplex_val)
 {
     // TODO: assert at least 1 bit in pin is set

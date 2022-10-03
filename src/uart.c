@@ -37,6 +37,10 @@ void uart_init(uint8_t uart_channel) {
 
             // Enable the UART clock gate control
             SYSCTL->RCGCUART |= SYSCTL_RCGCUART_R0;
+            // Wait for the clock to enable
+            while (!(SYSCTL->PRUART & SYSCTL_RCGCUART_R0))
+            {
+            }
 
             // Enable the GPIO pins
             utils_gpio_clock_enable(GPIOA);
@@ -99,7 +103,7 @@ bool uart_out_byte(uint8_t uart_channel, uint8_t byte)
 }
 
 /**
- * @brief Reads the last byte in the Rx FIFO. This may not nessisarily be the last byte received by the
+ * @brief Reads the last byte in the Rx FIFO. This may not necessarily be the last byte received by the
  * hardware. This function spins until something is received. 
  * 
  * @param uart_channel One of UART_CHANNEL_X
@@ -225,7 +229,7 @@ static void copy_software_to_hardware(uint8_t uart_channel)
 
 /**
  * @brief Called when the Tx FIFO has 2 or fewer elements, when the Rx FIFO has 2 or more elements,
- * or when there is 1 or fewer elements in the Rx FIFO and it timesout. 
+ * or when there is 1 or fewer elements in the Rx FIFO and it times out.
  * 
  */
 __interrupt void UART0_IRQHandler(void)
