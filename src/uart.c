@@ -1,7 +1,8 @@
-#include "msp.h"
+#include "uart.h"
+
 //#define UART_MAIN
 
-void UART_Init(void) {
+void uart_init(void) {
     // Enable UART module 6 (pins P0 and P1)
     SYSCTL->RCGCUART |= SYSCTL_RCGCUART_R6;
     // Run port P = R13 (13th bit)
@@ -25,11 +26,12 @@ void UART_Init(void) {
     // Enable UART
     UART6->CTL |= UART_CTL_UARTEN;
 }
+
 #ifdef UART_MAIN
 int main(void)
 {
-//    Clock_Init();
-//    UART_Init();
+//    sysclock_initialize();
+//    uart_init();
     int i = 0;
     SYSCTL->RCGCGPIO |= SYSCTL_RCGCGPIO_R12;
     GPION->DEN |= 1;

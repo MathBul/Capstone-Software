@@ -1,107 +1,125 @@
 #include "steppermotors.h"
-#include "portpins.h"
-#include "defines.h"
-#include "gpio.h"
+
+// Declare the stepper motors
+stepper_motors_t stepper_motors[NUMBER_OF_STEPPER_MOTORS];
+static stepper_motors_t* stepper_motor_x = &stepper_motors[0];
+static stepper_motors_t* stepper_motor_y = &stepper_motors[1];
 
 /*
- * Initialize the first stepper (the X-direction stepper)
+ * Initialize a stepper motor
  */
-void initializeStepper1GPIO(void)
+void stepper_initialize_motors()
 {
+    /* Stepper 1 (x direction) */
     // Enable pin is active low
-    gpioSetAsOutput(STEPPER_1_ENABLE_PORT, STEPPER_1_ENABLE_PIN);
+    gpio_set_as_output(STEPPER_1_ENABLE_PORT, STEPPER_1_ENABLE_PIN);
 
     // MS1 | MS2 | MS3
     //   0 |   0 |  0    <=> Full Step
-    gpioSetAsOutput(STEPPER_1_MS1_PORT, STEPPER_1_MS1_PIN);
-    gpioSetAsOutput(STEPPER_1_MS2_PORT, STEPPER_1_MS2_PIN);
-    gpioSetAsOutput(STEPPER_1_MS3_PORT, STEPPER_1_MS3_PIN);
+    gpio_set_as_output(STEPPER_1_MS1_PORT, STEPPER_1_MS1_PIN);
+    gpio_set_as_output(STEPPER_1_MS2_PORT, STEPPER_1_MS2_PIN);
+    gpio_set_as_output(STEPPER_1_MS3_PORT, STEPPER_1_MS3_PIN);
+    gpio_set_output_high(STEPPER_1_MS1_PORT, STEPPER_1_MS1_PIN);
 
     // Set the direction: 1 <=> Clockwise; 0 <=> Clockwise
-    gpioSetAsOutput(STEPPER_1_DIR_PORT, STEPPER_1_DIR_PIN);
-    gpioSetOutputHigh(STEPPER_1_DIR_PORT, STEPPER_1_DIR_PIN);
+    gpio_set_as_output(STEPPER_1_DIR_PORT, STEPPER_1_DIR_PIN);
+    gpio_set_output_high(STEPPER_1_DIR_PORT, STEPPER_1_DIR_PIN);
 
     // STEP is toggled to perform the stepping
-    gpioSetAsOutput(STEPPER_1_STEP_PORT, STEPPER_1_STEP_PIN);
-}
+    gpio_set_as_output(STEPPER_1_STEP_PORT, STEPPER_1_STEP_PIN);
 
-void initializeStepperMotor(StepperMotorType *StepperMotor, uint8_t StepperMotorID)
-{
-    if (StepperMotorID == STEPPER_1_ID) {
-        initializeStepper1GPIO();
-        StepperMotor->MotorID            = StepperMotorID;
-        StepperMotor->DirPort            = STEPPER_1_DIR_PORT;
-        StepperMotor->DirPin             = STEPPER_1_DIR_PIN;
-        StepperMotor->StepPort           = STEPPER_1_STEP_PORT;
-        StepperMotor->StepPin            = STEPPER_1_STEP_PIN;
-        StepperMotor->EnablePort         = STEPPER_1_ENABLE_PORT;
-        StepperMotor->EnablePin          = STEPPER_1_ENABLE_PIN;
-        StepperMotor->CurrentState       = Disabled;
-        StepperMotor->CurrentXPosition   = ColA;
-        StepperMotor->CurrentYPosition   = Row1;
-        StepperMotor->DesiredXPosition   = ColA;
-        StepperMotor->DesiredYPosition   = Row1;
-        StepperMotor->HalfStepsToDesired = 0;
-    }
+    // Configure the stepper struct
+    stepper_motor_x->motor_id              = STEPPER_1_ID;
+    stepper_motor_x->dir_port              = STEPPER_1_DIR_PORT;
+    stepper_motor_x->dir_pin               = STEPPER_1_DIR_PIN;
+    stepper_motor_x->step_port             = STEPPER_1_STEP_PORT;
+    stepper_motor_x->step_pin              = STEPPER_1_STEP_PIN;
+    stepper_motor_x->enable_port           = STEPPER_1_ENABLE_PORT;
+    stepper_motor_x->enable_pin            = STEPPER_1_ENABLE_PIN;
+    stepper_motor_x->current_state         = disabled;
+    stepper_motor_x->current_x_position    = col_a;
+    stepper_motor_x->current_y_position    = row_1;
+    stepper_motor_x->desired_x_position    = col_a;
+    stepper_motor_x->desired_y_position    = row_1;
+    stepper_motor_x->transitions_to_desired_x_position = 0;
 }
 
 /*
  * Toggle the direction of the stepper motor identified by StepperID
  */
-void toggleDirection(StepperMotorType *StepperMotor)
+void stepper_toggle_direction(stepper_motors_t *stepper_motor)
 {
-    gpioSetOutputToggle(StepperMotor->DirPort, StepperMotor->DirPin);
+    gpio_set_output_toggle(stepper_motor->dir_port, stepper_motor->dir_pin);
 }
 
 /*
  * Change the direction of the stepper motor identified by StepperID to clockwise
  */
-void setDirectionClockwise(StepperMotorType *StepperMotor)
+void stepper_set_direction_clockwise(stepper_motors_t *stepper_motor)
 {
-    gpioSetOutputHigh(StepperMotor->DirPort, StepperMotor->DirPin);
+    gpio_set_output_high(stepper_motor->dir_port, stepper_motor->dir_pin);
 }
 
 /*
  * Change the direction of the stepper motor identified by StepperID to counterclockwise
  */
-void setDirectionCounterclockwise(StepperMotorType *StepperMotor)
+void stepper_set_direction_counterclockwise(stepper_motors_t *stepper_motor)
 {
-    gpioSetOutputLow(StepperMotor->DirPort, StepperMotor->DirPin);
+    gpio_set_output_low(stepper_motor->dir_port, stepper_motor->dir_pin);
 }
 
 /*
- * Perform a half step (i.e., toggle the step pin)
+ * Perform an edge transition on the stepper STEP pin
  */
-void halfStep(StepperMotorType *StepperMotor)
+void stepper_edge_transition(stepper_motors_t *stepper_motor)
 {
-    gpioSetOutputToggle(StepperMotor->StepPort, StepperMotor->StepPin);
+    gpio_set_output_toggle(stepper_motor->step_port, stepper_motor->step_pin);
 }
 
 /*
- * Method to tell the stepper motor how to get to its next position
- * TODO: Implement for second axis once the next motor is mounted on the frame
+ * Convert a distance in millimeters to the number of edge transitions required to drive the stepper that far
  */
-void goToPosition(StepperMotorType *StepperMotor, ArmXPosition desiredXPosition, ArmYPosition desiredYPosition, uint8_t tempNumTiles, uint8_t forward)
+uint32_t stepper_distance_to_transitions(uint32_t distance)
 {
-    // Disable the motor
-    gpioSetOutputHigh(StepperMotor->EnablePort, StepperMotor->EnablePin);
-    StepperMotor->CurrentState = Disabled;
+    return 20*distance;
+}
+
+/*
+ * Method to tell the stepper motors a relative distance to travel
+ */
+void stepper_go_to_position(uint32_t distance_x, uint32_t distance_y)
+{
+    // Disable the motors
+    gpio_set_output_high(stepper_motor_x->enable_port, stepper_motor_x->enable_pin);
+    stepper_motor_x->current_state = disabled;
+//    gpio_set_output_high(stepper_motor_y->enable_port, stepper_motor_x->enable_pin);
+//    stepper_motor_y->current_state = disabled;
 
     // Determine number of steps to reach the desired position
-    StepperMotor->DesiredXPosition = desiredXPosition;
-    StepperMotor->DesiredYPosition = desiredYPosition;
+    stepper_motor_x->transitions_to_desired_x_position = stepper_distance_to_transitions(distance_x);
+//    stepper_motor_y->transitions_to_desired_y_position = stepper_distance_to_transitions(distance_y);
 
-    // Temporary portion
-    if (forward) {
-        setDirectionCounterclockwise(StepperMotor);
+    // Enable the motors
+    stepper_set_direction_counterclockwise(stepper_motor_x);
+    stepper_motor_x->current_state = enabled;
+    gpio_set_output_low(stepper_motor_x->enable_port, stepper_motor_x->enable_pin);
+//    stepper_set_direction_counterclockwise(stepper_motor_y);
+//    stepper_motor_y->current_state = enabled;
+//    gpio_set_output_low(stepper_motor_y->enable_port, stepper_motor_y->enable_pin);
+}
+
+/*
+ * Interrupt handler to check if the desired number of steps are complete
+ */
+__interrupt void STEPPER_HANDLER(void)
+{
+    TIMER0->ICR |= (TIMER_ICR_TATOCINT);
+    if (stepper_motor_x->transitions_to_desired_x_position > 0) {
+        stepper_edge_transition(stepper_motor_x);
+        stepper_motor_x->transitions_to_desired_x_position -= 1;
     } else {
-        setDirectionClockwise(StepperMotor);
+        stepper_motor_x->current_state = disabled;
     }
-    StepperMotor->HalfStepsToDesired = HALF_STEPS_TO_NEXT_ROW*tempNumTiles; // TODO: Hard-coded for now, will be replaced by specific values for each row/column
-
-    // Enable the motor
-    gpioSetOutputLow(StepperMotor->EnablePort, StepperMotor->EnablePin);
-    StepperMotor->CurrentState = Enabled;
 }
 
 // End steppermotors.c
