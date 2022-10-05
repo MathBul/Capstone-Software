@@ -24,6 +24,21 @@
 #define STEPPER_1_DIR_PIN                   (GPIO_PIN_5)
 #define STEPPER_1_ID                        1
 
+// Stepper 2 (y-axis)
+#define STEPPER_2_ENABLE_PORT               (GPIOM)
+#define STEPPER_2_ENABLE_PIN                (GPIO_PIN_0)
+#define STEPPER_2_MS1_PORT                  (GPIOK)
+#define STEPPER_2_MS1_PIN                   (GPIO_PIN_5)
+#define STEPPER_2_MS2_PORT                  (GPIOK)
+#define STEPPER_2_MS2_PIN                   (GPIO_PIN_4)
+#define STEPPER_2_MS3_PORT                  (GPIOG)
+#define STEPPER_2_MS3_PIN                   (GPIO_PIN_1)
+#define STEPPER_2_STEP_PORT                 (GPIOM)
+#define STEPPER_2_STEP_PIN                  (GPIO_PIN_2)
+#define STEPPER_2_DIR_PORT                  (GPIOM)
+#define STEPPER_2_DIR_PIN                   (GPIO_PIN_1)
+#define STEPPER_2_ID                        2
+
 // Information on whether the stepper motor is enabled or disabled
 typedef enum {
     disabled, enabled
