@@ -24,7 +24,7 @@
 #define UART_CHANNEL_4          (4)
 #define UART_CHANNEL_5          (5)
 #define UART_CHANNEL_6          (6)
-#define UART_CHANNEL_6          (7)
+#define UART_CHANNEL_7          (7)
 
 /**
  * @brief Initializes the specified UART channel
