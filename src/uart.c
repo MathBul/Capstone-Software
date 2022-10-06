@@ -18,6 +18,8 @@ static fifo_t uart_0_rx;
 static fifo_t uart_0_tx;
 static fifo_t uart_2_rx;
 static fifo_t uart_2_tx;
+static fifo_t uart_3_rx;
+static fifo_t uart_3_tx;
 static fifo_t uart_6_rx;
 static fifo_t uart_6_tx;
 
@@ -92,11 +94,14 @@ void uart_init(uint8_t uart_channel) {
             }
 
             // Enable the GPIO pins
-            utils_gpio_clock_enable(GPIOA);
-            gpio_set_as_input(GPIOA, GPIO_PIN_6); // U2Rx
-            gpio_set_as_output(GPIOA, GPIO_PIN_7); // U2Tx
-            gpio_select_alternate(GPIOA, GPIO_PIN_6, 1); // 1st alternate
-            gpio_select_alternate(GPIOA, GPIO_PIN_7, 1); // 1st alternate
+            utils_gpio_clock_enable(GPIOD);
+            gpio_set_as_input(GPIOD, GPIO_PIN_4); // U2Rx
+            gpio_set_as_output(GPIOD, GPIO_PIN_5); // U2Tx
+//            GPIOD->AFSEL |= (GPIO_PIN_4 | GPIO_PIN_5);
+//            GPIOD->PCTL |= ((uint32_t) 1 << 16);
+//            GPIOD->PCTL |= ((uint32_t) 1 << 20);
+            gpio_select_alternate(GPIOD, GPIO_PIN_4, 1); // 1st alternate
+            gpio_select_alternate(GPIOD, GPIO_PIN_5, 1); // 1st alternate
 
             // Disable UART
             UART2->CTL &= ~UART_CTL_UARTEN;
@@ -120,6 +125,49 @@ void uart_init(uint8_t uart_channel) {
 
             // Enable UART
             UART2->CTL |= UART_CTL_UARTEN;
+            break;
+
+        case UART_CHANNEL_3:
+            // Initialize the FIFOS
+            fifo_init(&uart_3_rx);
+            fifo_init(&uart_3_tx);
+
+            // Enable the UART clock gate control
+            SYSCTL->RCGCUART |= SYSCTL_RCGCUART_R3;
+            // Wait for the clock to enable
+            while (!(SYSCTL->PRUART & SYSCTL_RCGCUART_R3))
+            {
+            }
+
+            // Enable the GPIO pins
+            utils_gpio_clock_enable(GPIOA);
+            gpio_set_as_input(GPIOA, GPIO_PIN_4); // U3Rx
+            gpio_set_as_output(GPIOA, GPIO_PIN_5); // U3Tx
+            gpio_select_alternate(GPIOA, GPIO_PIN_4, 1); // 1st alternate
+            gpio_select_alternate(GPIOA, GPIO_PIN_5, 1); // 1st alternate
+
+            // Disable UART
+            UART3->CTL &= ~UART_CTL_UARTEN;
+            // Configure for a 9600 baud rate
+            // 16MHz / (16 * 9600) = 104.16667
+            UART3->IBRD |= (104 << UART_IBRD_DIVINT_S); // Integer
+            UART3->FBRD |= (11 << UART_FBRD_DIVFRAC_S); // Fractional
+            // Enable FIFOs and set 8 bit word length
+            UART3->LCRH |= (UART_LCRH_FEN | UART_LCRH_WLEN_8);
+            // Set the baud clock source to PI0SC (16 MHz)
+            UART3->CC |= UART_CC_CS_PIOSC;
+            // Set the interrupt trigger levels
+            // Triggers when both the Tx and Rx FIFOs are 1/8 full
+            UART3->IFLS |= (UART_IFLS_RX1_8 | UART_IFLS_TX1_8);
+            // Enable the FIFOs and Rx timeout interrupt
+            UART3->IM |= (UART_IM_RXIM | UART_IM_TXIM | UART_IM_RTIM);
+            // Set the UART3 interrupt (#56) to priority 2 (IP[14] services interrupts 56-59)
+            NVIC->IP[14] |= ((uint32_t) 2 << NVIC_PRI14_INTA_S);
+            // Enable the UART3 interrupt (ISER[1] services interrupts 32-63)
+            NVIC->ISER[1] |= ((uint32_t) 1 << (UART3_IRQn - 32));
+
+            // Enable UART
+            UART3->CTL |= UART_CTL_UARTEN;
             break;
 
         case UART_CHANNEL_6:
@@ -188,6 +236,7 @@ bool uart_out_byte(uint8_t uart_channel, uint8_t byte)
     switch (uart_channel)
     {
     case UART_CHANNEL_0:
+    {
         bool output = fifo_push(&uart_0_tx, byte);
         // If the Tx FIFO is empty copy to hardware
         if (UART0->FR & UART_FR_TXFE)
@@ -195,8 +244,9 @@ bool uart_out_byte(uint8_t uart_channel, uint8_t byte)
             copy_software_to_hardware(UART_CHANNEL_0);
         }
         return output;
-        break;
+    }
     case UART_CHANNEL_2:
+    {
         bool output = fifo_push(&uart_2_tx, byte);
         // If the Tx FIFO is empty copy to hardware
         if (UART2->FR & UART_FR_TXFE)
@@ -204,8 +254,19 @@ bool uart_out_byte(uint8_t uart_channel, uint8_t byte)
             copy_software_to_hardware(UART_CHANNEL_2);
         }
         return output;
-        break;
+    }
+    case UART_CHANNEL_3:
+    {
+        bool output = fifo_push(&uart_3_tx, byte);
+        // If the Tx FIFO is empty copy to hardware
+        if (UART3->FR & UART_FR_TXFE)
+        {
+            copy_software_to_hardware(UART_CHANNEL_3);
+        }
+        return output;
+    }
     case UART_CHANNEL_6:
+    {
         bool output = fifo_push(&uart_6_tx, byte);
         // If the Tx FIFO is empty copy to hardware
         if (UART6->FR & UART_FR_TXFE)
@@ -213,9 +274,9 @@ bool uart_out_byte(uint8_t uart_channel, uint8_t byte)
             copy_software_to_hardware(UART_CHANNEL_6);
         }
         return output;
-        break;
+    }
     default:
-        break;
+        return false;
     }
 }
 
@@ -235,17 +296,17 @@ bool uart_read_byte(uint8_t uart_channel, uint8_t* byte)
     case UART_CHANNEL_0:
         while (!fifo_pop(&uart_0_rx, byte)){}
         return true;
-        break;
     case UART_CHANNEL_2:
         while (!fifo_pop(&uart_2_rx, byte)){}
         return true;
-        break;
+    case UART_CHANNEL_3:
+        while (!fifo_pop(&uart_3_rx, byte)){}
+        return true;
     case UART_CHANNEL_6:
         while (!fifo_pop(&uart_6_rx, byte)){}
         return true;
-        break;
     default:
-        break;
+        return false;
     }
 }
 
@@ -283,7 +344,12 @@ static void copy_hardware_to_software(uint8_t uart_channel)
         break;
 
         case UART_CHANNEL_3:
-
+            // While the Rx FIFO is not empty and the software FIFO is not full, copy over
+            while (((UART3->FR & UART_FR_RXFE) == 0) && (fifo_get_size(&uart_3_rx) < FIFO_SIZE))
+            {
+                byte = (UART3->DR & UART_DR_DATA_M);
+                fifo_push(&uart_3_rx, byte);
+            }
         break;
 
         case UART_CHANNEL_4:
@@ -360,7 +426,20 @@ static void copy_software_to_hardware(uint8_t uart_channel)
         break;
 
         case UART_CHANNEL_3:
+            // While the Tx FIFO is not full and the software FIFO is not empty, copy over
+            while (((UART3->FR & UART_FR_TXFF) == 0) && !fifo_is_empty(&uart_3_tx))
+            {
+                if (fifo_pop(&uart_3_tx, &byte))
+                {
+                    UART3->DR = byte;
+                }
+                else
+                {
+                    // Something went wrong reading from the software FIFO
+                    break;
+                }
 
+            }
         break;
 
         case UART_CHANNEL_4:
@@ -450,6 +529,37 @@ __interrupt void UART2_IRQHandler(void)
     {
         UART2->ICR |= UART_ICR_RTIC; // Clear the interrupt
         copy_hardware_to_software(UART_CHANNEL_2);
+    }
+    // Some other interrupt. Probably a fault of some kind
+    else {
+        // For debugging purposes
+    }
+}
+
+/**
+ * @brief Called when the UART2 Tx FIFO has 2 or fewer elements, when the Rx FIFO has 2 or more elements,
+ * or when there is 1 or fewer elements in the Rx FIFO and it times out.
+ *
+ */
+__interrupt void UART3_IRQHandler(void)
+{
+    // The Tx interrupt occurred
+    if (UART3->MIS & UART_MIS_TXMIS)
+    {
+        UART3->ICR |= UART_ICR_TXIC; // Clear the interrupt
+        copy_software_to_hardware(UART_CHANNEL_3);
+    }
+    // The Rx interrupt occurred
+    else if (UART3->MIS & UART_MIS_RXMIS)
+    {
+        UART3->ICR |= UART_ICR_RXIC; // Clear the interrupt
+        copy_hardware_to_software(UART_CHANNEL_3);
+    }
+    // The Rx Timeout interrupt occurred
+    else if (UART3->MIS & UART_MIS_RTMIS)
+    {
+        UART3->ICR |= UART_ICR_RTIC; // Clear the interrupt
+        copy_hardware_to_software(UART_CHANNEL_3);
     }
     // Some other interrupt. Probably a fault of some kind
     else {
