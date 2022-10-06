@@ -42,6 +42,40 @@ void stepper_initialize_motors()
     stepper_motor_x->desired_x_position    = col_a;
     stepper_motor_x->desired_y_position    = row_1;
     stepper_motor_x->transitions_to_desired_x_position = 0;
+
+
+    /* Stepper 2 (y direction) */
+    // Enable pin is active low
+    gpio_set_as_output(STEPPER_2_ENABLE_PORT, STEPPER_2_ENABLE_PIN);
+
+    // MS1 | MS2 | MS3
+    //   0 |   0 |  0    <=> Full Step
+    gpio_set_as_output(STEPPER_2_MS1_PORT, STEPPER_2_MS1_PIN);
+    gpio_set_as_output(STEPPER_2_MS2_PORT, STEPPER_2_MS2_PIN);
+    gpio_set_as_output(STEPPER_2_MS3_PORT, STEPPER_2_MS3_PIN);
+    gpio_set_output_high(STEPPER_2_MS1_PORT, STEPPER_2_MS1_PIN);
+
+    // Set the direction: 1 <=> Clockwise; 0 <=> Clockwise
+    gpio_set_as_output(STEPPER_2_DIR_PORT, STEPPER_2_DIR_PIN);
+    gpio_set_output_high(STEPPER_2_DIR_PORT, STEPPER_2_DIR_PIN);
+
+    // STEP is toggled to perform the stepping
+    gpio_set_as_output(STEPPER_2_STEP_PORT, STEPPER_2_STEP_PIN);
+
+    // Configure the stepper struct
+    stepper_motor_y->motor_id              = STEPPER_2_ID;
+    stepper_motor_y->dir_port              = STEPPER_2_DIR_PORT;
+    stepper_motor_y->dir_pin               = STEPPER_2_DIR_PIN;
+    stepper_motor_y->step_port             = STEPPER_2_STEP_PORT;
+    stepper_motor_y->step_pin              = STEPPER_2_STEP_PIN;
+    stepper_motor_y->enable_port           = STEPPER_2_ENABLE_PORT;
+    stepper_motor_y->enable_pin            = STEPPER_2_ENABLE_PIN;
+    stepper_motor_y->current_state         = disabled;
+    stepper_motor_y->current_y_position    = col_a;
+    stepper_motor_y->current_y_position    = row_2;
+    stepper_motor_y->desired_y_position    = col_a;
+    stepper_motor_y->desired_y_position    = row_2;
+    stepper_motor_y->transitions_to_desired_y_position = 0;
 }
 
 /*
@@ -92,20 +126,20 @@ void stepper_go_to_position(uint32_t distance_x, uint32_t distance_y)
     // Disable the motors
     gpio_set_output_high(stepper_motor_x->enable_port, stepper_motor_x->enable_pin);
     stepper_motor_x->current_state = disabled;
-//    gpio_set_output_high(stepper_motor_y->enable_port, stepper_motor_x->enable_pin);
-//    stepper_motor_y->current_state = disabled;
+    gpio_set_output_high(stepper_motor_y->enable_port, stepper_motor_x->enable_pin);
+    stepper_motor_y->current_state = disabled;
 
     // Determine number of steps to reach the desired position
     stepper_motor_x->transitions_to_desired_x_position = stepper_distance_to_transitions(distance_x);
-//    stepper_motor_y->transitions_to_desired_y_position = stepper_distance_to_transitions(distance_y);
+    stepper_motor_y->transitions_to_desired_y_position = stepper_distance_to_transitions(distance_y);
 
     // Enable the motors
     stepper_set_direction_counterclockwise(stepper_motor_x);
     stepper_motor_x->current_state = enabled;
     gpio_set_output_low(stepper_motor_x->enable_port, stepper_motor_x->enable_pin);
-//    stepper_set_direction_counterclockwise(stepper_motor_y);
-//    stepper_motor_y->current_state = enabled;
-//    gpio_set_output_low(stepper_motor_y->enable_port, stepper_motor_y->enable_pin);
+    stepper_set_direction_counterclockwise(stepper_motor_y);
+    stepper_motor_y->current_state = enabled;
+    gpio_set_output_low(stepper_motor_y->enable_port, stepper_motor_y->enable_pin);
 }
 
 /*
@@ -113,12 +147,23 @@ void stepper_go_to_position(uint32_t distance_x, uint32_t distance_y)
  */
 __interrupt void STEPPER_HANDLER(void)
 {
+    // Clear the interrupt flag
     TIMER0->ICR |= (TIMER_ICR_TATOCINT);
+
+    // Move stepper 1 if it needs to
     if (stepper_motor_x->transitions_to_desired_x_position > 0) {
         stepper_edge_transition(stepper_motor_x);
         stepper_motor_x->transitions_to_desired_x_position -= 1;
     } else {
         stepper_motor_x->current_state = disabled;
+    }
+
+    // Move stepper 2 if it needs to
+    if (stepper_motor_y->transitions_to_desired_y_position > 0) {
+        stepper_edge_transition(stepper_motor_y);
+        stepper_motor_y->transitions_to_desired_y_position -= 1;
+    } else {
+        stepper_motor_y->current_state = disabled;
     }
 }
 

@@ -8,8 +8,8 @@
 #include "msp.h"
 #include <stdint.h>
 
-//#define STEPPER_DEBUG
-#define UART_DEBUG
+#define STEPPER_DEBUG
+//#define UART_DEBUG
 
 
 int main(void)
@@ -41,7 +41,7 @@ int main(void)
     // Initialize the stepper motor(s)
     stepper_initialize_motors();
 
-    // Go 250 mm in both x and y directions
+    // Go 250mm right, 250mm forward
     stepper_go_to_position(250, 250);
 
     while(1)
