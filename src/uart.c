@@ -12,7 +12,6 @@
 #include "gpio.h"
 #include "utils.h"
 
-
 // TODO: Make sure the elements are only 1 byte long!
 static fifo_t uart_0_rx;
 static fifo_t uart_0_tx;

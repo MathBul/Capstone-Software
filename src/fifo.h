@@ -9,47 +9,35 @@
  * 
  */
 
+#ifndef FIFO_H_
+#define FIFO_H_
+
 #include <stdint.h>
 #include <stdbool.h>
+#include "testing.h"
 
+#ifdef UART_DEBUG
 #define FIFO_TYPE               uint8_t
 #define FIFO_SIZE               (16) // Must be at least 1 and less than 65535
+#endif
 
+#ifdef STEPPER_DEBUG
+#define FIFO_TYPE               uint32_t
+#define FIFO_SIZE               (128) // Must be at least 1 and less than 65535
+#endif
+
+// Fifo data structure struct
 typedef struct fifo_t {
     FIFO_TYPE fifo[FIFO_SIZE];
     uint16_t head;
     uint16_t tail;
 } fifo_t;
 
-/**
- * @brief Initializes the FIFO. Starts empty.
- * 
- */
+// Fifo function definitions
 void fifo_init(fifo_t* fifo);
-/**
- * @brief Pushes an element into the FIFO. If the FIFO is full, this will do nothing. 
- * @param value The value to be put on the queue.
- * @return True if the value was added, false otherwise 
- */
 bool fifo_push(fifo_t* fifo, FIFO_TYPE value);
-/**
- * @brief Removes the value at the front of the FIFO. If there is nothing in the FIFO, the 
- * storage pointer is evaulated to NULL
- * @param p_value A pointer to where the value will be stored
- * @return True if the value was popped, false otherwise
- */
 bool fifo_pop(fifo_t* fifo, FIFO_TYPE* p_value);
-/**
- * @brief Gives the number of elements currently in the FIFO
- * 
- */
 uint16_t fifo_get_size(fifo_t* fifo);
-
-/**
- * @brief Checks if the FIFO is empty or not
- * 
- * @param fifo The particular FIFO
- * @return true The FIFO is empty
- * @return false There are elements still in the FIFO
- */
 bool fifo_is_empty(fifo_t* fifo);
+
+#endif /* FIFO_H_ */

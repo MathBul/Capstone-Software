@@ -12,16 +12,17 @@
 #include "fifo.h"
 
 /**
- * @brief Initializes the FIFO. Starts empty.
- * 
+ * @brief Initializes the FIFO. Starts empty
  */
 void fifo_init(fifo_t* fifo)
 {
     fifo->head = 0;
     fifo->tail = 0;
 }
+
 /**
- * @brief Pushes an element into the FIFO. If the FIFO is full, this will do nothing. 
+ * @brief Pushes an element into the FIFO. If the FIFO is full, this will do nothing
+ * 
  * @param value The value to be put on the queue. 
  */
 bool fifo_push(fifo_t* fifo, FIFO_TYPE value)
@@ -33,26 +34,28 @@ bool fifo_push(fifo_t* fifo, FIFO_TYPE value)
     }
     else
     {
+        // Put the value in
+        fifo->fifo[fifo->head] = value;
+
         // Advance the head
         fifo->head++;
+
         // Wrap
         if (fifo->head >= FIFO_SIZE)
         {
             fifo->head = 0;
         }
 
-        // Put the value in
-        fifo->fifo[fifo->head] = value;
-
         // Success
         return true;
     }
 }
+
 /**
- * @brief Removes the value at the front of the FIFO. If there is nothing in the FIFO, the 
- * storage pointer is evaulated to NULL
- * @param p_value A pointer to where the value will be stored
+ * @brief Removes the value at the front of the FIFO. If there is nothing in the FIFO, 
+ *  the storage pointer is evaulated to NULL
  * 
+ * @param p_value A pointer to where the value will be stored
  */
 bool fifo_pop(fifo_t* fifo, FIFO_TYPE* p_value)
 {
@@ -77,9 +80,9 @@ bool fifo_pop(fifo_t* fifo, FIFO_TYPE* p_value)
         return true;
     }
 }
+
 /**
  * @brief Gives the number of elements currently in the FIFO
- * 
  */
 uint16_t fifo_get_size(fifo_t* fifo)
 {
@@ -92,6 +95,7 @@ uint16_t fifo_get_size(fifo_t* fifo)
         return FIFO_SIZE - (fifo->tail - fifo->head) + 1;
     }
 }
+
 /**
  * @brief Checks if the FIFO is empty or not
  * 

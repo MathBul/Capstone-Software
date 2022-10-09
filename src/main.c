@@ -1,24 +1,21 @@
 // Project-specific source code
-#include "steppermotors.h"
 #include "clock.h"
 #include "gpio.h"
+#include "steppermotors.h"
 #include "uart.h"
+#include "testing.h"
 
 // Standard includes necessary for base functionality
 #include "msp.h"
 #include <stdint.h>
 
-#define STEPPER_DEBUG
-//#define UART_DEBUG
-
-
 int main(void)
 {
-#ifdef UART_DEBUG
+    #ifdef UART_DEBUG
     char message[64];
     int i = 0;
 
-    sysclock_initialize();
+    sysclock_init();
     uart_init(UART_CHANNEL_0);
 
     // Read whatever comes in to the message string.
@@ -32,22 +29,41 @@ int main(void)
             i = 0;
         }
     }
-#endif
-#ifdef STEPPER_DEBUG
-    // Initialize the system clock
-    sysclock_initialize();
-    timer_0a_initialize();
+    #endif
+
+    #ifdef STEPPER_DEBUG
+    // Initialize the system clock and timer(s)
+    sysclock_init();
+    timer_0a_init();
 
     // Initialize the stepper motor(s)
-    stepper_initialize_motors();
+    stepper_init_motors();
 
-    // Go 250mm right, 250mm forward
-    stepper_go_to_position(250, 250);
+    // Serious of position commands
+    stepper_go_home();
+    stepper_go_to_rel_position(250, 0);
+    stepper_go_to_rel_position(0, 250);
+    stepper_go_home();
+    stepper_go_to_rel_position(200, 200);
+    stepper_go_to_rel_position(50, -50);
+    stepper_go_to_rel_position(-50, 50);
+    stepper_go_home();
+    stepper_go_to_rel_position(250, 250);
+    int i = 0;
+    for (i = 3; i < 8; i++)
+    {
+        stepper_go_to_rel_position(0, 10*i);
+        stepper_go_to_rel_position(10*i, 0);
+        stepper_go_to_rel_position(-20*i, -20*i);
+        stepper_go_to_rel_position(10*i, 0);
+        stepper_go_to_rel_position(0, 10*i);
+    }
+    stepper_go_home();
 
     while(1)
     {
     }
-#endif
+    #endif
 }
 
-// End main.c
+/* End main.c */
