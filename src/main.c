@@ -10,6 +10,7 @@
 
 //#define STEPPER_DEBUG
 #define UART_DEBUG
+//#define CHESS_ROBOT_MAIN
 
 int main(void)
 {
@@ -17,10 +18,8 @@ int main(void)
     sysclock_init();
     uart_init(UART_CHANNEL_3);
 
-//    int i = 0;
     char start_signal = 'A';
     char player_color = 'B';
-//    char move_data[8];
 
     uart_out_byte(UART_CHANNEL_3, (uint8_t) 'S');
     while (start_signal != 'S')
@@ -34,7 +33,6 @@ int main(void)
     }
 
     while (1) {}
-
     #endif
 
     #ifdef UART_DEBUG

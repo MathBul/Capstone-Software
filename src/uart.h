@@ -26,35 +26,10 @@
 #define UART_CHANNEL_6          (6)
 #define UART_CHANNEL_7          (7)
 
-/**
- * @brief Initializes the specified UART channel
- * 
- * @param uart_channel One of UART_CHANNEL_X
- */
+// UART function declarations
 void uart_init(uint8_t uart_channel);
-
-/**
- * @brief Sends a single byte (uint8_t) to the specified UART channel
- * 
- * @param uart_channel One of UART_CHANNEL_X
- * @param byte The uint8_t to be sent
- * @return true The byte was sent
- * @return false The byte could not be sent
- */
 bool uart_out_byte(uint8_t uart_channel, uint8_t byte);
-
-/**
- * @brief Reads the last byte in the Rx FIFO. This may not nessisarily be the last byte received by the
- * hardware. This function spins until something is received. 
- * 
- * @param uart_channel One of UART_CHANNEL_X
- * @param byte A pointer to where the byte will be stored
- * @return true The byte was read
- * @return false The byte could not be read
- */
 bool uart_read_byte(uint8_t uart_channel, uint8_t* byte);
-
-bool uart3_out_byte(uint8_t byte);
 
 
 #endif /* UART_H */
