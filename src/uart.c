@@ -13,14 +13,14 @@
 #include "utils.h"
 
 // TODO: Make sure the elements are only 1 byte long!
-static fifo_t uart_0_rx;
-static fifo_t uart_0_tx;
-static fifo_t uart_2_rx;
-static fifo_t uart_2_tx;
-static fifo_t uart_3_rx;
-static fifo_t uart_3_tx;
-static fifo_t uart_6_rx;
-static fifo_t uart_6_tx;
+static uart_fifo_t uart_0_rx;
+static uart_fifo_t uart_0_tx;
+static uart_fifo_t uart_2_rx;
+static uart_fifo_t uart_2_tx;
+static uart_fifo_t uart_3_rx;
+static uart_fifo_t uart_3_tx;
+static uart_fifo_t uart_6_rx;
+static uart_fifo_t uart_6_tx;
 
 // private functions declarations
 static void copy_hardware_to_software(uint8_t uart_channel);
@@ -37,8 +37,8 @@ void uart_init(uint8_t uart_channel) {
     {
         case UART_CHANNEL_0:
             // Initialize the FIFOS
-            fifo_init(&uart_0_rx);
-            fifo_init(&uart_0_tx);
+            uart_fifo_init(&uart_0_rx);
+            uart_fifo_init(&uart_0_tx);
 
             // Enable the UART clock gate control
             SYSCTL->RCGCUART |= SYSCTL_RCGCUART_R0;
@@ -82,8 +82,8 @@ void uart_init(uint8_t uart_channel) {
 
         case UART_CHANNEL_2:
             // Initialize the FIFOS
-            fifo_init(&uart_2_rx);
-            fifo_init(&uart_2_tx);
+            uart_fifo_init(&uart_2_rx);
+            uart_fifo_init(&uart_2_tx);
 
             // Enable the UART clock gate control
             SYSCTL->RCGCUART |= SYSCTL_RCGCUART_R2;
@@ -128,8 +128,8 @@ void uart_init(uint8_t uart_channel) {
 
         case UART_CHANNEL_3:
             // Initialize the FIFOS
-            fifo_init(&uart_3_rx);
-            fifo_init(&uart_3_tx);
+            uart_fifo_init(&uart_3_rx);
+            uart_fifo_init(&uart_3_tx);
 
             // Enable the UART clock gate control
             SYSCTL->RCGCUART |= SYSCTL_RCGCUART_R3;
@@ -171,8 +171,8 @@ void uart_init(uint8_t uart_channel) {
 
         case UART_CHANNEL_6:
             // Initialize the FIFOS
-            fifo_init(&uart_6_rx);
-            fifo_init(&uart_6_tx);
+            uart_fifo_init(&uart_6_rx);
+            uart_fifo_init(&uart_6_tx);
 
             // Enable the UART clock gate control
             SYSCTL->RCGCUART |= SYSCTL_RCGCUART_R6;
@@ -236,7 +236,7 @@ bool uart_out_byte(uint8_t uart_channel, uint8_t byte)
     {
     case UART_CHANNEL_0:
     {
-        bool output = fifo_push(&uart_0_tx, byte);
+        bool output = uart_fifo_push(&uart_0_tx, byte);
         // If the Tx FIFO is empty copy to hardware
         if (UART0->FR & UART_FR_TXFE)
         {
@@ -246,7 +246,7 @@ bool uart_out_byte(uint8_t uart_channel, uint8_t byte)
     }
     case UART_CHANNEL_2:
     {
-        bool output = fifo_push(&uart_2_tx, byte);
+        bool output = uart_fifo_push(&uart_2_tx, byte);
         // If the Tx FIFO is empty copy to hardware
         if (UART2->FR & UART_FR_TXFE)
         {
@@ -256,7 +256,7 @@ bool uart_out_byte(uint8_t uart_channel, uint8_t byte)
     }
     case UART_CHANNEL_3:
     {
-        bool output = fifo_push(&uart_3_tx, byte);
+        bool output = uart_fifo_push(&uart_3_tx, byte);
         // If the Tx FIFO is empty copy to hardware
         if (UART3->FR & UART_FR_TXFE)
         {
@@ -266,7 +266,7 @@ bool uart_out_byte(uint8_t uart_channel, uint8_t byte)
     }
     case UART_CHANNEL_6:
     {
-        bool output = fifo_push(&uart_6_tx, byte);
+        bool output = uart_fifo_push(&uart_6_tx, byte);
         // If the Tx FIFO is empty copy to hardware
         if (UART6->FR & UART_FR_TXFE)
         {
@@ -293,16 +293,16 @@ bool uart_read_byte(uint8_t uart_channel, uint8_t* byte)
     switch (uart_channel)
     {
     case UART_CHANNEL_0:
-        while (!fifo_pop(&uart_0_rx, byte)){}
+        while (!uart_fifo_pop(&uart_0_rx, byte)){}
         return true;
     case UART_CHANNEL_2:
-        while (!fifo_pop(&uart_2_rx, byte)){}
+        while (!uart_fifo_pop(&uart_2_rx, byte)){}
         return true;
     case UART_CHANNEL_3:
-        while (!fifo_pop(&uart_3_rx, byte)){}
+        while (!uart_fifo_pop(&uart_3_rx, byte)){}
         return true;
     case UART_CHANNEL_6:
-        while (!fifo_pop(&uart_6_rx, byte)){}
+        while (!uart_fifo_pop(&uart_6_rx, byte)){}
         return true;
     default:
         return false;
@@ -322,10 +322,10 @@ static void copy_hardware_to_software(uint8_t uart_channel)
     {
         case UART_CHANNEL_0:
             // While the Rx FIFO is not empty and the software FIFO is not full, copy over
-            while (((UART0->FR & UART_FR_RXFE) == 0) && (fifo_get_size(&uart_0_rx) < FIFO_SIZE))
+            while (((UART0->FR & UART_FR_RXFE) == 0) && (uart_fifo_get_size(&uart_0_rx) < UART_FIFO_SIZE))
             {
                 byte = (UART0->DR & UART_DR_DATA_M);
-                fifo_push(&uart_0_rx, byte);
+                uart_fifo_push(&uart_0_rx, byte);
             }
         break;
 
@@ -335,19 +335,19 @@ static void copy_hardware_to_software(uint8_t uart_channel)
 
         case UART_CHANNEL_2:
             // While the Rx FIFO is not empty and the software FIFO is not full, copy over
-            while (((UART2->FR & UART_FR_RXFE) == 0) && (fifo_get_size(&uart_2_rx) < FIFO_SIZE))
+            while (((UART2->FR & UART_FR_RXFE) == 0) && (uart_fifo_get_size(&uart_2_rx) < UART_FIFO_SIZE))
             {
                 byte = (UART2->DR & UART_DR_DATA_M);
-                fifo_push(&uart_2_rx, byte);
+                uart_fifo_push(&uart_2_rx, byte);
             }
         break;
 
         case UART_CHANNEL_3:
             // While the Rx FIFO is not empty and the software FIFO is not full, copy over
-            while (((UART3->FR & UART_FR_RXFE) == 0) && (fifo_get_size(&uart_3_rx) < FIFO_SIZE))
+            while (((UART3->FR & UART_FR_RXFE) == 0) && (uart_fifo_get_size(&uart_3_rx) < UART_FIFO_SIZE))
             {
                 byte = (UART3->DR & UART_DR_DATA_M);
-                fifo_push(&uart_3_rx, byte);
+                uart_fifo_push(&uart_3_rx, byte);
             }
         break;
 
@@ -361,10 +361,10 @@ static void copy_hardware_to_software(uint8_t uart_channel)
 
         case UART_CHANNEL_6:
             // While the Rx FIFO is not empty and the software FIFO is not full, copy over
-            while (((UART6->FR & UART_FR_RXFE) == 0) && (fifo_get_size(&uart_6_rx) < FIFO_SIZE))
+            while (((UART6->FR & UART_FR_RXFE) == 0) && (uart_fifo_get_size(&uart_6_rx) < UART_FIFO_SIZE))
             {
                 byte = (UART6->DR & UART_DR_DATA_M);
-                fifo_push(&uart_6_rx, byte);
+                uart_fifo_push(&uart_6_rx, byte);
             }
         break;
 
@@ -388,9 +388,9 @@ static void copy_software_to_hardware(uint8_t uart_channel)
     {
         case UART_CHANNEL_0:
             // While the Tx FIFO is not full and the software FIFO is not empty, copy over
-            while (((UART0->FR & UART_FR_TXFF) == 0) && !fifo_is_empty(&uart_0_tx))
+            while (((UART0->FR & UART_FR_TXFF) == 0) && !uart_fifo_is_empty(&uart_0_tx))
             {
-                if (fifo_pop(&uart_0_tx, &byte))
+                if (uart_fifo_pop(&uart_0_tx, &byte))
                 {
                     UART0->DR = byte;
                 }
@@ -409,9 +409,9 @@ static void copy_software_to_hardware(uint8_t uart_channel)
 
         case UART_CHANNEL_2:
             // While the Tx FIFO is not full and the software FIFO is not empty, copy over
-            while (((UART2->FR & UART_FR_TXFF) == 0) && !fifo_is_empty(&uart_2_tx))
+            while (((UART2->FR & UART_FR_TXFF) == 0) && !uart_fifo_is_empty(&uart_2_tx))
             {
-                if (fifo_pop(&uart_2_tx, &byte))
+                if (uart_fifo_pop(&uart_2_tx, &byte))
                 {
                     UART2->DR = byte;
                 }
@@ -426,9 +426,9 @@ static void copy_software_to_hardware(uint8_t uart_channel)
 
         case UART_CHANNEL_3:
             // While the Tx FIFO is not full and the software FIFO is not empty, copy over
-            while (((UART3->FR & UART_FR_TXFF) == 0) && !fifo_is_empty(&uart_3_tx))
+            while (((UART3->FR & UART_FR_TXFF) == 0) && !uart_fifo_is_empty(&uart_3_tx))
             {
-                if (fifo_pop(&uart_3_tx, &byte))
+                if (uart_fifo_pop(&uart_3_tx, &byte))
                 {
                     UART3->DR = byte;
                 }
@@ -451,9 +451,9 @@ static void copy_software_to_hardware(uint8_t uart_channel)
 
         case UART_CHANNEL_6:
             // While the Tx FIFO is not full and the software FIFO is not empty, copy over
-            while (((UART6->FR & UART_FR_TXFF) == 0) && !fifo_is_empty(&uart_6_tx))
+            while (((UART6->FR & UART_FR_TXFF) == 0) && !uart_fifo_is_empty(&uart_6_tx))
             {
-                if (fifo_pop(&uart_6_tx, &byte))
+                if (uart_fifo_pop(&uart_6_tx, &byte))
                 {
                     UART6->DR = byte;
                 }

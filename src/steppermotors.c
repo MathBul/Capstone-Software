@@ -9,7 +9,7 @@
  */
 
 #include "steppermotors.h"
-#include "fifo.h"
+#include "stepper_fifo.h"
 
 // Assumed board layout:
 //  |-------|
@@ -22,9 +22,9 @@ static stepper_motors_t* stepper_motor_x = &stepper_motors[0];
 static stepper_motors_t* stepper_motor_y = &stepper_motors[1];
 
 // Declare queues for the pending motor positions
-fifo_t stepper_pos_queues[NUMBER_OF_STEPPER_MOTORS];
-static fifo_t* stepper_x_pos_queue = &stepper_pos_queues[0];
-static fifo_t* stepper_y_pos_queue = &stepper_pos_queues[1];
+stepper_fifo_t stepper_pos_queues[NUMBER_OF_STEPPER_MOTORS];
+static stepper_fifo_t* stepper_x_pos_queue = &stepper_pos_queues[0];
+static stepper_fifo_t* stepper_y_pos_queue = &stepper_pos_queues[1];
 
 /**
  * @brief Initialize all stepper motors
@@ -68,7 +68,7 @@ void stepper_init_motors()
     stepper_motor_x->transitions_to_desired_pos = 0;
 
     // Configure the position queue
-    fifo_init(stepper_x_pos_queue);
+    stepper_fifo_init(stepper_x_pos_queue);
 
 
     /* Stepper 2 (y direction) */
@@ -108,7 +108,7 @@ void stepper_init_motors()
     stepper_motor_y->transitions_to_desired_pos = 0;
 
     // Configure the position queue
-    fifo_init(stepper_y_pos_queue);
+    stepper_fifo_init(stepper_y_pos_queue);
 }
 
 /**
@@ -200,8 +200,8 @@ static void stepper_get_next_pos_commands()
     // Retrieve the next position commands
     int32_t distance_x = 0;
     int32_t distance_y = 0;
-    fifo_pop(stepper_x_pos_queue, (int32_t*) &distance_x);
-    fifo_pop(stepper_y_pos_queue, (int32_t*) &distance_y);
+    stepper_fifo_pop(stepper_x_pos_queue, (int32_t*) &distance_x);
+    stepper_fifo_pop(stepper_y_pos_queue, (int32_t*) &distance_y);
 
     // Determine number of steps to reach the desired positions
     stepper_motor_x->transitions_to_desired_pos = stepper_distance_to_transitions(distance_x);
@@ -240,8 +240,8 @@ static void stepper_get_next_pos_commands()
 void stepper_go_to_rel_position(int32_t distance_x, int32_t distance_y)
 {
     // Load the this command onto the position queues
-    fifo_push(stepper_x_pos_queue, distance_x);
-    fifo_push(stepper_y_pos_queue, distance_y);
+    stepper_fifo_push(stepper_x_pos_queue, distance_x);
+    stepper_fifo_push(stepper_y_pos_queue, distance_y);
 
     // (EXPERIMENTAL) Update the distance to home, assuming we reach our destination
     stepper_motor_x->distance_to_home -= distance_x;
@@ -255,8 +255,8 @@ void stepper_go_to_rel_position(int32_t distance_x, int32_t distance_y)
 void stepper_go_home()
 {
     // Load the this command onto the position queues
-    fifo_push(stepper_x_pos_queue, stepper_motor_x->distance_to_home);
-    fifo_push(stepper_y_pos_queue, stepper_motor_y->distance_to_home);
+    stepper_fifo_push(stepper_x_pos_queue, stepper_motor_x->distance_to_home);
+    stepper_fifo_push(stepper_y_pos_queue, stepper_motor_y->distance_to_home);
 
     // (EXPERIMENTAL) Update the distance to home, assuming we reach our destination
     stepper_motor_x->distance_to_home = 0;

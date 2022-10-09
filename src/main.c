@@ -3,11 +3,13 @@
 #include "gpio.h"
 #include "steppermotors.h"
 #include "uart.h"
-#include "testing.h"
 
 // Standard includes necessary for base functionality
 #include "msp.h"
 #include <stdint.h>
+
+//#define STEPPER_DEBUG
+#define UART_DEBUG
 
 int main(void)
 {
