@@ -1,7 +1,7 @@
 /**
- * @file fifo.c
+ * @file uart_fifo.c
  * @author Eli Jelesko (ebj5hec@virginia.edu)
- * @brief Implements a First In First Out (FIFO) data structure
+ * @brief Implements a First In First Out (FIFO) data structure for UART (8-bit)
  * @version 0.1
  * @date 2022-10-03
  * 
@@ -9,12 +9,12 @@
  * 
  */
 
-#include "fifo.h"
+#include "uart_fifo.h"
 
 /**
  * @brief Initializes the FIFO. Starts empty
  */
-void fifo_init(fifo_t* fifo)
+void uart_fifo_init(uart_fifo_t* fifo)
 {
     fifo->head = 0;
     fifo->tail = 0;
@@ -25,10 +25,10 @@ void fifo_init(fifo_t* fifo)
  * 
  * @param value The value to be put on the queue. 
  */
-bool fifo_push(fifo_t* fifo, FIFO_TYPE value)
+bool uart_fifo_push(uart_fifo_t* fifo, UART_FIFO_TYPE value)
 {
     // If the FIFO is full, return
-    if (fifo_get_size(fifo) == FIFO_SIZE)
+    if (uart_fifo_get_size(fifo) == UART_FIFO_SIZE)
     {
         return false;
     }
@@ -41,7 +41,7 @@ bool fifo_push(fifo_t* fifo, FIFO_TYPE value)
         fifo->head++;
 
         // Wrap
-        if (fifo->head >= FIFO_SIZE)
+        if (fifo->head >= UART_FIFO_SIZE)
         {
             fifo->head = 0;
         }
@@ -57,10 +57,10 @@ bool fifo_push(fifo_t* fifo, FIFO_TYPE value)
  * 
  * @param p_value A pointer to where the value will be stored
  */
-bool fifo_pop(fifo_t* fifo, FIFO_TYPE* p_value)
+bool uart_fifo_pop(uart_fifo_t* fifo, UART_FIFO_TYPE* p_value)
 {
     // If it's empty do nothing
-    if (fifo_is_empty(fifo))
+    if (uart_fifo_is_empty(fifo))
     {
         return false;
     }
@@ -71,7 +71,7 @@ bool fifo_pop(fifo_t* fifo, FIFO_TYPE* p_value)
 
         // Advance the tail
         fifo->tail++;
-        if (fifo->tail >= FIFO_SIZE)
+        if (fifo->tail >= UART_FIFO_SIZE)
         {
             fifo->tail = 0;
         }
@@ -84,7 +84,7 @@ bool fifo_pop(fifo_t* fifo, FIFO_TYPE* p_value)
 /**
  * @brief Gives the number of elements currently in the FIFO
  */
-uint16_t fifo_get_size(fifo_t* fifo)
+uint16_t uart_fifo_get_size(uart_fifo_t* fifo)
 {
     if (fifo->head >= fifo->tail) // When they are equal the size is 0
     {
@@ -92,7 +92,7 @@ uint16_t fifo_get_size(fifo_t* fifo)
     }
     else 
     {
-        return FIFO_SIZE - (fifo->tail - fifo->head) + 1;
+        return UART_FIFO_SIZE - (fifo->tail - fifo->head) + 1;
     }
 }
 
@@ -103,7 +103,7 @@ uint16_t fifo_get_size(fifo_t* fifo)
  * @return true The FIFO is empty
  * @return false There are elements still in the FIFO
  */
-bool fifo_is_empty(fifo_t* fifo)
+bool uart_fifo_is_empty(uart_fifo_t* fifo)
 {
     return fifo->head == fifo->tail;
 }

@@ -14,7 +14,7 @@
 
 #include "msp.h"
 #include <stdint.h>
-#include "fifo.h"
+#include "uart_fifo.h"
 
 // These are all the UART channels on the msp432e401y
 #define UART_CHANNEL_0          (0)
