@@ -26,6 +26,11 @@
 #define FIFO_SIZE               (128) // Must be at least 1 and less than 65535
 #endif
 
+#ifdef CHESS_ROBOT_MAIN
+#define FIFO_TYPE               uint8_t
+#define FIFO_SIZE               (16) // Must be at least 1 and less than 65535
+#endif
+
 // Fifo data structure struct
 typedef struct fifo_t {
     FIFO_TYPE fifo[FIFO_SIZE];

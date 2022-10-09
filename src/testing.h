@@ -12,6 +12,7 @@
 #define TESTING_H_
 
 //#define STEPPER_DEBUG
-#define UART_DEBUG
+//#define UART_DEBUG
+#define CHESS_ROBOT_MAIN
 
 #endif /* TESTING_H_ */

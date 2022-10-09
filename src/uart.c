@@ -110,7 +110,7 @@ void uart_init(uint8_t uart_channel) {
             UART2->FBRD |= (11 << UART_FBRD_DIVFRAC_S); // Fractional
             // Enable FIFOs and set 8 bit word length
             UART2->LCRH |= (UART_LCRH_FEN | UART_LCRH_WLEN_8);
-            // Set the baud clock source to PI0SC (16 MHz)
+            // Set the baud clock source to PIOSC (16 MHz)
             UART2->CC |= UART_CC_CS_PIOSC;
             // Set the interrupt trigger levels
             // Triggers when both the Tx and Rx FIFOs are 1/8 full
@@ -163,7 +163,7 @@ void uart_init(uint8_t uart_channel) {
             // Set the UART3 interrupt (#56) to priority 2 (IP[14] services interrupts 56-59)
             NVIC->IP[14] |= ((uint32_t) 2 << NVIC_PRI14_INTA_S);
             // Enable the UART3 interrupt (ISER[1] services interrupts 32-63)
-            NVIC->ISER[1] |= ((uint32_t) 1 << (UART3_IRQn - 32));
+            NVIC->ISER[1] |= (1 << (UART3_IRQn - 32));
 
             // Enable UART
             UART3->CTL |= UART_CTL_UARTEN;
@@ -232,51 +232,55 @@ void uart_init(uint8_t uart_channel) {
  */
 bool uart_out_byte(uint8_t uart_channel, uint8_t byte)
 {
+    bool output;
     switch (uart_channel)
     {
     case UART_CHANNEL_0:
-    {
-        bool output = fifo_push(&uart_0_tx, byte);
+        output = fifo_push(&uart_0_tx, byte);
         // If the Tx FIFO is empty copy to hardware
         if (UART0->FR & UART_FR_TXFE)
         {
             copy_software_to_hardware(UART_CHANNEL_0);
         }
         return output;
-    }
     case UART_CHANNEL_2:
-    {
-        bool output = fifo_push(&uart_2_tx, byte);
+        output = fifo_push(&uart_2_tx, byte);
         // If the Tx FIFO is empty copy to hardware
         if (UART2->FR & UART_FR_TXFE)
         {
             copy_software_to_hardware(UART_CHANNEL_2);
         }
         return output;
-    }
     case UART_CHANNEL_3:
-    {
-        bool output = fifo_push(&uart_3_tx, byte);
+        output = fifo_push(&uart_3_tx, byte);
         // If the Tx FIFO is empty copy to hardware
         if (UART3->FR & UART_FR_TXFE)
         {
             copy_software_to_hardware(UART_CHANNEL_3);
         }
         return output;
-    }
     case UART_CHANNEL_6:
-    {
-        bool output = fifo_push(&uart_6_tx, byte);
+        output = fifo_push(&uart_6_tx, byte);
         // If the Tx FIFO is empty copy to hardware
         if (UART6->FR & UART_FR_TXFE)
         {
             copy_software_to_hardware(UART_CHANNEL_6);
         }
         return output;
-    }
     default:
         return false;
     }
+}
+
+bool uart3_out_byte(uint8_t byte)
+{
+    bool output = fifo_push(&uart_3_tx, byte);
+    // If the Tx FIFO is empty copy to hardware
+    if (UART3->FR & UART_FR_TXFE)
+    {
+        copy_software_to_hardware(UART_CHANNEL_3);
+    }
+    return output;
 }
 
 /**

@@ -54,5 +54,7 @@ bool uart_out_byte(uint8_t uart_channel, uint8_t byte);
  */
 bool uart_read_byte(uint8_t uart_channel, uint8_t* byte);
 
+bool uart3_out_byte(uint8_t byte);
+
 
 #endif /* UART_H */

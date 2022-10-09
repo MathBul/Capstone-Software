@@ -11,18 +11,43 @@
 
 int main(void)
 {
+    #ifdef CHESS_ROBOT_MAIN
+    sysclock_init();
+    uart_init(UART_CHANNEL_3);
+
+//    int i = 0;
+    char start_signal = 'A';
+    char player_color = 'B';
+//    char move_data[8];
+
+    uart_out_byte(UART_CHANNEL_3, (uint8_t) 'S');
+    while (start_signal != 'S')
+    {
+        uart_read_byte(UART_CHANNEL_3, (uint8_t*)&start_signal);
+    }
+    if (player_color == 'W')
+        uart_out_byte(UART_CHANNEL_3, (uint8_t) 'W');
+    else {
+        uart_out_byte(UART_CHANNEL_3, (uint8_t) 'B');
+    }
+
+    while (1) {}
+
+    #endif
+
     #ifdef UART_DEBUG
     char message[64];
     int i = 0;
 
     sysclock_init();
-    uart_init(UART_CHANNEL_0);
+    uart_init(UART_CHANNEL_3);
 
     // Read whatever comes in to the message string.
     while (1)
     {
         // This is "blocking"
-        uart_read_byte(UART_CHANNEL_0, (uint8_t*)&message[i]);
+        uart_read_byte(UART_CHANNEL_3, (uint8_t*)&message[i]);
+//        uart_out_byte(UART_CHANNEL_3, (uint8_t) 'A');
         i++;
         if (i > 63)
         {
