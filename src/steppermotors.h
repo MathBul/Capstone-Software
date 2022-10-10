@@ -11,6 +11,11 @@
 #ifndef STEPPER_MOTORS_H_
 #define STEPPER_MOTORS_H_
 
+// Assumed board layout:
+//  |-------|
+//  | BOARD |
+//  |-------X  <== Position (0,0), home
+
 #include "msp.h"
 #include "gpio.h"
 #include <stdint.h>

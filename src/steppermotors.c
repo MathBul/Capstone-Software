@@ -11,11 +11,6 @@
 #include "steppermotors.h"
 #include "stepper_fifo.h"
 
-// Assumed board layout:
-//  |-------|
-//  | BOARD |
-//  |-------X  <== Position (0,0), home
-
 // Declare the stepper motors
 stepper_motors_t stepper_motors[NUMBER_OF_STEPPER_MOTORS];
 static stepper_motors_t* stepper_motor_x = &stepper_motors[0];

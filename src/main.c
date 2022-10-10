@@ -8,8 +8,8 @@
 #include "msp.h"
 #include <stdint.h>
 
-//#define STEPPER_DEBUG
-#define UART_DEBUG
+#define STEPPER_DEBUG
+//#define UART_DEBUG
 //#define CHESS_ROBOT_MAIN
 
 int main(void)

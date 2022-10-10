@@ -76,6 +76,53 @@ void gpio_set_as_input(GPIO_Type* port, uint8_t pin)
 }
 
 /**
+ * @brief Reads the specified GPIO port/pin
+ * 
+ * @param port GPIO_Type for the port being used
+ * @param pin Pin being used, should be one of GPIO_PIN_X
+ */
+uint8_t gpio_read_input(GPIO_Type* port, uint8_t pin)
+{
+    // Find the appropriate shift
+    uint8_t shift = 0;
+    if (pin == GPIO_PIN_0)
+    {
+        shift = 0;
+    }
+    else if (pin == GPIO_PIN_1)
+    {
+        shift = 1;
+    }
+    else if (pin == GPIO_PIN_2)
+    {
+        shift = 2;
+    }
+    else if (pin == GPIO_PIN_3)
+    {
+        shift = 3;
+    }
+    else if (pin == GPIO_PIN_4)
+    {
+        shift = 4;
+    }
+    else if (pin == GPIO_PIN_5)
+    {
+        shift = 5;
+    }
+    else if (pin == GPIO_PIN_6)
+    {
+        shift = 6;
+    }
+    else if (pin == GPIO_PIN_7)
+    {
+        shift = 7;
+    }
+
+    // Produce the result
+    return ((port->DATA |= pin) >> shift);
+}
+
+/**
  * @brief Selects the alternate pin functionality. Modfies the GPIO alternate select and port control 
  * registers
  * 
