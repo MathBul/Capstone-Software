@@ -24,4 +24,10 @@ void rpi_init();
 bool rpi_transmit(char data);
 bool rpi_receive(char *data);
 
+// Raspberry Pi Instruction functions
+void rpi_transmit_RESET();
+void rpi_transmit_START_W();
+void rpi_transmit_START_B();
+void rpi_transmit_HUMAN_MOVE(char *move);
+
 #endif /* RASPBERRYPI_H_ */

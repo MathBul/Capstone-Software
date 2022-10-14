@@ -10,6 +10,7 @@
 
 #include "raspberrypi.h"
 #include "uart.h"
+#include "utils.h"
 
 /**
  * @brief Initialize the Raspberry Pi UART tx and rx lines
@@ -39,6 +40,36 @@ bool rpi_transmit(char data)
 bool rpi_receive(char *data)
 {
     return uart_read_byte(RPI_UART_CHANNEL, (uint8_t*) data);
+}
+
+void rpi_transmit_RESET()
+{
+    uart_out_byte(RPI_UART_CHANNEL, (uint8_t) START_BYTE);
+    uart_out_byte(RPI_UART_CHANNEL, (uint8_t) RESET_INSTR_AND_LEN);
+}
+
+void rpi_transmit_START_W()
+{
+    uart_out_byte(RPI_UART_CHANNEL, (uint8_t) START_BYTE);
+    uart_out_byte(RPI_UART_CHANNEL, (uint8_t) START_W_INSTR_AND_LEN);
+}
+
+void rpi_transmit_START_B()
+{
+    uart_out_byte(RPI_UART_CHANNEL, (uint8_t) START_BYTE);
+    uart_out_byte(RPI_UART_CHANNEL, (uint8_t) START_B_INSTR_AND_LEN);
+}
+
+void rpi_transmit_HUMAN_MOVE(char *move)
+{
+    uart_out_byte(RPI_UART_CHANNEL, (uint8_t) START_BYTE);
+    uart_out_byte(RPI_UART_CHANNEL, (uint8_t) HUMAN_MOVE_INSTR_AND_LEN);
+    char *t;
+    for (t = move; *t != '\0'; t++)
+    {
+        uart_out_byte(RPI_UART_CHANNEL, (uint8_t) *t);
+        utils_delay(50000);
+    }
 }
 
 /* End raspberrypi.c */

@@ -15,5 +15,6 @@
 
 // Utility function definitions
 void utils_gpio_clock_enable(GPIO_Type* port);
+void utils_delay(uint32_t ticks);
 
 #endif

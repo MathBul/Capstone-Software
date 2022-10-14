@@ -90,4 +90,15 @@ void utils_gpio_clock_enable(GPIO_Type* port)
     }
 }
 
+/**
+ * @brief Delay the next operation with a for-loop (used for spacing out UART communication)
+ *
+ * @param ticks the number of clock ticks to delay for
+ */
+void utils_delay(uint32_t ticks)
+{
+    int i;
+    for (i = 0; i < ticks; i++) {}
+}
+
 /* End utils.c */

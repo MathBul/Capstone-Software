@@ -3,36 +3,51 @@
 #include "gpio.h"
 #include "steppermotors.h"
 #include "uart.h"
+#include "raspberrypi.h"
+#include "utils.h"
 
 // Standard includes necessary for base functionality
 #include "msp.h"
 #include <stdint.h>
 
-#define STEPPER_DEBUG
+//#define STEPPER_DEBUG
 //#define UART_DEBUG
-//#define CHESS_ROBOT_MAIN
+#define CHESS_ROBOT_MAIN
 
 int main(void)
 {
     #ifdef CHESS_ROBOT_MAIN
     sysclock_init();
     uart_init(UART_CHANNEL_3);
+    int i = 0;
+    char *move = "e2e4_";
 
-    char start_signal = 'A';
-    char player_color = 'B';
+//    rpi_transmit('a');
+    rpi_transmit_START_W();
+    utils_delay(50000);
+    rpi_transmit_START_B();
+    utils_delay(50000);
+    rpi_transmit_RESET();
+    utils_delay(50000);
+    rpi_transmit_HUMAN_MOVE(move);
 
-    uart_out_byte(UART_CHANNEL_3, (uint8_t) 'S');
-    while (start_signal != 'S')
+    while (1)
     {
-        uart_read_byte(UART_CHANNEL_3, (uint8_t*)&start_signal);
+        ;
     }
-    if (player_color == 'W')
-        uart_out_byte(UART_CHANNEL_3, (uint8_t) 'W');
-    else {
-        uart_out_byte(UART_CHANNEL_3, (uint8_t) 'B');
-    }
+//    char start_signal = 'A';
+//    char player_color = 'B';
 
-    while (1) {}
+//    uart_out_byte(UART_CHANNEL_3, (uint8_t) 'S');
+//    while (start_signal != 'S')
+//    {
+//        uart_read_byte(UART_CHANNEL_3, (uint8_t*)&start_signal);
+//    }
+//    if (player_color == 'W')
+//        uart_out_byte(UART_CHANNEL_3, (uint8_t) 'W');
+//    else {
+//        uart_out_byte(UART_CHANNEL_3, (uint8_t) 'B');
+//    }
     #endif
 
     #ifdef UART_DEBUG
