@@ -19,21 +19,47 @@ int main(void)
     #ifdef CHESS_ROBOT_MAIN
     sysclock_init();
     uart_init(UART_CHANNEL_3);
+    long prev_board = 0xFF0000FF;
+    long curr_board = 0xFF0000FF;
     int i = 0;
-    char *move = "e2e4_";
-
-//    rpi_transmit('a');
-    rpi_transmit_START_W();
-    utils_delay(50000);
-    rpi_transmit_START_B();
-    utils_delay(50000);
-    rpi_transmit_RESET();
-    utils_delay(50000);
-    rpi_transmit_HUMAN_MOVE(move);
-
+    int j = 0;
+    char first_byte;
+    char instr_and_op_len;
+    char move[5];
+//    rpi_transmit_START_W();
+//    rpi_transmit_HUMAN_MOVE(move);
+//    bool first_byte_received = rpi_receive(first_byte);
     while (1)
     {
-        ;
+        bool first_byte_received = rpi_receive(&first_byte);
+        if (first_byte == START_BYTE)
+        {
+            bool second_byte_received = rpi_receive(&instr_and_op_len);
+
+            uint8_t instr = instr_and_op_len >> 4;
+
+            uint8_t op_len = instr_and_op_len & (~0xF0);
+            if (instr == ROBOT_MOVE_INSTR)
+            {
+                bool move0_rec = rpi_receive(&move[0]);
+                bool move1_rec = rpi_receive(&move[1]);
+                bool move2_rec = rpi_receive(&move[2]);
+                bool move3_rec = rpi_receive(&move[3]);
+                bool move4_rec = rpi_receive(&move[4]);
+                j++;
+            }
+            else if (instr == ILLEGAL_MOVE_INSTR)
+            {
+                j++;
+            }
+        }
+        i++;
+        if (i > 31)
+        {
+            i = 0;
+        }
+        first_byte = 0xFF;
+        instr_and_op_len = 0xFF;
     }
 //    char start_signal = 'A';
 //    char player_color = 'B';
