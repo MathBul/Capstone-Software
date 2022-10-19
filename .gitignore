@@ -66,4 +66,5 @@ RemoteSystemsTempFiles
 *.cmd
 ccs/
 Debug/
+.vscode
 
