@@ -12,6 +12,9 @@
 #include <stdint.h>
 #include "chessboard.h"
 
+chess_board_t previous_board;
+chess_board_t current_board;
+
 void chess_board_init(chess_board_t *board)
 {
     board->board_presence = (long) 0xFFFF00000000FFFF;
@@ -176,4 +179,13 @@ char* get_move(chess_board_t* previous, chess_board_t* current, char move[5])
     move[3] = square_final[1];
     move[4] = '_';
     return move;
+}
+
+/**
+ * @brief Reset the chess board
+ */
+void chessboard_reset()
+{
+    chess_board_init(&previous_board);
+    chess_board_init(&current_board);
 }

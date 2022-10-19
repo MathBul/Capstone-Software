@@ -21,5 +21,6 @@ void chess_board_init(chess_board_t *board);
 uint8_t square_to_index(char rank, char file);
 char* index_to_square(uint8_t index, char square[2]);
 char* get_move(chess_board_t* previous, chess_board_t* current, char move[5]);
+void chessboard_reset();
 
 #endif /* CHESSBOARD_H_ */

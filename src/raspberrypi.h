@@ -1,6 +1,6 @@
 /**
  * @file raspberrypi.h
- * @author Nick Cooney (npc4crc@virginia.edu)
+ * @author Nick Cooney (npc4crc@virginia.edu) and Keenan Alchaar (ka5nt@virginia.edu)
  * @brief Provides functions for interacting with a Raspberry Pi
  * @version 0.1
  * @date 2022-10-09
@@ -26,8 +26,7 @@ bool rpi_receive(char *data);
 
 // Raspberry Pi Instruction functions
 void rpi_transmit_RESET();
-void rpi_transmit_START_W();
-void rpi_transmit_START_B();
+void rpi_transmit_start(char color);
 void rpi_transmit_HUMAN_MOVE(char *move);
 
 #endif /* RASPBERRYPI_H_ */

@@ -1,0 +1,14 @@
+{
+    "files.associations": {
+        "msp.h": "c",
+        "stdint.h": "c",
+        "cstdint": "c",
+        "gpio.h": "c",
+        "uart.h": "c",
+        "clock.h": "c",
+        "fifo.h": "c",
+        "sensornetwork.h": "c",
+        "utils.h": "c",
+        "stepper_fifo.h": "c"
+    }
+}

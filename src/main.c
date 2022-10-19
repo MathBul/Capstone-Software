@@ -1,11 +1,9 @@
 // Project-specific source code
 #include "clock.h"
 #include "gpio.h"
-#include "steppermotors.h"
 #include "uart.h"
-#include "raspberrypi.h"
-#include "chessboard.h"
 #include "utils.h"
+#include "gantry.h"
 
 // Standard includes necessary for base functionality
 #include "msp.h"
@@ -13,19 +11,15 @@
 
 //#define STEPPER_DEBUG
 //#define UART_DEBUG
-#define CHESS_ROBOT_MAIN
+//#define CHESS_ROBOT_MAIN
 
 int main(void)
 {
     #ifdef CHESS_ROBOT_MAIN
-    sysclock_init();
+    clock_sys_init();
     uart_init(UART_CHANNEL_3);
 
-    chess_board_t previous_board;
-    chess_board_t current_board;
-
-    chess_board_init(&previous_board);
-    chess_board_init(&current_board);
+    chess_board_reset();
 
     int i = 0;
     int j = 0;
@@ -34,7 +28,7 @@ int main(void)
     char instr_and_op_len;
     char move[5];
 
-//    rpi_transmit_START_W();
+//    rpi_transmit_start('W');
 //    rpi_transmit_HUMAN_MOVE(move);
 //    bool first_byte_received = rpi_receive(first_byte);
     while (1)
@@ -76,7 +70,7 @@ int main(void)
     char message[64];
     int i = 0;
 
-    sysclock_init();
+    clock_sys_init();
     uart_init(UART_CHANNEL_3);
 
     // Read whatever comes in to the message string.
@@ -95,8 +89,8 @@ int main(void)
 
     #ifdef STEPPER_DEBUG
     // Initialize the system clock and timer(s)
-    sysclock_init();
-    timer_0a_init();
+    clock_sys_init();
+    clock_timer0a_init();
 
     // Initialize the stepper motor(s)
     stepper_init_motors();

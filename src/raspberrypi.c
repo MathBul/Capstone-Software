@@ -48,16 +48,18 @@ void rpi_transmit_RESET()
     uart_out_byte(RPI_UART_CHANNEL, (uint8_t) RESET_INSTR_AND_LEN);
 }
 
-void rpi_transmit_START_W()
+void rpi_transmit_start(char color)
 {
-    uart_out_byte(RPI_UART_CHANNEL, (uint8_t) START_BYTE);
-    uart_out_byte(RPI_UART_CHANNEL, (uint8_t) START_W_INSTR_AND_LEN);
-}
-
-void rpi_transmit_START_B()
-{
-    uart_out_byte(RPI_UART_CHANNEL, (uint8_t) START_BYTE);
-    uart_out_byte(RPI_UART_CHANNEL, (uint8_t) START_B_INSTR_AND_LEN);
+    if (color == 'W')
+    {
+        uart_out_byte(RPI_UART_CHANNEL, (uint8_t) START_BYTE);
+        uart_out_byte(RPI_UART_CHANNEL, (uint8_t) START_W_INSTR_AND_LEN);
+    }
+    else if (color == 'B')
+    {
+        uart_out_byte(RPI_UART_CHANNEL, (uint8_t) START_BYTE);
+        uart_out_byte(RPI_UART_CHANNEL, (uint8_t) START_B_INSTR_AND_LEN);
+    }
 }
 
 void rpi_transmit_HUMAN_MOVE(char *move)

@@ -12,17 +12,18 @@
 #define GPIO_H_
 
 #include "msp.h"
+#include "utils.h"
 #include <stdint.h>
 
 // GPIO pin definitions
-#define GPIO_PIN_0                          ((uint8_t) (1 << 0))
-#define GPIO_PIN_1                          ((uint8_t) (1 << 1))
-#define GPIO_PIN_2                          ((uint8_t) (1 << 2))
-#define GPIO_PIN_3                          ((uint8_t) (1 << 3))
-#define GPIO_PIN_4                          ((uint8_t) (1 << 4))
-#define GPIO_PIN_5                          ((uint8_t) (1 << 5))
-#define GPIO_PIN_6                          ((uint8_t) (1 << 6))
-#define GPIO_PIN_7                          ((uint8_t) (1 << 7))
+#define GPIO_PIN_0                          (BITS8_MASK(0))
+#define GPIO_PIN_1                          (BITS8_MASK(1))
+#define GPIO_PIN_2                          (BITS8_MASK(2))
+#define GPIO_PIN_3                          (BITS8_MASK(3))
+#define GPIO_PIN_4                          (BITS8_MASK(4))
+#define GPIO_PIN_5                          (BITS8_MASK(5))
+#define GPIO_PIN_6                          (BITS8_MASK(6))
+#define GPIO_PIN_7                          (BITS8_MASK(7))
 
 // Functions for GPIO output
 void gpio_set_as_output(GPIO_Type* port, uint8_t pin);

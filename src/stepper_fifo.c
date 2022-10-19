@@ -1,7 +1,7 @@
 /**
  * @file stepper_fifo.c
  * @author Eli Jelesko (ebj5hec@virginia.edu)
- * @brief Implements a First In First Out (FIFO) data structure for the stepper motors (32-bit)
+ * @brief Implements a First-In, First-Out (FIFO) data structure for the stepper motors
  * @version 0.1
  * @date 2022-10-03
  * 
@@ -25,7 +25,7 @@ void stepper_fifo_init(stepper_fifo_t* fifo)
  * 
  * @param value The value to be put on the queue. 
  */
-bool stepper_fifo_push(stepper_fifo_t* fifo, STEPPER_FIFO_TYPE value)
+bool stepper_fifo_push(stepper_fifo_t* fifo, stepper_fifo_node_t value)
 {
     // If the FIFO is full, return
     if (stepper_fifo_get_size(fifo) == STEPPER_FIFO_SIZE)
@@ -57,7 +57,7 @@ bool stepper_fifo_push(stepper_fifo_t* fifo, STEPPER_FIFO_TYPE value)
  * 
  * @param p_value A pointer to where the value will be stored
  */
-bool stepper_fifo_pop(stepper_fifo_t* fifo, STEPPER_FIFO_TYPE* p_value)
+bool stepper_fifo_pop(stepper_fifo_t* fifo, stepper_fifo_node_t* p_value)
 {
     // If it's empty do nothing
     if (stepper_fifo_is_empty(fifo))

@@ -8,18 +8,18 @@
  * @copyright Copyright (c) 2022
  */
 
-#include "steppermotors.h"
+#include "clock.h"
 #include "stepper_fifo.h"
+#include "steppermotors.h"
 
 // Declare the stepper motors
 stepper_motors_t stepper_motors[NUMBER_OF_STEPPER_MOTORS];
 static stepper_motors_t* stepper_motor_x = &stepper_motors[0];
 static stepper_motors_t* stepper_motor_y = &stepper_motors[1];
 
-// Declare queues for the pending motor positions
-stepper_fifo_t stepper_pos_queues[NUMBER_OF_STEPPER_MOTORS];
-static stepper_fifo_t* stepper_x_pos_queue = &stepper_pos_queues[0];
-static stepper_fifo_t* stepper_y_pos_queue = &stepper_pos_queues[1];
+// Declare the position command queue
+static stepper_fifo_t stepper_pos_queue;
+static stepper_fifo_t* p_stepper_pos_queue = &stepper_pos_queue;
 
 /**
  * @brief Initialize all stepper motors
@@ -62,9 +62,6 @@ void stepper_init_motors()
     stepper_motor_x->current_position           = pos_1;
     stepper_motor_x->transitions_to_desired_pos = 0;
 
-    // Configure the position queue
-    stepper_fifo_init(stepper_x_pos_queue);
-
 
     /* Stepper 2 (y direction) */
     // Enable pin is active low
@@ -102,8 +99,9 @@ void stepper_init_motors()
     stepper_motor_y->current_position           = pos_1;
     stepper_motor_y->transitions_to_desired_pos = 0;
 
+
     // Configure the position queue
-    stepper_fifo_init(stepper_y_pos_queue);
+    stepper_fifo_init(p_stepper_pos_queue);
 }
 
 /**
@@ -167,10 +165,26 @@ static uint32_t stepper_distance_to_transitions(int32_t distance)
 /**
  * @brief Disable the specified stepper and update its current_state
  * 
- * @param The stepper motor to perform the transition on
+ * @param The stepper motor to disable
  */
-static void stepper_disable_motor(stepper_motors_t *stepper_motor)
+void stepper_disable_motor(uint8_t stepper_id)
 {
+    // Assert at least one of the motors is specified?
+    
+    stepper_motors_t* stepper_motor;
+    switch (stepper_id) 
+    {
+        case (0):
+            stepper_motor = stepper_motor_x;
+            break;
+        case (1):
+            stepper_motor = stepper_motor_y;
+            break;
+        default:
+            stepper_motor = stepper_motor_x;
+            break;
+    }
+
     gpio_set_output_high(stepper_motor->enable_port, stepper_motor->enable_pin);
     stepper_motor->current_state = disabled;
 }
@@ -178,7 +192,7 @@ static void stepper_disable_motor(stepper_motors_t *stepper_motor)
 /**
  * @brief Enable the specified stepper and update its current_state
  * 
- * @param The stepper motor to perform the transition on
+ * @param The stepper motor to enable
  */
 static void stepper_enable_motor(stepper_motors_t *stepper_motor)
 {
@@ -186,17 +200,46 @@ static void stepper_enable_motor(stepper_motors_t *stepper_motor)
     stepper_motor->current_state = enabled;
 }
 
-static void stepper_get_next_pos_commands()
+/**
+ * @brief Disable all motors, regardless of many are added
+ */
+static void stepper_disable_all_motors()
+{
+    uint8_t i = 0;
+    for (i = 0; i < NUMBER_OF_STEPPER_MOTORS; i++)
+    {
+        stepper_disable_motor(i);
+    }
+}
+
+/**
+ * @brief Enable all motors, regardless of many are added
+ */
+static void stepper_enable_all_motors()
+{
+    stepper_motors_t* local_stepper = &stepper_motors[0];
+    uint8_t i = 0;
+    for (i = 0; i < NUMBER_OF_STEPPER_MOTORS; i++)
+    {
+        stepper_enable_motor((local_stepper + i));
+    }
+}
+
+/**
+ * @brief Pulls a position command off of the queue
+ * 
+ */
+void stepper_get_next_pos_commands()
 {
     // Disable the motors
-    stepper_disable_motor(stepper_motor_x);
-    stepper_disable_motor(stepper_motor_y);
+    stepper_disable_motor(STEPPER_X_ID);
+    stepper_disable_motor(STEPPER_Y_ID);
 
     // Retrieve the next position commands
-    int32_t distance_x = 0;
-    int32_t distance_y = 0;
-    stepper_fifo_pop(stepper_x_pos_queue, (int32_t*) &distance_x);
-    stepper_fifo_pop(stepper_y_pos_queue, (int32_t*) &distance_y);
+    stepper_fifo_node_t position_command = (stepper_fifo_node_t) { 0, 0, 0 };
+    stepper_fifo_pop(p_stepper_pos_queue, &position_command);
+    int32_t distance_x = position_command.distance_x;
+    int32_t distance_y = position_command.distance_y;
 
     // Determine number of steps to reach the desired positions
     stepper_motor_x->transitions_to_desired_pos = stepper_distance_to_transitions(distance_x);
@@ -231,12 +274,15 @@ static void stepper_get_next_pos_commands()
  * 
  * @param distance_x The distance to travel in the x-direction
  * @param distance_y The distance to travel in the y-direction
+ * @param distance_y The distance to travel in the z-direction
  */
-void stepper_go_to_rel_position(int32_t distance_x, int32_t distance_y)
+void stepper_go_to_rel_position(int32_t distance_x, int32_t distance_y, int32_t distance_z)
 {
-    // Load the this command onto the position queues
-    stepper_fifo_push(stepper_x_pos_queue, distance_x);
-    stepper_fifo_push(stepper_y_pos_queue, distance_y);
+    // Prepare the position command
+    stepper_fifo_node_t position_command = (stepper_fifo_node_t) { distance_x, distance_y, distance_z };
+
+    // Load this command on the position queue
+    stepper_fifo_push(p_stepper_pos_queue, position_command);
 
     // (EXPERIMENTAL) Update the distance to home, assuming we reach our destination
     stepper_motor_x->distance_to_home -= distance_x;
@@ -249,9 +295,16 @@ void stepper_go_to_rel_position(int32_t distance_x, int32_t distance_y)
  */
 void stepper_go_home()
 {
-    // Load the this command onto the position queues
-    stepper_fifo_push(stepper_x_pos_queue, stepper_motor_x->distance_to_home);
-    stepper_fifo_push(stepper_y_pos_queue, stepper_motor_y->distance_to_home);
+    // Prepare the position command
+    stepper_fifo_node_t position_command = (stepper_fifo_node_t) 
+    { 
+        stepper_motor_x->distance_to_home, 
+        stepper_motor_y->distance_to_home, 
+        0                                   // Todo, replace once z-axis is implemented
+    };
+
+    // Load the this command onto the position queue
+    stepper_fifo_push(p_stepper_pos_queue, position_command);
 
     // (EXPERIMENTAL) Update the distance to home, assuming we reach our destination
     stepper_motor_x->distance_to_home = 0;
@@ -259,19 +312,22 @@ void stepper_go_home()
 }
 
 /**
- * @brief Interrupt handler to check if the desired number of steps are complete
+ * @brief Checks if all steppers have arrived at their specified destination
+ * 
+ * @return true If all steppers have no transitions left
+ * @return false If any steppers have transitions left
  */
-__interrupt void STEPPER_HANDLER(void)
+bool stepper_arrived()
 {
-    // Clear the interrupt flag
-    TIMER0->ICR |= (TIMER_ICR_TATOCINT);
+    return ((stepper_motor_x->transitions_to_desired_pos == 0) && 
+            (stepper_motor_y->transitions_to_desired_pos == 0));
+}
 
-    // Check for a new position command
-    if ((stepper_motor_x->transitions_to_desired_pos == 0) && (stepper_motor_y->transitions_to_desired_pos == 0))
-    {
-        stepper_get_next_pos_commands();
-    }
-
+/**
+ * @brief Performs a transition on each motor that has not arrived at its desired position, or disables that motor
+ */
+void stepper_take_action()
+{
     // Move stepper_x until it reaches its destination
     if (stepper_motor_x->transitions_to_desired_pos > 0) 
     {
@@ -280,7 +336,7 @@ __interrupt void STEPPER_HANDLER(void)
     } 
     else
     {
-        stepper_disable_motor(stepper_motor_x);
+        stepper_disable_motor(STEPPER_X_ID);
     }
 
     // Move stepper_y until it reaches its destination
@@ -291,8 +347,56 @@ __interrupt void STEPPER_HANDLER(void)
     } 
     else 
     {
-        stepper_disable_motor(stepper_motor_y);
+        stepper_disable_motor(STEPPER_Y_ID);
     }
+}
+
+/**
+ * @brief Stop the motors and the ISR clock, can resume from this point later
+ */
+void stepper_stop_motors()
+{
+    clock_pause_timer(STEPPER_TIMER, timer_a);
+    stepper_disable_all_motors();
+}
+
+/**
+ * @brief Resume the motors and the ISR clock from its paused state
+ * 
+ */
+void stepper_resume_motors()
+{
+    clock_resume_timer(STEPPER_TIMER, timer_a);
+    stepper_enable_all_motors();
+}
+
+/**
+ * @brief Waits until the position queue is empty
+ */
+static void stepper_wait()
+{
+    while (stepper_fifo_get_size(p_stepper_pos_queue) > 0)
+    {
+        // TODO: Make sure things are not added to the queue
+    }
+}
+
+/**
+ * @brief Reset the steppers (send home, clear command queue)
+ */
+void stepper_reset()
+{
+    // Clear the command queue
+    stepper_fifo_init(p_stepper_pos_queue);
+
+    // Return to home
+    stepper_go_home();
+
+    // Wait to get there
+    stepper_wait();
+
+    // Make sure the command queue is empty
+    stepper_fifo_init(p_stepper_pos_queue);
 }
 
 /* End steppermotors.c */

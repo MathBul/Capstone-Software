@@ -13,7 +13,7 @@
 /**
  * @brief Configure the system clock to run at 120 MHz using PLL at 240 MHz
  */
-void sysclock_init()
+void clock_sys_init()
 {
     // Configure PLL to be 480 MHz
     SYSCTL->PLLFREQ0 |=  (SYSCTL_PLLFREQ0_PLLPWR);          // Sets PWR to 1
@@ -46,9 +46,78 @@ void sysclock_init()
 }
 
 /**
+ * @brief Clears the interrupt flag associated with time-out raw on the given timer
+ * 
+ * @param timer One of TIMERX for X=0,...,5
+ * @param type One of timer_a or timer_b
+ */
+void clock_clear_interrupt_raw(TIMER0_Type* timer, clock_timer_type_t type)
+{
+    // Determine the flag for this timer type
+    uint8_t interrupt_flag;
+    if (type == timer_a)
+    {
+        interrupt_flag = TIMER_ICR_TATOCINT;
+    }
+    else 
+    {
+        interrupt_flag = TIMER_ICR_TBTOCINT;
+    }
+
+    // Clear the flag
+    timer->ICR |= (interrupt_flag);
+}
+
+/**
+ * @brief Pauses the specified timer
+ * 
+ * @param timer One of TIMERX for X=0,...,5
+ * @param type One of timer_a or timer_b
+ */
+void clock_pause_timer(TIMER0_Type* timer, clock_timer_type_t type)
+{
+    // Determine the flag for this timer type
+    uint8_t interrupt_flag;
+    if (type == timer_a)
+    {
+        interrupt_flag = TIMER_CTL_TAEN;
+    }
+    else 
+    {
+        interrupt_flag = TIMER_CTL_TBEN;
+    }
+
+    // Clear the enable flag
+    timer->CTL &= ~(interrupt_flag);
+}
+
+/**
+ * @brief Resumes the specified timer
+ * 
+ * @param timer One of TIMERX for X=0,...,5
+ * @param type One of timer_a or timer_b
+ */
+void clock_resume_timer(TIMER0_Type* timer, clock_timer_type_t type)
+{
+    // Determine the flag for this timer type
+    uint8_t interrupt_flag;
+    if (type == timer_a)
+    {
+        interrupt_flag = TIMER_CTL_TAEN;
+    }
+    else 
+    {
+        interrupt_flag = TIMER_CTL_TBEN;
+    }
+
+    // Set the enable flag
+    timer->CTL |= (interrupt_flag);
+}
+
+/**
  * @brief Configure timer 0A
  */
-void timer_0a_init()
+void clock_timer0a_init()
 {
     // Enable the timer and wait for it to be ready
     SYSCTL->RCGCTIMER |= SYSCTL_RCGCTIMER_R0;
@@ -66,6 +135,29 @@ void timer_0a_init()
 
     // Configure the interrupt in the NVIC
     NVIC->ISER[0] |= (1 << TIMER_0A_INTERRUPT_SHIFT);
+}
+
+/**
+ * @brief Configure timer 1A
+ */
+void clock_timer1a_init()
+{
+    // Enable the timer and wait for it to be ready
+    SYSCTL->RCGCTIMER |= SYSCTL_RCGCTIMER_R0;
+    while (!(SYSCTL->PRTIMER & SYSCTL_RCGCTIMER_R0))
+    {
+    }
+
+    // Configure Timer 0A for interrupts
+    TIMER1->CTL  &= ~(TIMER_CTL_TAEN);                      // Disable the timer
+    TIMER1->CFG   =  (0);                                   // Clear the configuration
+    TIMER1->TAMR  =  (TIMER_TAMR_TAMR_PERIOD);              // Configure for periodic interrupts
+    TIMER1->TAILR =  (TIMER_1A_RELOAD_VALUE);               // Set the interval value
+    TIMER1->IMR  |=  (TIMER_IMR_TATOIM);                    // Set the interrupt mask
+    TIMER1->CTL  |=  (TIMER_CTL_TAEN);                      // Enable the timer
+
+    // Configure the interrupt in the NVIC
+    NVIC->ISER[0] |= (1 << TIMER_1A_INTERRUPT_SHIFT);
 }
 
 /* End clock.c */

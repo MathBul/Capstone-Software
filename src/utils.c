@@ -1,5 +1,5 @@
 /**
- * @file utils.h
+ * @file utils.c
  * @author Nick Cooney (npc4crc@virginia.edu) and Eli Jelesko (ebj5hec@virginia.edu)
  * @brief Utility functions that may be used by more than one module
  * @version 0.1
@@ -9,6 +9,29 @@
  */
 
 #include "utils.h"
+#include <assert.h>
+
+/**
+ * @brief Initializes a virtual port from a physical port for imaging
+ * 
+ * @param vport The virtual port
+ * @param port_raw The physical port being imaged
+ */
+void utils_vport_init(union utils_vport_t* vport, GPIO_Type* port_raw)
+{
+    vport = (union utils_vport_t*) (port_raw->DATA);
+}
+
+/**
+ * @brief Reads a virtual port
+ * 
+ * @param vport The virtual port to read
+ * @return uint8_t The value that was read
+ */
+uint8_t utils_vport_read(union utils_vport_t* vport)
+{
+    return vport->image;
+}
 
 /**
  * @brief Enable the specified GPIO port by assigning it a clock
@@ -88,6 +111,47 @@ void utils_gpio_clock_enable(GPIO_Type* port)
     while (!(SYSCTL->PRGPIO & clock_gate_control_bit))
     {
     }
+}
+
+/**
+ * @brief Gets the shift of the lowest set bit in an 8-bit mask
+ * 
+ * @param mask The mask to find the shift of
+ * @return uint8_t The shift value
+ */
+uint8_t utils_bits8_mask_to_shift(uint8_t mask)
+{
+    // Assert at least one bit is set
+    assert(mask);
+    
+    // Shift until we get the lowest set bit
+    uint8_t shift = 0;
+    for (shift = 0; shift < 8; shift++)
+    {
+        if ((mask & 1) == 1)
+        {
+            break;
+        }
+        mask = mask >> 1;
+    }
+    return shift;
+}
+
+/**
+ * @brief Moves a bit from the specified byte to a new position
+ *  Useful for translating data from a physical port to virtual port
+ * 
+ * @param byte The byte being remasked
+ * @param original_mask The original mask (where the bit was in the original byte)
+ * @param new_mask The new mask (where the bit should be in the new byte)
+ * @return uint8_t The remasked byte
+ */
+uint8_t utils_bits8_remask(uint8_t byte, uint8_t original_mask, uint8_t new_mask)
+{
+    uint8_t unmask_shift = utils_bits8_mask_to_shift(original_mask);
+    uint8_t remask_shift = utils_bits8_mask_to_shift(new_mask);
+
+    return (((byte & original_mask) >> unmask_shift) << remask_shift);
 }
 
 /**
