@@ -1,6 +1,6 @@
 /**
  * @file raspberrypi.c
- * @author Nick Cooney (npc4crc@virginia.edu)
+ * @author Nick Cooney (npc4crc@virginia.edu) and Keenan Alchaar (ka5nt@virginia.edu)
  * @brief Provides functions for interacting with a Raspberry Pi
  * @version 0.1
  * @date 2022-10-09
@@ -42,12 +42,19 @@ bool rpi_receive(char *data)
     return uart_read_byte(RPI_UART_CHANNEL, (uint8_t*) data);
 }
 
-void rpi_transmit_RESET()
+/**
+ * @brief Send a RESET instruction from the MSP432 to the Raspberry Pi
+ */
+void rpi_transmit_reset(void)
 {
     uart_out_byte(RPI_UART_CHANNEL, (uint8_t) START_BYTE);
     uart_out_byte(RPI_UART_CHANNEL, (uint8_t) RESET_INSTR_AND_LEN);
 }
 
+/**
+ * @brief Send a START_W or START_B instruction from the MSP432 to the Raspberry Pi
+ * @param color A char representing the color the human player is playing as
+ */
 void rpi_transmit_start(char color)
 {
     if (color == 'W')
@@ -62,7 +69,12 @@ void rpi_transmit_start(char color)
     }
 }
 
-void rpi_transmit_HUMAN_MOVE(char *move)
+/**
+ * @brief Send a HUMAN_MOVE instruction from the MSP432 to the Raspberry Pi
+ * @param move A null-terminated C-string representing the move the player
+ *             wishes to make in UCI notation
+ */
+void rpi_transmit_human_move(char *move)
 {
     uart_out_byte(RPI_UART_CHANNEL, (uint8_t) START_BYTE);
     uart_out_byte(RPI_UART_CHANNEL, (uint8_t) HUMAN_MOVE_INSTR_AND_LEN);

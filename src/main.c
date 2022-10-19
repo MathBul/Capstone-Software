@@ -16,14 +16,21 @@
 int main(void)
 {
     #ifdef CHESS_ROBOT_MAIN
+
+    // Initialize the system clock to 120 MHz
     clock_sys_init();
+
+    // Initialize UART3
     uart_init(UART_CHANNEL_3);
 
-    chess_board_reset();
+    // Initialize both boards to starting positions
+    chess_board_init(&previous_board);
+    chess_board_init(&current_board);
 
+    // Counter variable
     int i = 0;
-    int j = 0;
 
+    // Variables for holding various segments of UART instructions
     char first_byte;
     char instr_and_op_len;
     char move[5];
@@ -37,11 +44,17 @@ int main(void)
         bool first_byte_received = rpi_receive(&first_byte);
         if (first_byte == START_BYTE)
         {
+            /* A byte holding the instruction and operand length (4 bits each)
+               follows the start byte */
             bool second_byte_received = rpi_receive(&instr_and_op_len);
 
+            // Extract the instruction bits
             uint8_t instr = instr_and_op_len >> 4;
 
+            // Extract the operand length bits
             uint8_t op_len = instr_and_op_len & (~0xF0);
+
+            // Using the instruction, determine what action to take
             if (instr == ROBOT_MOVE_INSTR)
             {
                 bool move0_rec = rpi_receive(&move[0]);
@@ -49,18 +62,20 @@ int main(void)
                 bool move2_rec = rpi_receive(&move[2]);
                 bool move3_rec = rpi_receive(&move[3]);
                 bool move4_rec = rpi_receive(&move[4]);
-                j++;
+                i++;
             }
             else if (instr == ILLEGAL_MOVE_INSTR)
             {
-                j++;
+                i++;
             }
         }
+        // Temporarily here as a breakpoint
         i++;
         if (i > 31)
         {
             i = 0;
         }
+        // Reset first_byte and instr_and_op_len bytes for next instruction
         first_byte = 0xFF;
         instr_and_op_len = 0xFF;
     }

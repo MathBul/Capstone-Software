@@ -1,7 +1,7 @@
 /**
  * @file gantry.h
  * @author Nick Cooney (npc4crc@virginia.edu)
- * @brief Code to unit all other modules and provide simple interface for chess gameplay
+ * @brief Code to unite all other modules and provide simple interface for chess gameplay
  * @version 0.1
  * @date 2022-10-19
  * 

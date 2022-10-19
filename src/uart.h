@@ -26,10 +26,20 @@
 #define UART_CHANNEL_6          (6)
 #define UART_CHANNEL_7          (7)
 
+/*
+ * All UART instruction defines
+ * UART instructions are defined as:
+ *   - 1 start byte (0x0A)
+ *   - 1 byte containing the instruction ID (4 bits)
+ *     and the operand length in bytes (4 bits)
+ *   - 0 - 5 bytes containing the operand
+ *   - 2 bytes containing the checksum for the instruction
+ */
+
 // Start byte
 #define START_BYTE              (0x0A)
 
-// Individual Instruction IDs (used for recognizing instructions received from the RPi)
+// Individual instruction IDs
 #define RESET_INSTR             (0x00)
 #define START_W_INSTR           (0x01)
 #define START_B_INSTR           (0x02)
@@ -38,7 +48,7 @@
 #define GAME_STATUS_INSTR       (0x05)
 #define ILLEGAL_MOVE_INSTR      (0x06)
 
-// Instruction and operand length bytes (used for transmitting to RPi)
+// Instruction and operand length bytes
 #define RESET_INSTR_AND_LEN             (0x00)
 #define START_W_INSTR_AND_LEN           (0x10)
 #define START_B_INSTR_AND_LEN           (0x20)
@@ -58,10 +68,13 @@
 #define GAME_STALEMATE          (0x0A5103)         // Declare the game has ended to stalemate
 #define ILLEGAL_MOVE            (0x0A60)           // Declare the human has made an illegal move
 
+/*
+ * End UART instruction defines
+ */
+
 // UART function declarations
 void uart_init(uint8_t uart_channel);
 bool uart_out_byte(uint8_t uart_channel, uint8_t byte);
 bool uart_read_byte(uint8_t uart_channel, uint8_t* byte);
-
 
 #endif /* UART_H */

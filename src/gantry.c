@@ -65,7 +65,7 @@ __interrupt void SWITCH_HANDLER(void)
         chessboard_reset();
 
         // Reset the rpi
-        rpi_transmit_RESET();
+        rpi_transmit_reset();
 
         // Start the new game
         rpi_transmit_start(switch_get_color());

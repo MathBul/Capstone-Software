@@ -25,8 +25,8 @@ bool rpi_transmit(char data);
 bool rpi_receive(char *data);
 
 // Raspberry Pi Instruction functions
-void rpi_transmit_RESET();
+void rpi_transmit_reset(void);
 void rpi_transmit_start(char color);
-void rpi_transmit_HUMAN_MOVE(char *move);
+void rpi_transmit_human_move(char *move);
 
 #endif /* RASPBERRYPI_H_ */
