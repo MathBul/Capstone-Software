@@ -4,6 +4,7 @@
 #include "steppermotors.h"
 #include "uart.h"
 #include "raspberrypi.h"
+#include "chessboard.h"
 #include "utils.h"
 
 // Standard includes necessary for base functionality
@@ -19,18 +20,26 @@ int main(void)
     #ifdef CHESS_ROBOT_MAIN
     sysclock_init();
     uart_init(UART_CHANNEL_3);
-    long prev_board = 0xFF0000FF;
-    long curr_board = 0xFF0000FF;
+
+    chess_board_t previous_board;
+    chess_board_t current_board;
+
+    chess_board_init(&previous_board);
+    chess_board_init(&current_board);
+
     int i = 0;
     int j = 0;
+
     char first_byte;
     char instr_and_op_len;
     char move[5];
+
 //    rpi_transmit_START_W();
 //    rpi_transmit_HUMAN_MOVE(move);
 //    bool first_byte_received = rpi_receive(first_byte);
     while (1)
     {
+        // Spin until the first byte is received
         bool first_byte_received = rpi_receive(&first_byte);
         if (first_byte == START_BYTE)
         {
@@ -61,19 +70,6 @@ int main(void)
         first_byte = 0xFF;
         instr_and_op_len = 0xFF;
     }
-//    char start_signal = 'A';
-//    char player_color = 'B';
-
-//    uart_out_byte(UART_CHANNEL_3, (uint8_t) 'S');
-//    while (start_signal != 'S')
-//    {
-//        uart_read_byte(UART_CHANNEL_3, (uint8_t*)&start_signal);
-//    }
-//    if (player_color == 'W')
-//        uart_out_byte(UART_CHANNEL_3, (uint8_t) 'W');
-//    else {
-//        uart_out_byte(UART_CHANNEL_3, (uint8_t) 'B');
-//    }
     #endif
 
     #ifdef UART_DEBUG
