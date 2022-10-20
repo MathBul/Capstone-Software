@@ -22,7 +22,7 @@ chess_board_t current_board;
 void chessboard_init(chess_board_t *board)
 {
     // Set default board presence
-    board->board_presence = (long) 0xFFFF00000000FFFF;
+    board->board_presence = (uint64_t) 0xFFFF00000000FFFF;
 
     // Set white's non-pawn pieces
     board->board_pieces[0][0] = 'R';
@@ -62,11 +62,11 @@ void chessboard_init(chess_board_t *board)
 
 /**
  * @brief Convert a chess square to its index (0 - 63)
- * @param char rank The char for the square's rank
  * @param char file The char for the square's file
+ * @param char rank The char for the square's rank
  * @return The integer representation of the square passed in
  */
-uint8_t chessboard_square_to_index(char rank, char file)
+uint8_t chessboard_square_to_index(char file, char rank)
 {
     uint8_t index = 0;
     switch (rank)
@@ -161,11 +161,11 @@ char* chessboard_index_to_square(uint8_t index, char square[2])
 char* chessboard_get_move(chess_board_t* previous, chess_board_t* current, char move[5])
 {
     // Get presence boards
-    long previous_presence = previous->board_presence;
-    long current_presence = current->board_presence;
+    uint64_t previous_presence = previous->board_presence;
+    uint64_t current_presence = current->board_presence;
 
     // Find the changes in presence
-    long changes_in_presence = previous_presence ^ current_presence;
+    uint64_t changes_in_presence = previous_presence ^ current_presence;
     uint8_t num_changes_in_presence = 0;
 
     int i = 0;
@@ -196,16 +196,17 @@ char* chessboard_get_move(chess_board_t* previous, chess_board_t* current, char 
                 break;
             }
         }
-        i++;
     }
 
-    // If the first changed index was a 1 on the previous board
+    /* If index1 was a 1 on the previous board, a piece was there, meaning it was
+       the initial square */
     if ((previous_presence >> index1) & 0x01)
     {
         chessboard_index_to_square(index1, square_initial);
         chessboard_index_to_square(index2, square_final);
     }
-    // Otherwise, the squares are reversed
+    /* Otherwise, index1 was a 0, meaning no piece was there, meaning it was the
+       final square */
     else
     {
         chessboard_index_to_square(index2, square_initial);

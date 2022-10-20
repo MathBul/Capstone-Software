@@ -14,13 +14,15 @@
 #ifndef CHESSBOARD_H_
 #define CHESSBOARD_H_
 
+#include <stdint.h>
+
 typedef struct {
-    long board_presence;
+    uint64_t board_presence;
     char board_pieces[8][8];
 } chess_board_t;
 
 void chessboard_init(chess_board_t *board);
-uint8_t chessboard_square_to_index(char rank, char file);
+uint8_t chessboard_square_to_index(char file, char rank);
 char* chessboard_index_to_square(uint8_t index, char square[2]);
 char* chessboard_get_move(chess_board_t* previous, chess_board_t* current, char move[5]);
 void chessboard_reset(void);

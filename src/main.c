@@ -11,6 +11,7 @@
 
 //#define STEPPER_DEBUG
 //#define UART_DEBUG
+//#define FUNCTION_DEBUG
 //#define CHESS_ROBOT_MAIN
 
 int main(void)
@@ -134,6 +135,44 @@ int main(void)
     while(1)
     {
     }
+    #endif
+
+    #ifdef FUNCTION_DEBUG
+    clock_sys_init();
+    char squares[64][2];
+    uint8_t indices[8];
+
+    chess_board_t prev;
+    chess_board_t fin;
+    chessboard_init(&prev);
+    chessboard_init(&fin);
+    int i;
+    char move[5];
+
+    for (i = 0; i < 64; i++)
+    {
+        chessboard_index_to_square(i, squares[i]);
+    }
+
+    indices[0] = chessboard_square_to_index('e', '2');
+    indices[1] = chessboard_square_to_index('e', '4');
+    indices[2] = chessboard_square_to_index('c', '3');
+    indices[3] = chessboard_square_to_index('d', '4');
+    indices[4] = chessboard_square_to_index('e', '5');
+    indices[5] = chessboard_square_to_index('f', '6');
+    indices[6] = chessboard_square_to_index('g', '7');
+    indices[7] = chessboard_square_to_index('h', '8');
+
+    // after e2e4
+//    fin.board_presence = (uint64_t) 0b1111111111111111000000000000000000010000000000001110111111111111;
+
+    // after b1c3
+    fin.board_presence = (uint64_t) 0b1111111111111111000000000000000000000000000001001111111111111101;
+
+    chessboard_get_move(&prev, &fin, move);
+
+    while (1) {}
+
     #endif
 }
 
