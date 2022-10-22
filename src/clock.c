@@ -54,7 +54,7 @@ void clock_sys_init()
 void clock_clear_interrupt_raw(TIMER0_Type* timer, clock_timer_type_t type)
 {
     // Determine the flag for this timer type
-    uint8_t interrupt_flag;
+    uint32_t interrupt_flag;
     if (type == timer_a)
     {
         interrupt_flag = TIMER_ICR_TATOCINT;
@@ -77,7 +77,7 @@ void clock_clear_interrupt_raw(TIMER0_Type* timer, clock_timer_type_t type)
 void clock_pause_timer(TIMER0_Type* timer, clock_timer_type_t type)
 {
     // Determine the flag for this timer type
-    uint8_t interrupt_flag;
+    uint32_t interrupt_flag;
     if (type == timer_a)
     {
         interrupt_flag = TIMER_CTL_TAEN;
@@ -100,7 +100,7 @@ void clock_pause_timer(TIMER0_Type* timer, clock_timer_type_t type)
 void clock_resume_timer(TIMER0_Type* timer, clock_timer_type_t type)
 {
     // Determine the flag for this timer type
-    uint8_t interrupt_flag;
+    uint32_t interrupt_flag;
     if (type == timer_a)
     {
         interrupt_flag = TIMER_CTL_TAEN;

@@ -38,10 +38,10 @@ typedef struct {
 } utils_bits8_t;
 
 // Virtual port for peripheral imaging
-union utils_vport_t {
+typedef union utils_vport_t {
     volatile uint8_t image;
     utils_bits8_t bitfield;
-};
+} utils_vport_t;
 
 // Vport utility functions
 void utils_vport_init(union utils_vport_t* vport, GPIO_Type* port_raw);

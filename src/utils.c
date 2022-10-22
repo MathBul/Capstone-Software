@@ -17,9 +17,9 @@
  * @param vport The virtual port
  * @param port_raw The physical port being imaged
  */
-void utils_vport_init(union utils_vport_t* vport, GPIO_Type* port_raw)
+void utils_vport_init(utils_vport_t* vport, GPIO_Type* port_raw)
 {
-    vport = (union utils_vport_t*) (port_raw->DATA);
+    vport = (utils_vport_t*) (port_raw->DATA);
 }
 
 /**
@@ -28,7 +28,7 @@ void utils_vport_init(union utils_vport_t* vport, GPIO_Type* port_raw)
  * @param vport The virtual port to read
  * @return uint8_t The value that was read
  */
-uint8_t utils_vport_read(union utils_vport_t* vport)
+uint8_t utils_vport_read(utils_vport_t* vport)
 {
     return vport->image;
 }
