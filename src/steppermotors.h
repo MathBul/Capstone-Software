@@ -19,6 +19,7 @@
 
 #include "msp.h"
 #include "gpio.h"
+#include "command_queue.h"
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -104,5 +105,11 @@ static void stepper_set_direction_clockwise(stepper_motors_t *stepper_motor);
 static void stepper_set_direction_counterclockwise(stepper_motors_t *stepper_motor);
 static void stepper_enable_motor(stepper_motors_t *stepper_motor);
 static void stepper_wait();
+
+// Command Functions
+void stepper_entry(command_t* command);
+void stepper_action(command_t* command);
+void stepper_exit(command_t* command);
+bool stepper_is_done(command_t* command);
 
 #endif /* STEPPER_MOTORS_H_ */

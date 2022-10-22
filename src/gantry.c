@@ -78,4 +78,11 @@ __interrupt void SWITCH_HANDLER(void)
     }
 }
 
+// Command Functions
+void gantry_entry(command_t* command);
+void gantry_action(command_t* command);
+void gantry_exit(command_t* command);
+bool gantry_is_done(command_t* command);
+
+
 /* End gantry.c */

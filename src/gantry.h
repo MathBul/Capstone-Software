@@ -18,5 +18,13 @@
 #include "sensornetwork.h"
 #include "steppermotors.h"
 #include "switch.h"
+#include "command_queue.h"
+
+
+// Command Functions
+void gantry_entry(command_t* command);
+void gantry_action(command_t* command);
+void gantry_exit(command_t* command);
+bool gantry_is_done(command_t* command);
 
 #endif /* GANTRY_H_ */

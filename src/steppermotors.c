@@ -9,7 +9,6 @@
  */
 
 #include "clock.h"
-#include "stepper_fifo.h"
 #include "steppermotors.h"
 
 // Declare the stepper motors
@@ -398,5 +397,12 @@ void stepper_reset()
     // Make sure the command queue is empty
     stepper_fifo_init(p_stepper_pos_queue);
 }
+
+// Command Functions
+void stepper_entry(command_t* command);
+void stepper_action(command_t* command);
+void stepper_exit(command_t* command);
+bool stepper_is_done(command_t* command);
+
 
 /* End steppermotors.c */

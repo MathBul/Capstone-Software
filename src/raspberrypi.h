@@ -13,6 +13,7 @@
 
 #include "msp.h"
 #include "gpio.h"
+#include "command_queue.h"
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -28,5 +29,11 @@ bool rpi_receive(char *data);
 void rpi_transmit_reset(void);
 void rpi_transmit_start(char color);
 void rpi_transmit_human_move(char *move);
+
+// Command Functions
+void rpi_entry(command_t* command);
+void rpi_action(command_t* command);
+void rpi_exit(command_t* command);
+bool rpi_is_done(command_t* command);
 
 #endif /* RASPBERRYPI_H_ */

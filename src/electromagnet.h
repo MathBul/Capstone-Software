@@ -13,6 +13,7 @@
 
 #include "msp.h"
 #include "gpio.h"
+#include "command_queue.h"
 #include <stdint.h>
 
 // Electromagnet (EM)
@@ -34,5 +35,12 @@ typedef struct {
 void electromagnet_init();
 void electromagnet_engage();
 void electromagnet_disengage();
+
+// Command Functions
+void electromagnet_entry(command_t* command);
+void electromagnet_action(command_t* command);
+void electromagnet_exit(command_t* command);
+bool electromagnet_is_done(command_t* command);
+
 
 #endif /* ELECTROMAGNET_H_ */

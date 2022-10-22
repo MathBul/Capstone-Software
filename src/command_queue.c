@@ -11,6 +11,9 @@
 
 #include "command_queue.h"
 
+#define COMMAND_QUEUE_SIZE                  32
+
+
 static command_t queue[COMMAND_QUEUE_SIZE];
 static uint16_t head;
 static uint16_t tail;
@@ -110,5 +113,16 @@ bool command_queue_is_empty(void)
 {
     return head == tail;
 }
+/**
+ * @brief Clears the queue
+ *
+ * @return true
+ */
+bool command_queue_clear(void)
+{
+    head = tail;
+    return true;
+}
+
 
 /* End command_queue.c */

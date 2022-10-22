@@ -52,4 +52,11 @@ void electromagnet_disengage()
     gpio_set_output_low(ELECTROMAGNET_INPUT_PORT, ELECTROMAGNET_INPUT_PIN);
 }
 
+// Command Functions
+void electromagnet_entry(command_t* command);
+void electromagnet_action(command_t* command);
+void electromagnet_exit(command_t* command);
+bool electromagnet_is_done(command_t* command);
+
+
 /* End electromagnet.c */
