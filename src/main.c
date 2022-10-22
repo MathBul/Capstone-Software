@@ -24,9 +24,13 @@ int main(void)
     // Initialize UART3
     uart_init(UART_CHANNEL_3);
 
+    // Initialize boards
+    chess_board_t previous_board;
+    chess_board_t current_board;
+
     // Initialize both boards to starting positions
-    chess_board_init(&previous_board);
-    chess_board_init(&current_board);
+    chessboard_init(&previous_board);
+    chessboard_init(&current_board);
 
     // Counter variable
     int i = 0;
@@ -37,7 +41,7 @@ int main(void)
     char move[5];
 
 //    rpi_transmit_start('W');
-//    rpi_transmit_HUMAN_MOVE(move);
+    rpi_transmit_human_move("e2e4");
 //    bool first_byte_received = rpi_receive(first_byte);
     while (1)
     {
@@ -63,10 +67,21 @@ int main(void)
                 bool move2_rec = rpi_receive(&move[2]);
                 bool move3_rec = rpi_receive(&move[3]);
                 bool move4_rec = rpi_receive(&move[4]);
+                // 1. Move the electromagnet above the start square
+                // 2. Drop the electromagnet to pick up the piece
+                //    a. This means checking the current board's board pieces array and adjusting
+                //       drop distance based on the square being hovered
+                // 3. Turn on the electromagnet
+                // 4. Lift the electromagnet
+                // 5. Move to the end square
+                // 6. Drop the electromagnet, again distance based on the piece
+                // 7. Turn off the electromagnet
+                // 8. Return home
                 i++;
             }
             else if (instr == ILLEGAL_MOVE_INSTR)
             {
+                // 1. Turn on an LED to inform the user their last move was illegal
                 i++;
             }
         }
@@ -167,7 +182,10 @@ int main(void)
 //    fin.board_presence = (uint64_t) 0b1111111111111111000000000000000000010000000000001110111111111111;
 
     // after b1c3
-    fin.board_presence = (uint64_t) 0b1111111111111111000000000000000000000000000001001111111111111101;
+//    fin.board_presence = (uint64_t) 0b1111111111111111000000000000000000000000000001001111111111111101;
+
+    // after g7g5
+    fin.board_presence = (uint64_t) 0b1111111110111111000000000100000000000000000000001111111111111111;
 
     chessboard_get_move(&prev, &fin, move);
 
