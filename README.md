@@ -1,4 +1,4 @@
-# The Great Gambit &mdash; Electrical
+# The Great Gambit &mdash; Software
 
 <!-- Buttons that link to the associated repos, uncomment all but this repo -->
 <div align="center">
