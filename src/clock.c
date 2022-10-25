@@ -160,4 +160,12 @@ void clock_timer1a_init()
     NVIC->ISER[0] |= (1 << TIMER_1A_INTERRUPT_SHIFT);
 }
 
+void clock_set_timer_value(TIMER0_Type* timer, uint16_t value)
+{
+    timer->CTL  &= ~(TIMER_CTL_TAEN);                      // Disable the timer
+    timer->TAILR =  value;                                 // Set the interval value
+    timer->CTL  |=  (TIMER_CTL_TAEN);                      // Enable the timer
+}
+
+
 /* End clock.c */

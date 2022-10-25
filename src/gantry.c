@@ -42,7 +42,7 @@ __interrupt void SWITCH_HANDLER(void)
     if (switch_data & BUTTON_START_RESET)
     {
         // Reset the steppers
-        stepper_reset();
+        //stepper_reset();
 
         // Reset the chess board
         chessboard_reset();
@@ -57,7 +57,7 @@ __interrupt void SWITCH_HANDLER(void)
     // If the home button was pressed, clear the queue and execute a homing command
     if (switch_data & BUTTON_HOME)
     {
-        stepper_reset();
+        //stepper_reset();
     }
 }
 

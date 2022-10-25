@@ -32,7 +32,7 @@
 // Stepper 1 (x-axis)
 #define STEPPER_X_ENABLE_PORT               (GPIOD)
 #define STEPPER_X_ENABLE_PIN                (GPIO_PIN_2)
-#define STEPPER_X_MRS1_PORT                 (GPIOP)
+#define STEPPER_X_MS1_PORT                 (GPIOP)
 #define STEPPER_X_MS1_PIN                   (GPIO_PIN_0)
 #define STEPPER_X_MS2_PORT                  (GPIOP)
 #define STEPPER_X_MS2_PIN                   (GPIO_PIN_1)
@@ -100,14 +100,9 @@ typedef struct stepper_command_t {
 // Public functions
 void stepper_init_motors();
 void stepper_disable_motor(uint8_t stepper_id);
-void stepper_go_to_rel_position(int32_t distance_x, int32_t distance_y, int32_t distance_z);
-void stepper_go_home();
-bool stepper_arrived();
 void stepper_take_action();
 void stepper_stop_motors();
 void stepper_resume_motors();
-void stepper_reset();
-void stepper_get_next_pos_commands();
 
 // Private functions
 static void stepper_toggle_direction(stepper_motors_t *stepper_motor);

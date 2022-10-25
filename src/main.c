@@ -22,6 +22,7 @@ int main(void)
     // System level initialization
     clock_sys_init();
     uart_init(UART_CHANNEL_3);
+    stepper_init_motors();
     command_queue_init();
 
     // Add commands to the queue

@@ -33,6 +33,7 @@ void clock_sys_init();
 void clock_clear_interrupt_raw(TIMER0_Type* timer, clock_timer_type_t type);
 void clock_pause_timer(TIMER0_Type* timer, clock_timer_type_t type);
 void clock_resume_timer(TIMER0_Type* timer, clock_timer_type_t type);
+void clock_set_timer_value(TIMER0_Type* timer, uint16_t value);
 void clock_timer0a_init();                           // Steppers
 void clock_timer1a_init();                           // Buttons
 
