@@ -12,23 +12,6 @@
 
 /* Interrupt service routines for all modules */
 
-/**
- * @brief Interrupt handler for the stepper module
- */
-__interrupt void STEPPER_HANDLER(void)
-{
-    // Clear the interrupt flag
-    clock_clear_interrupt_raw(STEPPER_TIMER, timer_a);
-
-    // Check if we are ready for a new position command
-    if (stepper_arrived())
-    {
-        stepper_get_next_pos_commands();
-    }
-
-    // Either perform a transition, or disable the motors if no commands left
-    stepper_take_action();
-}
 
 /**
  * @brief Interrupt handler for the switch module

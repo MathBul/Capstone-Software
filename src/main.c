@@ -13,9 +13,46 @@
 //#define UART_DEBUG
 //#define FUNCTION_DEBUG
 //#define CHESS_ROBOT_MAIN
+#define COMMAND_QUEUE
 
 int main(void)
 {
+#ifdef COMMAND_QUEUE
+    command_t current_command; // Probably need to allocate enough memory for the largest command struct
+    // System level initialization
+    clock_sys_init();
+    uart_init(UART_CHANNEL_3);
+    command_queue_init();
+
+    // Add commands to the queue
+
+    // Main program flow
+    while (1)
+    {
+        // Run the entry function
+        if (!command_queue_pop(&current_command))
+        {
+            // Something went wrong. Probably ran out of commands
+        }
+        else
+        {
+            current_command.p_entry(&current_command);
+        }
+        // Run the action function. is_done determines when action is complete
+        while (!current_command.p_is_done(&current_command))
+        {
+            // Check for a system fault (e-stop etc)
+            if (false)
+            {
+                break;
+            }
+            current_command.p_action(&current_command);
+        }
+        // Run the exit function
+        current_command.p_exit(&current_command);
+    }
+#endif
+
     #ifdef CHESS_ROBOT_MAIN
 
     // Initialize the system clock to 120 MHz

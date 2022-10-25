@@ -16,9 +16,25 @@ stepper_motors_t stepper_motors[NUMBER_OF_STEPPER_MOTORS];
 static stepper_motors_t* stepper_motor_x = &stepper_motors[0];
 static stepper_motors_t* stepper_motor_y = &stepper_motors[1];
 
-// Declare the position command queue
-static stepper_fifo_t stepper_pos_queue;
-static stepper_fifo_t* p_stepper_pos_queue = &stepper_pos_queue;
+/**
+ * @brief Interrupt handler for the stepper module
+ */
+__interrupt void STEPPER_X_HANDLER(void)
+{
+    // Clear the interrupt flag
+    clock_clear_interrupt_raw(STEPPER_X_TIMER, timer_a);
+
+    // Check if we are ready for a new position command
+    if (stepper_arrived())
+    {
+        stepper_get_next_pos_commands();
+    }
+
+    // Either perform a transition, or disable the motors if no commands left
+    stepper_take_action();
+}
+
+
 
 /**
  * @brief Initialize all stepper motors
@@ -27,8 +43,8 @@ void stepper_init_motors()
 {
     /* Stepper 1 (x direction) */
     // Enable pin is active low
-    gpio_set_as_output(STEPPER_1_ENABLE_PORT, STEPPER_1_ENABLE_PIN);
-    gpio_set_output_high(STEPPER_1_ENABLE_PORT, STEPPER_1_ENABLE_PIN);
+    gpio_set_as_output(STEPPER_X_ENABLE_PORT, STEPPER_X_ENABLE_PIN);
+    gpio_set_output_high(STEPPER_X_ENABLE_PORT, STEPPER_X_ENABLE_PIN);
 
     // MS3 | MS2 | MS1
     //   0 |   0 |  0    <=> Full step
@@ -37,25 +53,25 @@ void stepper_init_motors()
     //   0 |   1 |  1    <=> 1/8 step
     //   1 |   0 |  0    <=> 1/16 step
     //   All Others      <=> 1/32 step
-    gpio_set_as_output(STEPPER_1_MS1_PORT, STEPPER_1_MS1_PIN);
-    gpio_set_as_output(STEPPER_1_MS2_PORT, STEPPER_1_MS2_PIN);
-    gpio_set_as_output(STEPPER_1_MS3_PORT, STEPPER_1_MS3_PIN);
-    gpio_set_output_high(STEPPER_1_MS1_PORT, STEPPER_1_MS1_PIN);
+    gpio_set_as_output(STEPPER_1_MS1_PORT, STEPPER_X_MS1_PIN);
+    gpio_set_as_output(STEPPER_X_MS2_PORT, STEPPER_X_MS2_PIN);
+    gpio_set_as_output(STEPPER_X_MS3_PORT, STEPPER_X_MS3_PIN);
+    gpio_set_output_high(STEPPER_1_MS1_PORT, STEPPER_X_MS1_PIN);
 
     // Set the direction: 1 <=> Clockwise; 0 <=> Counterclockwise
-    gpio_set_as_output(STEPPER_1_DIR_PORT, STEPPER_1_DIR_PIN);
-    gpio_set_output_high(STEPPER_1_DIR_PORT, STEPPER_1_DIR_PIN);
+    gpio_set_as_output(STEPPER_X_DIR_PORT, STEPPER_1_DIR_PIN);
+    gpio_set_output_high(STEPPER_X_DIR_PORT, STEPPER_1_DIR_PIN);
 
     // STEP is toggled to perform the stepping. Two toggles <=> one microstep
-    gpio_set_as_output(STEPPER_1_STEP_PORT, STEPPER_1_STEP_PIN);
+    gpio_set_as_output(STEPPER_X_STEP_PORT, STEPPER_X_STEP_PIN);
 
     // Configure the stepper struct
-    stepper_motor_x->dir_port                   = STEPPER_1_DIR_PORT;
+    stepper_motor_x->dir_port                   = STEPPER_X_DIR_PORT;
     stepper_motor_x->dir_pin                    = STEPPER_1_DIR_PIN;
-    stepper_motor_x->step_port                  = STEPPER_1_STEP_PORT;
-    stepper_motor_x->step_pin                   = STEPPER_1_STEP_PIN;
-    stepper_motor_x->enable_port                = STEPPER_1_ENABLE_PORT;
-    stepper_motor_x->enable_pin                 = STEPPER_1_ENABLE_PIN;
+    stepper_motor_x->step_port                  = STEPPER_X_STEP_PORT;
+    stepper_motor_x->step_pin                   = STEPPER_X_STEP_PIN;
+    stepper_motor_x->enable_port                = STEPPER_X_ENABLE_PORT;
+    stepper_motor_x->enable_pin                 = STEPPER_X_ENABLE_PIN;
     stepper_motor_x->current_state              = disabled;
     stepper_motor_x->distance_to_home           = 0;
     stepper_motor_x->current_position           = pos_1;
@@ -64,8 +80,8 @@ void stepper_init_motors()
 
     /* Stepper 2 (y direction) */
     // Enable pin is active low
-    gpio_set_as_output(STEPPER_2_ENABLE_PORT, STEPPER_2_ENABLE_PIN);
-    gpio_set_output_high(STEPPER_2_ENABLE_PORT, STEPPER_2_ENABLE_PIN);
+    gpio_set_as_output(STEPPER_Y_ENABLE_PORT, STEPPER_Y_ENABLE_PIN);
+    gpio_set_output_high(STEPPER_Y_ENABLE_PORT, STEPPER_Y_ENABLE_PIN);
 
     // MS1 | MS2 | MS3
     //   0 |   0 |  0    <=> Full step
@@ -74,25 +90,25 @@ void stepper_init_motors()
     //   0 |   1 |  1    <=> 1/8 step
     //   1 |   0 |  0    <=> 1/16 step
     //   All Others      <=> 1/32 step
-    gpio_set_as_output(STEPPER_2_MS1_PORT, STEPPER_2_MS1_PIN);
-    gpio_set_as_output(STEPPER_2_MS2_PORT, STEPPER_2_MS2_PIN);
-    gpio_set_as_output(STEPPER_2_MS3_PORT, STEPPER_2_MS3_PIN);
-    gpio_set_output_high(STEPPER_2_MS1_PORT, STEPPER_2_MS1_PIN);
+    gpio_set_as_output(STEPPER_Y_MS1_PORT, STEPPER_Y_MS1_PIN);
+    gpio_set_as_output(STEPPER_Y_MS2_PORT, STEPPER_Y_MS2_PIN);
+    gpio_set_as_output(STEPPER_Y_MS3_PORT, STEPPER_Y_MS3_PIN);
+    gpio_set_output_high(STEPPER_Y_MS1_PORT, STEPPER_Y_MS1_PIN);
 
     // Set the direction: 1 <=> Clockwise; 0 <=> Counterclockwise
-    gpio_set_as_output(STEPPER_2_DIR_PORT, STEPPER_2_DIR_PIN);
-    gpio_set_output_high(STEPPER_2_DIR_PORT, STEPPER_2_DIR_PIN);
+    gpio_set_as_output(STEPPER_Y_DIR_PORT, STEPPER_Y_DIR_PIN);
+    gpio_set_output_high(STEPPER_Y_DIR_PORT, STEPPER_Y_DIR_PIN);
 
     // STEP is toggled to perform the stepping. Two toggles <=> one microstep
-    gpio_set_as_output(STEPPER_2_STEP_PORT, STEPPER_2_STEP_PIN);
+    gpio_set_as_output(STEPPER_Y_STEP_PORT, STEPPER_Y_STEP_PIN);
 
     // Configure the stepper struct
-    stepper_motor_y->dir_port                   = STEPPER_2_DIR_PORT;
-    stepper_motor_y->dir_pin                    = STEPPER_2_DIR_PIN;
-    stepper_motor_y->step_port                  = STEPPER_2_STEP_PORT;
-    stepper_motor_y->step_pin                   = STEPPER_2_STEP_PIN;
-    stepper_motor_y->enable_port                = STEPPER_2_ENABLE_PORT;
-    stepper_motor_y->enable_pin                 = STEPPER_2_ENABLE_PIN;
+    stepper_motor_y->dir_port                   = STEPPER_Y_DIR_PORT;
+    stepper_motor_y->dir_pin                    = STEPPER_Y_DIR_PIN;
+    stepper_motor_y->step_port                  = STEPPER_Y_STEP_PORT;
+    stepper_motor_y->step_pin                   = STEPPER_Y_STEP_PIN;
+    stepper_motor_y->enable_port                = STEPPER_Y_ENABLE_PORT;
+    stepper_motor_y->enable_pin                 = STEPPER_Y_ENABLE_PIN;
     stepper_motor_y->current_state              = disabled;
     stepper_motor_y->distance_to_home           = 0;
     stepper_motor_y->current_position           = pos_1;
@@ -355,7 +371,7 @@ void stepper_take_action()
  */
 void stepper_stop_motors()
 {
-    clock_pause_timer(STEPPER_TIMER, timer_a);
+    clock_pause_timer(STEPPER_X_TIMER, timer_a);
     stepper_disable_all_motors();
 }
 
@@ -365,7 +381,7 @@ void stepper_stop_motors()
  */
 void stepper_resume_motors()
 {
-    clock_resume_timer(STEPPER_TIMER, timer_a);
+    clock_resume_timer(STEPPER_X_TIMER, timer_a);
     stepper_enable_all_motors();
 }
 
@@ -403,6 +419,8 @@ void stepper_entry(command_t* command);
 void stepper_action(command_t* command);
 void stepper_exit(command_t* command);
 bool stepper_is_done(command_t* command);
+
+
 
 
 /* End steppermotors.c */
