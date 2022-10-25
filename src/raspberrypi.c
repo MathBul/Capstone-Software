@@ -9,8 +9,6 @@
  */
 
 #include "raspberrypi.h"
-#include "uart.h"
-#include "utils.h"
 
 /**
  * @brief Initialize the Raspberry Pi UART tx and rx lines
@@ -23,23 +21,49 @@ void rpi_init()
 /**
  * @brief Uses UART to send data from the MSP432 to the Raspberry Pi
  *
- * @param data The character to send
+ * @param data An array of characters to send
  * @return True if successful; false otherwise
  */
-bool rpi_transmit(char data)
+bool rpi_transmit(char* data, uint8_t num_chars)
 {
-    return uart_out_byte(RPI_UART_CHANNEL, (uint8_t) data);
+    bool status;
+    uint8_t i = 0;
+    
+    for (i = 0; i < num_chars; i++)
+    {
+        status = uart_out_byte(RPI_UART_CHANNEL, (uint8_t) data[i]);
+
+        if (!status)
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 /**
  * @brief Uses UART to read data from the the Raspberry Pi to the MSP432
  *
- * @param data The character to read the data into
+ * @param data The character array to read the data into
  * @return True if successful; false otherwise
  */
-bool rpi_receive(char *data)
+bool rpi_receive(char *data, uint8_t num_chars)
 {
-    return uart_read_byte(RPI_UART_CHANNEL, (uint8_t*) data);
+    bool status;
+    uint8_t i = 0;
+    
+    for (i = 0; i < num_chars; i++)
+    {
+        status = uart_read_byte(RPI_UART_CHANNEL, (uint8_t*) &data[i]);
+
+        if (!status)
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 /**

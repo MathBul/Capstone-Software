@@ -13,7 +13,6 @@
 
 #define COMMAND_QUEUE_SIZE                  32
 
-
 static command_t queue[COMMAND_QUEUE_SIZE];
 static uint16_t head;
 static uint16_t tail;

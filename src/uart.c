@@ -22,7 +22,7 @@ static uart_fifo_t uart_3_tx;
 static uart_fifo_t uart_6_rx;
 static uart_fifo_t uart_6_tx;
 
-// private functions declarations
+// Private functions declarations
 static void copy_hardware_to_software(uint8_t uart_channel);
 static void copy_software_to_hardware(uint8_t uart_channel);
 

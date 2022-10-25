@@ -15,7 +15,6 @@
 //  |-------|
 //  | BOARD |
 //  |-------X  <== Position (0,0), home
-// ISR defined in gantry.c
 
 #include "msp.h"
 #include "gpio.h"
@@ -24,15 +23,14 @@
 #include <stdbool.h>
 
 // General stepper defines
-#define NUMBER_OF_STEPPER_MOTORS            (2)
-#define DISTANCE_BETWEEN_TILES              (47) //+0.625
+#define NUMBER_OF_STEPPER_MOTORS            (3)
 #define STEPPER_X_TIMER                     (TIMER0)
 #define STEPPER_X_HANDLER                   (TIMER0A_IRQHandler)
 
 // Stepper 1 (x-axis)
 #define STEPPER_X_ENABLE_PORT               (GPIOD)
 #define STEPPER_X_ENABLE_PIN                (GPIO_PIN_2)
-#define STEPPER_X_MS1_PORT                 (GPIOP)
+#define STEPPER_X_MS1_PORT                  (GPIOP)
 #define STEPPER_X_MS1_PIN                   (GPIO_PIN_0)
 #define STEPPER_X_MS2_PORT                  (GPIOP)
 #define STEPPER_X_MS2_PIN                   (GPIO_PIN_1)
@@ -60,17 +58,24 @@
 #define STEPPER_Y_ID                        (1)
 
 // Stepper 3 (z-axis)
+#define STEPPER_Z_ENABLE_PORT               (GPIOM)
+#define STEPPER_Z_ENABLE_PIN                (GPIO_PIN_0)
+#define STEPPER_Z_MS1_PORT                  (GPIOK)
+#define STEPPER_Z_MS1_PIN                   (GPIO_PIN_5)
+#define STEPPER_Z_MS2_PORT                  (GPIOK)
+#define STEPPER_Z_MS2_PIN                   (GPIO_PIN_4)
+#define STEPPER_Z_MS3_PORT                  (GPIOG)
+#define STEPPER_Z_MS3_PIN                   (GPIO_PIN_1)
+#define STEPPER_Z_STEP_PORT                 (GPIOM)
+#define STEPPER_Z_STEP_PIN                  (GPIO_PIN_2)
+#define STEPPER_Z_DIR_PORT                  (GPIOM)
+#define STEPPER_Z_DIR_PIN                   (GPIO_PIN_1)
 #define STEPPER_Z_ID                        (2)
 
 // Tracks whether a stepper motor is enabled or disabled
 typedef enum {
     disabled, enabled
 } stepper_motors_state_t;
-
-// Information on which column the arm is current above
-typedef enum {
-    pos_1, pos_2, pos_3, pos_4, pos_5, pos_6, pos_7, pos_8
-} arm_position_t;
 
 // Stepper motor structure
 typedef struct {
@@ -81,9 +86,8 @@ typedef struct {
     GPIO_Type*             enable_port;                // Port used to enable/disable
     uint8_t                enable_pin;                 // Pin used to enable/disable the motor
     stepper_motors_state_t current_state;              // Whether the motor is enabled/disabled
-    int32_t                distance_to_home;           // Distance (in mm) to travel to home position
-    arm_position_t         current_position;           // Current position of the motor in terms of board tiles
     uint32_t               transitions_to_desired_pos; // (2)*(#periods to desired position)
+    int32_t                distance_to_home;           // Distance (in mm) to travel to home position
 } stepper_motors_t;
 
 // Stepper motor command struct
@@ -92,25 +96,15 @@ typedef struct stepper_command_t {
     int16_t rel_x; // The distance to move in x (relative to current position)
     int16_t rel_y; // The distance to move in y (relative to current position)
     int16_t rel_z; // The distance to move in z (relative to current position)
-    uint16_t v_x; // The speed in x (direction is determined by the sign of the distance to move)
-    uint16_t v_y; // The speed in y (direction is determined by the sign of the distance to move)
-    uint16_t v_z; // The speed in z (direction is determined by the sign of the distance to move)
+    uint16_t v_x;  // The speed in x (direction is determined by the sign of the distance to move)
+    uint16_t v_y;  // The speed in y (direction is determined by the sign of the distance to move)
+    uint16_t v_z;  // The speed in z (direction is determined by the sign of the distance to move)
 } stepper_command_t;
 
 // Public functions
 void stepper_init_motors();
-void stepper_disable_motor(uint8_t stepper_id);
-void stepper_take_action();
-void stepper_stop_motors();
-void stepper_resume_motors();
-
-// Private functions
-static void stepper_toggle_direction(stepper_motors_t *stepper_motor);
-static void stepper_edge_transition(stepper_motors_t *stepper_motor);
-static void stepper_set_direction_clockwise(stepper_motors_t *stepper_motor);
-static void stepper_set_direction_counterclockwise(stepper_motors_t *stepper_motor);
-static void stepper_enable_motor(stepper_motors_t *stepper_motor);
-static void stepper_wait();
+// void stepper_stop_motors();      TODO
+// void stepper_resume_motors();    TODO
 
 // Command Functions
 void stepper_entry(command_t* command);

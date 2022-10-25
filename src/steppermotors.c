@@ -11,26 +11,20 @@
 #include "clock.h"
 #include "steppermotors.h"
 
+// Private functions
+static void stepper_edge_transition(stepper_motors_t *stepper_motor);
+static void stepper_set_direction_clockwise(stepper_motors_t *stepper_motor);
+static void stepper_set_direction_counterclockwise(stepper_motors_t *stepper_motor);
+static void stepper_disable_motor(stepper_motors_t *stepper_motor);
+static void stepper_disable_all_motors();
+static void stepper_enable_motor(stepper_motors_t *stepper_motor);
+static void stepper_enable_all_motors();
+
 // Declare the stepper motors
 stepper_motors_t stepper_motors[NUMBER_OF_STEPPER_MOTORS];
-static stepper_motors_t* stepper_motor_x = &stepper_motors[0];
-static stepper_motors_t* stepper_motor_y = &stepper_motors[1];
-
-/**
- * @brief Interrupt handler for the stepper module
- */
-__interrupt void STEPPER_X_HANDLER(void)
-{
-    // Clear the interrupt flag
-    clock_clear_interrupt_raw(STEPPER_X_TIMER, timer_a);
-
-    // Check if we are ready for a new position command
-
-    // Either perform a transition, or disable the motors if no commands left
-    stepper_take_action();
-}
-
-
+static stepper_motors_t* stepper_motor_x = &stepper_motors[STEPPER_X_ID];
+static stepper_motors_t* stepper_motor_y = &stepper_motors[STEPPER_Y_ID];
+static stepper_motors_t* stepper_motor_z = &stepper_motors[STEPPER_Z_ID];
 
 /**
  * @brief Initialize all stepper motors
@@ -69,9 +63,8 @@ void stepper_init_motors()
     stepper_motor_x->enable_port                = STEPPER_X_ENABLE_PORT;
     stepper_motor_x->enable_pin                 = STEPPER_X_ENABLE_PIN;
     stepper_motor_x->current_state              = disabled;
-    stepper_motor_x->distance_to_home           = 0;
-    stepper_motor_x->current_position           = pos_1;
     stepper_motor_x->transitions_to_desired_pos = 0;
+    stepper_motor_x->distance_to_home           = 0;
 
 
     /* Stepper 2 (y direction) */
@@ -106,19 +99,44 @@ void stepper_init_motors()
     stepper_motor_y->enable_port                = STEPPER_Y_ENABLE_PORT;
     stepper_motor_y->enable_pin                 = STEPPER_Y_ENABLE_PIN;
     stepper_motor_y->current_state              = disabled;
-    stepper_motor_y->distance_to_home           = 0;
-    stepper_motor_y->current_position           = pos_1;
     stepper_motor_y->transitions_to_desired_pos = 0;
-}
+    stepper_motor_y->distance_to_home           = 0;
 
-/**
- * @brief Toggle the direction of the given stepper_motor
- * 
- * @param stepper_motor The stepper motor to toggle direction on
- */
-static void stepper_toggle_direction(stepper_motors_t *stepper_motor)
-{
-    gpio_set_output_toggle(stepper_motor->dir_port, stepper_motor->dir_pin);
+
+    /* Stepper 3 (a direction) */
+    // Enable pin is active low
+    gpio_set_as_output(STEPPER_Z_ENABLE_PORT, STEPPER_Z_ENABLE_PIN);
+    gpio_set_output_high(STEPPER_Z_ENABLE_PORT, STEPPER_Z_ENABLE_PIN);
+
+    // MS1 | MS2 | MS3
+    //   0 |   0 |  0    <=> Full step
+    //   0 |   0 |  1    <=> 1/2 step
+    //   0 |   1 |  0    <=> 1/4 step
+    //   0 |   1 |  1    <=> 1/8 step
+    //   1 |   0 |  0    <=> 1/16 step
+    //   All Others      <=> 1/32 step
+    gpio_set_as_output(STEPPER_Z_MS1_PORT, STEPPER_Z_MS1_PIN);
+    gpio_set_as_output(STEPPER_Z_MS2_PORT, STEPPER_Z_MS2_PIN);
+    gpio_set_as_output(STEPPER_Z_MS3_PORT, STEPPER_Z_MS3_PIN);
+    gpio_set_output_high(STEPPER_Z_MS1_PORT, STEPPER_Z_MS1_PIN);
+
+    // Set the direction: 1 <=> Clockwise; 0 <=> Counterclockwise
+    gpio_set_as_output(STEPPER_Z_DIR_PORT, STEPPER_Z_DIR_PIN);
+    gpio_set_output_high(STEPPER_Z_DIR_PORT, STEPPER_Z_DIR_PIN);
+
+    // STEP is toggled to perform the stepping. Two toggles <=> one microstep
+    gpio_set_as_output(STEPPER_Z_STEP_PORT, STEPPER_Z_STEP_PIN);
+
+    // Configure the stepper struct
+    stepper_motor_z->dir_port                   = STEPPER_Z_DIR_PORT;
+    stepper_motor_z->dir_pin                    = STEPPER_Z_DIR_PIN;
+    stepper_motor_z->step_port                  = STEPPER_Z_STEP_PORT;
+    stepper_motor_z->step_pin                   = STEPPER_Z_STEP_PIN;
+    stepper_motor_z->enable_port                = STEPPER_Z_ENABLE_PORT;
+    stepper_motor_z->enable_pin                 = STEPPER_Z_ENABLE_PIN;
+    stepper_motor_z->current_state              = disabled;
+    stepper_motor_z->transitions_to_desired_pos = 0;
+    stepper_motor_z->distance_to_home           = 0;
 }
 
 /**
@@ -152,13 +170,14 @@ static void stepper_edge_transition(stepper_motors_t *stepper_motor)
 }
 
 /**
- * @brief Convert a distance in mm to the number of edge transitions required to drive the stepper that far
+ * @brief Convert a distance (mm) to the number of edge transitions required to drive a stepper that far
  *  Stepper performs 200 steps/revolution. We microstep to 1/2 steps, so 400 microsteps/revolution
  *  Belt pitch is 2 mm, and rotor has 20 teeth, so 40mm/revolution
  *  There are 2 transitions/microstep
  *      ==> (2 transitions/microstep)*(400 microsteps/revolution)/(40mm/revolution) = 20 transitions/mm
  * 
  * @param distance The distance to travel
+ * @return The number of edge transitions to travel that distance
  */
 static uint32_t stepper_distance_to_transitions(int32_t distance)
 {
@@ -174,26 +193,24 @@ static uint32_t stepper_distance_to_transitions(int32_t distance)
  * 
  * @param The stepper motor to disable
  */
-void stepper_disable_motor(uint8_t stepper_id)
+void stepper_disable_motor(stepper_motors_t *stepper_motor)
 {
-    // Assert at least one of the motors is specified?
-    
-    stepper_motors_t* stepper_motor;
-    switch (stepper_id) 
-    {
-        case (0):
-            stepper_motor = stepper_motor_x;
-            break;
-        case (1):
-            stepper_motor = stepper_motor_y;
-            break;
-        default:
-            stepper_motor = stepper_motor_x;
-            break;
-    }
-
     gpio_set_output_high(stepper_motor->enable_port, stepper_motor->enable_pin);
     stepper_motor->current_state = disabled;
+}
+
+/**
+ * @brief Disable all motors
+ */
+static void stepper_disable_all_motors()
+{
+    stepper_motors_t* base_stepper = &stepper_motors[0];
+    uint8_t i = 0;
+
+    for (i = 0; i < NUMBER_OF_STEPPER_MOTORS; i++)
+    {
+        stepper_disable_motor((base_stepper + i));
+    }
 }
 
 /**
@@ -208,84 +225,51 @@ static void stepper_enable_motor(stepper_motors_t *stepper_motor)
 }
 
 /**
- * @brief Disable all motors, regardless of many are added
- */
-static void stepper_disable_all_motors()
-{
-    uint8_t i = 0;
-    for (i = 0; i < NUMBER_OF_STEPPER_MOTORS; i++)
-    {
-        stepper_disable_motor(i);
-    }
-}
-
-/**
- * @brief Enable all motors, regardless of many are added
+ * @brief Enable all motors
  */
 static void stepper_enable_all_motors()
 {
-    stepper_motors_t* local_stepper = &stepper_motors[0];
+    stepper_motors_t* base_stepper = &stepper_motors[0];
     uint8_t i = 0;
+    
     for (i = 0; i < NUMBER_OF_STEPPER_MOTORS; i++)
     {
-        stepper_enable_motor((local_stepper + i));
+        stepper_enable_motor((base_stepper + i));
     }
 }
 
-/**
- * @brief Performs a transition on each motor that has not arrived at its desired position, or disables that motor
- */
-void stepper_take_action()
-{
-    // Move stepper_x until it reaches its destination
-    if (stepper_motor_x->transitions_to_desired_pos > 0) 
-    {
-        stepper_edge_transition(stepper_motor_x);
-        stepper_motor_x->transitions_to_desired_pos -= 1;
-    } 
-    else
-    {
-        stepper_disable_motor(STEPPER_X_ID);
-    }
+// /**
+//  * @brief Stop the motors and the ISR clock, can resume from this point later
+//  */
+// void stepper_stop_motors()
+// {
+//     clock_pause_timer(STEPPER_X_TIMER, timer_a);
+//     stepper_disable_all_motors();
+// }
 
-    // Move stepper_y until it reaches its destination
-    if (stepper_motor_y->transitions_to_desired_pos > 0) 
-    {
-        stepper_edge_transition(stepper_motor_y);
-        stepper_motor_y->transitions_to_desired_pos -= 1;
-    } 
-    else 
-    {
-        stepper_disable_motor(STEPPER_Y_ID);
-    }
-}
+// /**
+//  * @brief Resume the motors and the ISR clock from its paused state
+//  * 
+//  */
+// void stepper_resume_motors()
+// {
+//     clock_resume_timer(STEPPER_X_TIMER, timer_a);
+//     stepper_enable_all_motors();
+// }
+
+
+/* Command Functions */
 
 /**
- * @brief Stop the motors and the ISR clock, can resume from this point later
- */
-void stepper_stop_motors()
-{
-    clock_pause_timer(STEPPER_X_TIMER, timer_a);
-    stepper_disable_all_motors();
-}
-
-/**
- * @brief Resume the motors and the ISR clock from its paused state
+ * @brief Prepares the steppers for this command
  * 
+ * @param command 
  */
-void stepper_resume_motors()
-{
-    clock_resume_timer(STEPPER_X_TIMER, timer_a);
-    stepper_enable_all_motors();
-}
-
-
-// Command Functions
 void stepper_entry(command_t* command)
 {
     stepper_command_t* p_stepper_command = (stepper_command_t*) command;
 
-    // X axis
+    // X-axis
     if (p_stepper_command->rel_x != 0)
     {
         stepper_enable_motor(stepper_motor_x);
@@ -300,7 +284,8 @@ void stepper_entry(command_t* command)
             stepper_set_direction_clockwise(stepper_motor_x);
         }
     }
-    // Y axis
+
+    // Y-axis
     if (p_stepper_command->rel_y != 0)
     {
         stepper_enable_motor(stepper_motor_y);
@@ -315,28 +300,89 @@ void stepper_entry(command_t* command)
             stepper_set_direction_clockwise(stepper_motor_y);
         }
     }
-    // TODO: Z axis
+
+    // Z-axis
+    if (p_stepper_command->rel_y != 0)
+    {
+        stepper_enable_motor(stepper_motor_y);
+
+        // Set the direction
+        if (p_stepper_command->rel_y > 0)
+        {
+            stepper_set_direction_counterclockwise(stepper_motor_y);
+        }
+        else
+        {
+            stepper_set_direction_clockwise(stepper_motor_y);
+        }
+    }
 
     // Determine the distance to go
     stepper_motor_x->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_x);
     stepper_motor_y->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_y);
+    stepper_motor_z->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_z);
 
-    // Load velocity values into the clock
-
-
+    // TODO: Load velocity values into the clock
 }
-void stepper_action(command_t* command); // This does nothing
 
+/**
+ * @brief Stepping is handled in the ISR, so this action is empty
+ * 
+ * @param command The stepper command being run
+ */
+void stepper_action(command_t* command)
+{
+    return;
+}
+
+/**
+ * @brief Disables all motors once a stepper command has finished
+ * 
+ * @param command The stepper command exiting
+ */
 void stepper_exit(command_t* command)
 {
     stepper_disable_all_motors();
 }
 
+/**
+ * @brief Marks the command as done once all steppers reach their desired position
+ * 
+ * @param command The stepper command being evaluated
+ * @return true Once all steppers reach their desired positions
+ * @return false If at least one stepper has not reached its desired position
+ */
 bool stepper_is_done(command_t* command)
 {
     return (stepper_motor_x->transitions_to_desired_pos == 0) &&
-            (stepper_motor_y->transitions_to_desired_pos == 0);
+           (stepper_motor_y->transitions_to_desired_pos == 0) &&
+           (stepper_motor_z->transitions_to_desired_pos == 0);
 }
 
+/**
+ * @brief Interrupt handler for the stepper module
+ */
+__interrupt void STEPPER_X_HANDLER(void)
+{
+    // Clear the interrupt flag
+    clock_clear_ifg_raw(STEPPER_X_TIMER, timer_a);
+
+    // Move each stepper until it reaches its destination, then disable
+    stepper_motors_t* base_stepper = &stepper_motors[0];
+    uint8_t i = 0;
+    
+    for (i = 0; i < NUMBER_OF_STEPPER_MOTORS; i++)
+    {
+        if ((base_stepper+i)->transitions_to_desired_pos > 0) 
+        {
+            stepper_edge_transition((base_stepper+i));
+            (base_stepper+i)->transitions_to_desired_pos -= 1;
+        } 
+        else
+        {
+            stepper_disable_motor((base_stepper+i));
+        }
+    }
+}
 
 /* End steppermotors.c */

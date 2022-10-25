@@ -46,4 +46,10 @@ void leds_move_off();
 void leds_all_on();
 void leds_all_off();
 
+// Command functions
+void leds_entry(command_t* command);
+void leds_action(command_t* command);
+void leds_exit(command_t* command);
+bool leds_is_done(command_t* command);
+
 #endif /* LEDS_H_ */

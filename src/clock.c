@@ -51,7 +51,7 @@ void clock_sys_init()
  * @param timer One of TIMERX for X=0,...,5
  * @param type One of timer_a or timer_b
  */
-void clock_clear_interrupt_raw(TIMER0_Type* timer, clock_timer_type_t type)
+void clock_clear_ifg_raw(TIMER0_Type* timer, clock_timer_type_t type)
 {
     // Determine the flag for this timer type
     uint32_t interrupt_flag;

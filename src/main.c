@@ -1,8 +1,4 @@
 // Project-specific source code
-#include "clock.h"
-#include "gpio.h"
-#include "uart.h"
-#include "utils.h"
 #include "gantry.h"
 
 // Standard includes necessary for base functionality
@@ -17,13 +13,50 @@
 
 int main(void)
 {
+#ifdef STEPPER_DEBUG
+    // Initialize the system clock and timer(s)
+    clock_sys_init();
+    clock_timer0a_init();
+
+    // Initialize the stepper motor(s)
+    stepper_init_motors();
+
+    // Serious of position commands
+    stepper_go_home();
+    stepper_go_to_rel_position(250, 0);
+    stepper_go_to_rel_position(0, 250);
+    stepper_go_home();
+    stepper_go_to_rel_position(200, 200);
+    stepper_go_to_rel_position(50, -50);
+    stepper_go_to_rel_position(-50, 50);
+    stepper_go_home();
+    stepper_go_to_rel_position(250, 250);
+    int i = 0;
+    for (i = 3; i < 8; i++)
+    {
+        stepper_go_to_rel_position(0, 10*i);
+        stepper_go_to_rel_position(10*i, 0);
+        stepper_go_to_rel_position(-20*i, -20*i);
+        stepper_go_to_rel_position(10*i, 0);
+        stepper_go_to_rel_position(0, 10*i);
+    }
+    stepper_go_home();
+
+    while(1)
+    {
+    }
+#endif
+
 #ifdef COMMAND_QUEUE
-    command_t current_command; // Probably need to allocate enough memory for the largest command struct
+    // Probably need to allocate enough memory for the largest command struct
+    command_t current_command;
+
     // System level initialization
     clock_sys_init();
-    uart_init(UART_CHANNEL_3);
-    stepper_init_motors();
+    clock_timer0a_init();
     command_queue_init();
+    stepper_init_motors();
+    uart_init(UART_CHANNEL_3);
 
     // Add commands to the queue
 
@@ -153,40 +186,6 @@ int main(void)
         {
             i = 0;
         }
-    }
-    #endif
-
-    #ifdef STEPPER_DEBUG
-    // Initialize the system clock and timer(s)
-    clock_sys_init();
-    clock_timer0a_init();
-
-    // Initialize the stepper motor(s)
-    stepper_init_motors();
-
-    // Serious of position commands
-    stepper_go_home();
-    stepper_go_to_rel_position(250, 0);
-    stepper_go_to_rel_position(0, 250);
-    stepper_go_home();
-    stepper_go_to_rel_position(200, 200);
-    stepper_go_to_rel_position(50, -50);
-    stepper_go_to_rel_position(-50, 50);
-    stepper_go_home();
-    stepper_go_to_rel_position(250, 250);
-    int i = 0;
-    for (i = 3; i < 8; i++)
-    {
-        stepper_go_to_rel_position(0, 10*i);
-        stepper_go_to_rel_position(10*i, 0);
-        stepper_go_to_rel_position(-20*i, -20*i);
-        stepper_go_to_rel_position(10*i, 0);
-        stepper_go_to_rel_position(0, 10*i);
-    }
-    stepper_go_home();
-
-    while(1)
-    {
     }
     #endif
 
