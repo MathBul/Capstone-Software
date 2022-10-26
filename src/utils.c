@@ -134,6 +134,29 @@ uint8_t utils_bits8_remask(uint8_t byte, uint8_t original_mask, uint8_t new_mask
 }
 
 /**
+ * @brief Computes the Fletcher-16 checksum given an array of chars
+ *
+ * @param uint8_t *data The array of uint8_t's (chars) with which to compute the checksum
+ * @param int count The number of chars in the array, or the number to consider in the
+ *                  checksum calculation
+ * @return uint16_t The 16-bit Fletcher checksum of the given array
+ */
+uint16_t fletcher_16(uint8_t *data, int count)
+{
+   uint16_t sum1 = 0;
+   uint16_t sum2 = 0;
+   int i;
+
+   for (i = 0; i < count; i++)
+   {
+      sum1 = (sum1 + data[i]) % 255;
+      sum2 = (sum2 + sum1) % 255;
+   }
+
+   return (sum2 << 8) | sum1;
+}
+
+/**
  * @brief Delay the next operation with a for-loop (used for spacing out UART communication)
  *
  * @param ticks the number of clock ticks to delay for

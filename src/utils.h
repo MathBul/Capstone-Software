@@ -53,4 +53,7 @@ void utils_delay(uint32_t ticks);
 uint8_t utils_bits8_mask_to_shift(uint8_t mask);
 uint8_t utils_bits8_remask(uint8_t byte, uint8_t original_mask, uint8_t new_mask);
 
+// Fletcher checksum function
+uint16_t fletcher_16(uint8_t *data, int count);
+
 #endif /* UTILS_H_ */
