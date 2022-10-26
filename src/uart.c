@@ -500,6 +500,36 @@ static void copy_software_to_hardware(uint8_t uart_channel)
 }
 
 /**
+ * @brief Clears the specified UART fifo
+ * 
+ * @param uart_channel One of UART_CHANNEL_X
+ */
+void uart_reset(uint8_t uart_channel)
+{
+    switch (uart_channel)
+    {
+        case UART_CHANNEL_0:
+            uart_fifo_clear(&uart_0_rx);
+            uart_fifo_clear(&uart_0_tx);
+            break;
+        case UART_CHANNEL_2:
+            uart_fifo_clear(&uart_2_rx);
+            uart_fifo_clear(&uart_2_tx);
+            break;
+        case UART_CHANNEL_3:
+            uart_fifo_clear(&uart_3_rx);
+            uart_fifo_clear(&uart_3_tx);
+            break;
+        case UART_CHANNEL_6:
+            uart_fifo_clear(&uart_6_rx);
+            uart_fifo_clear(&uart_6_tx);
+            break;
+        default:
+            break;
+    }
+}
+
+/**
  * @brief Called when the Tx FIFO has 2 or fewer elements, when the Rx FIFO has 2 or more elements,
  * or when there is 1 or fewer elements in the Rx FIFO and it times out.
  * 

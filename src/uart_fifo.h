@@ -31,5 +31,6 @@ bool uart_fifo_push(uart_fifo_t* fifo, UART_FIFO_TYPE value);
 bool uart_fifo_pop(uart_fifo_t* fifo, UART_FIFO_TYPE* p_value);
 uint16_t uart_fifo_get_size(uart_fifo_t* fifo);
 bool uart_fifo_is_empty(uart_fifo_t* fifo);
+bool uart_fifo_clear(uart_fifo_t* fifo);
 
 #endif /* UART_FIFO_H_ */

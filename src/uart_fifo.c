@@ -108,4 +108,16 @@ bool uart_fifo_is_empty(uart_fifo_t* fifo)
     return fifo->head == fifo->tail;
 }
 
+/**
+ * @brief Clears the FIFO
+ * 
+ * @param fifo The particular FIFO
+ * @return true
+ */
+bool uart_fifo_clear(uart_fifo_t* fifo)
+{
+    fifo->head = fifo->tail;
+    return true;
+}
+
 /* End fifo.c */

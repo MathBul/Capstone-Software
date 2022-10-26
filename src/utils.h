@@ -13,14 +13,16 @@
 
 // Notes on vports: 
 //  - A virtual port (vport) is a means of accessing a physical port via imaging and a bitfield
-//  - An image is a reference to the port's data register
+//  - An image is a snapshot of the port's data register
 //  - The bitfield allows for access to specific pins
 //  - Presumably, each peripheral will have a vport and a shift_assign() function to map the vport's
-//      bitfield to a local ordering. Allows changes in the peripheral's GPIO with minor refactoring
+//      bitfield to a local ordering. This allows for minor refactoring with changes in the peripheral's GPIO
 //  - For an example use case, see switch.c/switch.h
 
 #include "msp.h"
 #include <stdint.h>
+#include <stdbool.h>
+#include <assert.h>
 
 // General utility macros
 #define BITS8_MASK(shift)                   ((uint8_t) (1 << shift))
@@ -42,10 +44,6 @@ typedef union utils_vport_t {
     volatile uint8_t image;
     utils_bits8_t bitfield;
 } utils_vport_t;
-
-// Vport utility functions
-void utils_vport_init(union utils_vport_t* vport, GPIO_Type* port_raw);
-uint8_t utils_vport_read(union utils_vport_t* vport);
 
 // GPIO utility functions
 void utils_gpio_clock_enable(GPIO_Type* port);

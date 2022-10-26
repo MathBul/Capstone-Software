@@ -3,13 +3,15 @@
 
 // Standard includes necessary for base functionality
 #include "msp.h"
-#include <stdint.h>
 
 //#define STEPPER_DEBUG
 //#define UART_DEBUG
 //#define FUNCTION_DEBUG
 //#define CHESS_ROBOT_MAIN
 #define COMMAND_QUEUE
+
+// Flag that gets set in the utils module when there is a system fault
+extern bool utils_sys_fault;
 
 int main(void)
 {
@@ -52,11 +54,7 @@ int main(void)
     command_t current_command;
 
     // System level initialization
-    clock_sys_init();
-    clock_timer0a_init();
-    command_queue_init();
-    stepper_init_motors();
-    uart_init(UART_CHANNEL_3);
+    gantry_init();
 
     // Add commands to the queue
 
@@ -72,16 +70,18 @@ int main(void)
         {
             current_command.p_entry(&current_command);
         }
-        // Run the action function. is_done determines when action is complete
+
+        // Run the action function - is_done() determines when action is complete
         while (!current_command.p_is_done(&current_command))
         {
-            // Check for a system fault (e-stop etc)
-            if (false)
+            // Check for a system fault (e-stop, etc.)
+            if (!utils_sys_fault)
             {
-                break;
+                break;  // TODO: Break both loops?
             }
             current_command.p_action(&current_command);
         }
+        
         // Run the exit function
         current_command.p_exit(&current_command);
     }

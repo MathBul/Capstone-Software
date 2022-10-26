@@ -12,8 +12,8 @@
 #include <stdint.h>
 #include "chessboard.h"
 
-chess_board_t previous_board;
-chess_board_t current_board;
+static chess_board_t previous_board;
+static chess_board_t current_board;
 
 /**
  * @brief Initialize chess_board_t presence and piece boards with default values

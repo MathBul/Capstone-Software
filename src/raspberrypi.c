@@ -110,6 +110,14 @@ void rpi_transmit_human_move(char *move)
     }
 }
 
+/**
+ * @brief Clears the tx and rx fifos for RPi communication
+ */
+void rpi_reset_uart()
+{
+    uart_reset(RPI_UART_CHANNEL);
+}
+
 // Command Functions
 void rpi_entry(command_t* command);
 void rpi_action(command_t* command);

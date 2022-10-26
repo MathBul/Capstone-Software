@@ -23,24 +23,30 @@
 #include "uart.h"
 #include "utils.h"
 
-// Tracks the gantry position (can be used as column or row)
-typedef enum {
-    pos_1, pos_2, pos_3, pos_4, pos_5, pos_6, pos_7, pos_8
-} gantry_position_t;
+// General gantry defines
+#define GANTRY_TIMER                        (TIMER2)
+#define GANTRY_HANDLER                      (TIMER2A_IRQHandler)
 
 // Gantry command struct
 typedef struct gantry_command_t {
     command_t command;
-    char instruction[5];                // Full message from the Pi
-    char instruction_type;              // Indicates: MOVE, CAPTURE, PROMOTION, ETC.
-    gantry_position_t initial_pos[2];
-    gantry_position_t final_pos[2];
+    char move[5];                // Full message from the Pi
+    char move_type;              // Indicates: MOVE, CAPTURE, PROMOTION, ETC.
 } gantry_command_t;
 
-// Command Functions
-void gantry_entry(command_t* command);
-void gantry_action(command_t* command);
-void gantry_exit(command_t* command);
-bool gantry_is_done(command_t* command);
+// Public functions
+void gantry_init();
+
+// Command Functions (reading user input)
+void gantry_read_entry(command_t* command);
+void gantry_read_action(command_t* command);
+void gantry_read_exit(command_t* command);
+bool gantry_read_is_done(command_t* command);
+
+// Command Functions (preparing/performing moves)
+void gantry_move_entry(command_t* command);
+void gantry_move_action(command_t* command);
+void gantry_move_exit(command_t* command);
+bool gantry_move_is_done(command_t* command);
 
 #endif /* GANTRY_H_ */

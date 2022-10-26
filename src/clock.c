@@ -45,74 +45,6 @@ void clock_sys_init()
     SYSCTL->RSCLKCFG |= (SYSCTL_RSCLKCFG_MEMTIMU | SYSCTL_RSCLKCFG_USEPLL);
 }
 
-/**
- * @brief Clears the interrupt flag associated with time-out raw on the given timer
- * 
- * @param timer One of TIMERX for X=0,...,5
- * @param type One of timer_a or timer_b
- */
-void clock_clear_ifg_raw(TIMER0_Type* timer, clock_timer_type_t type)
-{
-    // Determine the flag for this timer type
-    uint32_t interrupt_flag;
-    if (type == timer_a)
-    {
-        interrupt_flag = TIMER_ICR_TATOCINT;
-    }
-    else 
-    {
-        interrupt_flag = TIMER_ICR_TBTOCINT;
-    }
-
-    // Clear the flag
-    timer->ICR |= (interrupt_flag);
-}
-
-/**
- * @brief Pauses the specified timer
- * 
- * @param timer One of TIMERX for X=0,...,5
- * @param type One of timer_a or timer_b
- */
-void clock_pause_timer(TIMER0_Type* timer, clock_timer_type_t type)
-{
-    // Determine the flag for this timer type
-    uint32_t interrupt_flag;
-    if (type == timer_a)
-    {
-        interrupt_flag = TIMER_CTL_TAEN;
-    }
-    else 
-    {
-        interrupt_flag = TIMER_CTL_TBEN;
-    }
-
-    // Clear the enable flag
-    timer->CTL &= ~(interrupt_flag);
-}
-
-/**
- * @brief Resumes the specified timer
- * 
- * @param timer One of TIMERX for X=0,...,5
- * @param type One of timer_a or timer_b
- */
-void clock_resume_timer(TIMER0_Type* timer, clock_timer_type_t type)
-{
-    // Determine the flag for this timer type
-    uint32_t interrupt_flag;
-    if (type == timer_a)
-    {
-        interrupt_flag = TIMER_CTL_TAEN;
-    }
-    else 
-    {
-        interrupt_flag = TIMER_CTL_TBEN;
-    }
-
-    // Set the enable flag
-    timer->CTL |= (interrupt_flag);
-}
 
 /**
  * @brief Configure timer 0A
@@ -143,8 +75,8 @@ void clock_timer0a_init()
 void clock_timer1a_init()
 {
     // Enable the timer and wait for it to be ready
-    SYSCTL->RCGCTIMER |= SYSCTL_RCGCTIMER_R0;
-    while (!(SYSCTL->PRTIMER & SYSCTL_RCGCTIMER_R0))
+    SYSCTL->RCGCTIMER |= SYSCTL_RCGCTIMER_R1;
+    while (!(SYSCTL->PRTIMER & SYSCTL_RCGCTIMER_R1))
     {
     }
 
@@ -160,12 +92,73 @@ void clock_timer1a_init()
     NVIC->ISER[0] |= (1 << TIMER_1A_INTERRUPT_SHIFT);
 }
 
-void clock_set_timer_value(TIMER0_Type* timer, uint16_t value)
+/**
+ * @brief Configure timer 2A
+ */
+void clock_timer2a_init()
 {
-    timer->CTL  &= ~(TIMER_CTL_TAEN);                      // Disable the timer
-    timer->TAILR =  value;                                 // Set the interval value
-    timer->CTL  |=  (TIMER_CTL_TAEN);                      // Enable the timer
+    // Enable the timer and wait for it to be ready
+    SYSCTL->RCGCTIMER |= SYSCTL_RCGCTIMER_R2;
+    while (!(SYSCTL->PRTIMER & SYSCTL_RCGCTIMER_R2))
+    {
+    }
+
+    // Configure Timer 0A for interrupts
+    TIMER2->CTL  &= ~(TIMER_CTL_TAEN);                      // Disable the timer
+    TIMER2->CFG   =  (0);                                   // Clear the configuration
+    TIMER2->TAMR  =  (TIMER_TAMR_TAMR_PERIOD);              // Configure for periodic interrupts
+    TIMER2->TAILR =  (TIMER_2A_RELOAD_VALUE);               // Set the interval value
+    TIMER2->IMR  |=  (TIMER_IMR_TATOIM);                    // Set the interrupt mask
+    TIMER2->CTL  |=  (TIMER_CTL_TAEN);                      // Enable the timer
+
+    // Configure the interrupt in the NVIC
+    NVIC->ISER[0] |= (1 << TIMER_2A_INTERRUPT_SHIFT);
 }
 
+/**
+ * @brief Clears the interrupt flag associated with time-out raw on the given timer (on the a subsubmodule)
+ * 
+ * @param timer One of TIMERX for X=0,...,5
+ * @param type One of timer_a or timer_b
+ */
+void clock_clear_interrupt(TIMER0_Type* timer)
+{
+    timer->ICR |= (TIMER_ICR_TATOCINT);
+}
+
+/**
+ * @brief Pauses the specified timer (on the a subsubmodule)
+ * 
+ * @param timer One of TIMERX for X=0,...,5
+ * @param type One of timer_a or timer_b
+ */
+void clock_pause_timer(TIMER0_Type* timer)
+{
+    timer->CTL &= ~(TIMER_CTL_TAEN);
+}
+
+/**
+ * @brief Resumes the specified timer (on the a subsubmodule)
+ * 
+ * @param timer One of TIMERX for X=0,...,5
+ * @param type One of timer_a or timer_b
+ */
+void clock_resume_timer(TIMER0_Type* timer)
+{
+    timer->CTL |= (TIMER_CTL_TAEN);
+}
+
+/**
+ * @brief Sets the period of the specified timer
+ * 
+ * @param timer One of TIMERX for X=0,...,5
+ * @param value The period
+ */
+void clock_set_timer_period(TIMER0_Type* timer, uint16_t value)
+{
+    timer->CTL  &= ~(TIMER_CTL_TAEN);                       // Disable the timer
+    timer->TAILR =  value;                                  // Set the interval value
+    timer->CTL  |=  (TIMER_CTL_TAEN);                       // Enable the timer
+}
 
 /* End clock.c */

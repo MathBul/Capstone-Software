@@ -18,6 +18,7 @@
 
 #include "msp.h"
 #include "gpio.h"
+#include "clock.h"
 #include "command_queue.h"
 #include <stdint.h>
 #include <stdbool.h>
@@ -103,8 +104,13 @@ typedef struct stepper_command_t {
 
 // Public functions
 void stepper_init_motors();
-// void stepper_stop_motors();      TODO
-// void stepper_resume_motors();    TODO
+void stepper_x_disable();
+void stepper_y_disable();
+void stepper_z_disable();
+void stepper_disable_all_motors();
+void stepper_enable_all_motors();
+void stepper_pause_motors();
+void stepper_resume_motors();
 
 // Command Functions
 void stepper_entry(command_t* command);

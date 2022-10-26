@@ -112,6 +112,7 @@ bool command_queue_is_empty(void)
 {
     return head == tail;
 }
+
 /**
  * @brief Clears the queue
  *

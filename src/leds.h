@@ -17,6 +17,7 @@
 //  GREEN <=> Move      (opponent should move, robot is waiting)
 
 #include "msp.h"
+#include "command_queue.h"
 #include "gpio.h"
 #include <stdint.h>
 

@@ -8,7 +8,6 @@
  * @copyright Copyright (c) 2022
  */
 
-#include "clock.h"
 #include "steppermotors.h"
 
 // Private functions
@@ -16,9 +15,7 @@ static void stepper_edge_transition(stepper_motors_t *stepper_motor);
 static void stepper_set_direction_clockwise(stepper_motors_t *stepper_motor);
 static void stepper_set_direction_counterclockwise(stepper_motors_t *stepper_motor);
 static void stepper_disable_motor(stepper_motors_t *stepper_motor);
-static void stepper_disable_all_motors();
 static void stepper_enable_motor(stepper_motors_t *stepper_motor);
-static void stepper_enable_all_motors();
 
 // Declare the stepper motors
 stepper_motors_t stepper_motors[NUMBER_OF_STEPPER_MOTORS];
@@ -193,7 +190,7 @@ static uint32_t stepper_distance_to_transitions(int32_t distance)
  * 
  * @param The stepper motor to disable
  */
-void stepper_disable_motor(stepper_motors_t *stepper_motor)
+static void stepper_disable_motor(stepper_motors_t *stepper_motor)
 {
     gpio_set_output_high(stepper_motor->enable_port, stepper_motor->enable_pin);
     stepper_motor->current_state = disabled;
@@ -202,7 +199,7 @@ void stepper_disable_motor(stepper_motors_t *stepper_motor)
 /**
  * @brief Disable all motors
  */
-static void stepper_disable_all_motors()
+void stepper_disable_all_motors()
 {
     stepper_motors_t* base_stepper = &stepper_motors[0];
     uint8_t i = 0;
@@ -227,7 +224,7 @@ static void stepper_enable_motor(stepper_motors_t *stepper_motor)
 /**
  * @brief Enable all motors
  */
-static void stepper_enable_all_motors()
+void stepper_enable_all_motors()
 {
     stepper_motors_t* base_stepper = &stepper_motors[0];
     uint8_t i = 0;
@@ -238,25 +235,51 @@ static void stepper_enable_all_motors()
     }
 }
 
-// /**
-//  * @brief Stop the motors and the ISR clock, can resume from this point later
-//  */
-// void stepper_stop_motors()
-// {
-//     clock_pause_timer(STEPPER_X_TIMER, timer_a);
-//     stepper_disable_all_motors();
-// }
+/**
+ * @brief Disables the STEPPER_X motor
+ * 
+ */
+void stepper_x_disable()
+{
+    stepper_disable_motor(stepper_motor_x);
+}
 
-// /**
-//  * @brief Resume the motors and the ISR clock from its paused state
-//  * 
-//  */
-// void stepper_resume_motors()
-// {
-//     clock_resume_timer(STEPPER_X_TIMER, timer_a);
-//     stepper_enable_all_motors();
-// }
+/**
+ * @brief Disables the STEPPER_Y motor
+ * 
+ */
+void stepper_y_disable()
+{
+    stepper_disable_motor(stepper_motor_y);
+}
 
+/**
+ * @brief Disables the STEPPER_Z motor
+ * 
+ */
+void stepper_z_disable()
+{
+    stepper_disable_motor(stepper_motor_z);
+}
+
+/**
+ * @brief Stop the motors and the ISR clock, can resume from this point later
+ */
+void stepper_pause_motors()
+{
+    clock_pause_timer(STEPPER_X_TIMER);
+    stepper_disable_all_motors();
+}
+
+/**
+ * @brief Resume the motors and the ISR clock from its paused state
+ * 
+ */
+void stepper_resume_motors()
+{
+    clock_resume_timer(STEPPER_X_TIMER);
+    stepper_enable_all_motors();
+}
 
 /* Command Functions */
 
@@ -365,7 +388,7 @@ bool stepper_is_done(command_t* command)
 __interrupt void STEPPER_X_HANDLER(void)
 {
     // Clear the interrupt flag
-    clock_clear_ifg_raw(STEPPER_X_TIMER, timer_a);
+    clock_clear_interrupt(STEPPER_X_TIMER);
 
     // Move each stepper until it reaches its destination, then disable
     stepper_motors_t* base_stepper = &stepper_motors[0];

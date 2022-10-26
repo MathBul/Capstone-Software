@@ -9,29 +9,8 @@
  */
 
 #include "utils.h"
-#include <assert.h>
 
-/**
- * @brief Initializes a virtual port from a physical port for imaging
- * 
- * @param vport The virtual port
- * @param port_raw The physical port being imaged
- */
-void utils_vport_init(utils_vport_t* vport, GPIO_Type* port_raw)
-{
-    vport = (utils_vport_t*) (port_raw->DATA);
-}
-
-/**
- * @brief Reads a virtual port
- * 
- * @param vport The virtual port to read
- * @return uint8_t The value that was read
- */
-uint8_t utils_vport_read(utils_vport_t* vport)
-{
-    return vport->image;
-}
+bool utils_sys_fault;
 
 /**
  * @brief Enable the specified GPIO port by assigning it a clock

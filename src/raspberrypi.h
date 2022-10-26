@@ -72,6 +72,7 @@
 void rpi_init();
 bool rpi_transmit(char* data, uint8_t num_chars);
 bool rpi_receive(char *data, uint8_t num_chars);
+void rpi_reset_uart();
 
 // Raspberry Pi Instruction functions
 void rpi_transmit_reset(void);
