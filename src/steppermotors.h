@@ -22,11 +22,13 @@
 #include "command_queue.h"
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 // General stepper defines
 #define NUMBER_OF_STEPPER_MOTORS            (3)
 #define STEPPER_X_TIMER                     (TIMER0)
 #define STEPPER_X_HANDLER                   (TIMER0A_IRQHandler)
+#define STEPPER_X_INITIAL_PERIOD            (23999)
 
 // Stepper 1 (x-axis)
 #define STEPPER_X_ENABLE_PORT               (GPIOD)
@@ -94,12 +96,12 @@ typedef struct {
 // Stepper motor command struct
 typedef struct stepper_command_t {
     command_t command;
-    int16_t rel_x; // The distance to move in x (relative to current position)
-    int16_t rel_y; // The distance to move in y (relative to current position)
-    int16_t rel_z; // The distance to move in z (relative to current position)
-    uint16_t v_x;  // The speed in x (direction is determined by the sign of the distance to move)
-    uint16_t v_y;  // The speed in y (direction is determined by the sign of the distance to move)
-    uint16_t v_z;  // The speed in z (direction is determined by the sign of the distance to move)
+    int16_t rel_x; // The distance to move in x (relative to current position) mm
+    int16_t rel_y; // The distance to move in y (relative to current position) mm
+    int16_t rel_z; // The distance to move in z (relative to current position) mm
+    uint16_t v_x;  // The speed in x (direction is determined by the sign of the distance to move) mm/s
+    uint16_t v_y;  // The speed in y (direction is determined by the sign of the distance to move) mm/s
+    uint16_t v_z;  // The speed in z (direction is determined by the sign of the distance to move) mm/s
 } stepper_command_t;
 
 // Public functions
@@ -112,7 +114,9 @@ void stepper_enable_all_motors();
 void stepper_pause_motors();
 void stepper_resume_motors();
 
+
 // Command Functions
+stepper_command_t* stepper_build_command(int16_t rel_x, int16_t rel_y, int16_t rel_z, uint16_t v_x, uint16_t v_y, uint16_t v_z);
 void stepper_entry(command_t* command);
 void stepper_action(command_t* command);
 void stepper_exit(command_t* command);

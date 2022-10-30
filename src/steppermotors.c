@@ -283,6 +283,29 @@ void stepper_resume_motors()
 
 /* Command Functions */
 
+stepper_command_t* stepper_build_command(int16_t rel_x, int16_t rel_y, int16_t rel_z, uint16_t v_x, uint16_t v_y, uint16_t v_z)
+{
+    // The thing to return
+    stepper_command_t* p_command = (stepper_command_t*)malloc(sizeof(stepper_command_t));
+
+    // Functions
+    p_command->command.p_entry = &stepper_entry;
+    p_command->command.p_action = &stepper_action;
+    p_command->command.p_exit = &stepper_exit;
+    p_command->command.p_is_done = &stepper_is_done;
+
+    // Data
+    p_command->rel_x = rel_x;
+    p_command->rel_y = rel_y;
+    p_command->rel_z = rel_z;
+    p_command->v_x = v_x;
+    p_command->v_y = v_y;
+    p_command->v_z = v_z;
+
+    return p_command;
+}
+
+
 /**
  * @brief Prepares the steppers for this command
  * 
@@ -346,6 +369,7 @@ void stepper_entry(command_t* command)
     stepper_motor_z->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_z);
 
     // TODO: Load velocity values into the clock
+    clock_set_timer_period(STEPPER_X_TIMER, STEPPER_X_INITIAL_PERIOD); // Currently only X has an interrupt
 }
 
 /**

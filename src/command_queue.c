@@ -11,9 +11,7 @@
 
 #include "command_queue.h"
 
-#define COMMAND_QUEUE_SIZE                  32
-
-static command_t queue[COMMAND_QUEUE_SIZE];
+static command_t* queue[COMMAND_QUEUE_SIZE];
 static uint16_t head;
 static uint16_t tail;
 
@@ -31,7 +29,7 @@ void command_queue_init(void)
  * 
  * @param value The value to be put on the queue. 
  */
-bool command_queue_push(command_t value)
+bool command_queue_push(command_t* value)
 {
     // If the queue is full, return
     if (command_queue_get_size() == COMMAND_QUEUE_SIZE)
@@ -59,11 +57,11 @@ bool command_queue_push(command_t value)
 
 /**
  * @brief Removes the value at the front of the queue. If there is nothing in the queue,
- *  the storage pointer is evaulated to NULL
+ *  the storage pointer is evaluated to NULL
  * 
  * @param p_value A pointer to where the value will be stored
  */
-bool command_queue_pop(command_t* p_value)
+bool command_queue_pop(command_t** p_value)
 {
     // If it's empty do nothing
     if (command_queue_is_empty())

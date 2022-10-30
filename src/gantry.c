@@ -35,15 +35,15 @@ static chess_board_t current_board;
 void gantry_init()
 {
     // Prepare the gantry commands
-    gantry_read_cmd->command.p_entry = gantry_read_entry;
-    gantry_read_cmd->command.p_action = gantry_read_action;
-    gantry_read_cmd->command.p_exit = gantry_read_exit;
-    gantry_read_cmd->command.p_is_done = gantry_read_is_done;
+    gantry_read_cmd->command.p_entry = &gantry_read_entry;
+    gantry_read_cmd->command.p_action = &gantry_read_action;
+    gantry_read_cmd->command.p_exit = &gantry_read_exit;
+    gantry_read_cmd->command.p_is_done = &gantry_read_is_done;
     
-    gantry_move_cmd->command.p_entry = gantry_move_entry;
-    gantry_move_cmd->command.p_action = gantry_move_action;
-    gantry_move_cmd->command.p_exit = gantry_move_exit;
-    gantry_move_cmd->command.p_is_done = gantry_move_is_done;
+    gantry_move_cmd->command.p_entry = &gantry_move_entry;
+    gantry_move_cmd->command.p_action = &gantry_move_action;
+    gantry_move_cmd->command.p_exit = &gantry_move_exit;
+    gantry_move_cmd->command.p_is_done = &gantry_move_is_done;
     
     // System level initialization of all other modules
     clock_sys_init();
@@ -204,7 +204,7 @@ void gantry_read_exit(command_t* command)
     gantry_clear_command(gantry_move_cmd);
 
     // Place the gantry_move command on the queue
-    command_queue_push(gantry_move_cmd->command);
+    command_queue_push((command_t*)gantry_move_cmd);
 }
 
 /**

@@ -29,8 +29,8 @@ struct command_t {
 
 // Function definitions
 void command_queue_init(void);
-bool command_queue_push(command_t value);
-bool command_queue_pop(command_t* p_value);
+bool command_queue_push(command_t* value);
+bool command_queue_pop(command_t** p_value);
 uint16_t command_queue_get_size(void);
 bool command_queue_is_empty(void);
 bool command_queue_clear(void);

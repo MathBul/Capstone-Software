@@ -51,39 +51,40 @@ int main(void)
 
 #ifdef COMMAND_QUEUE
     // Probably need to allocate enough memory for the largest command struct
-    command_t current_command;
+    command_t* p_current_command;
 
     // System level initialization
     gantry_init();
 
     // Add commands to the queue
-
     // Main program flow
     while (1)
     {
         // Run the entry function
-        if (!command_queue_pop(&current_command))
+        if (!command_queue_pop(p_current_command))
         {
             // Something went wrong. Probably ran out of commands
         }
         else
         {
-            current_command.p_entry(&current_command);
+            p_current_command->p_entry(p_current_command);
         }
 
         // Run the action function - is_done() determines when action is complete
-        while (!current_command.p_is_done(&current_command))
+        while (!p_current_command->p_is_done(p_current_command))
         {
             // Check for a system fault (e-stop, etc.)
             if (!utils_sys_fault)
             {
                 break;  // TODO: Break both loops?
             }
-            current_command.p_action(&current_command);
+            p_current_command->p_action(p_current_command);
         }
         
         // Run the exit function
-        current_command.p_exit(&current_command);
+        p_current_command->p_exit(p_current_command);
+        // Free the command
+        free(p_current_command);
     }
 #endif
 
