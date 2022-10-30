@@ -63,7 +63,6 @@ void clock_timer0a_init()
     TIMER0->TAMR  =  (TIMER_TAMR_TAMR_PERIOD);              // Configure for periodic interrupts
     TIMER0->TAILR =  (TIMER_0A_RELOAD_VALUE);               // Set the interval value
     TIMER0->IMR  |=  (TIMER_IMR_TATOIM);                    // Set the interrupt mask
-    TIMER0->CTL  |=  (TIMER_CTL_TAEN);                      // Enable the timer
 
     // Configure the interrupt in the NVIC
     NVIC->ISER[0] |= (1 << TIMER_0A_INTERRUPT_SHIFT);
@@ -86,7 +85,6 @@ void clock_timer1a_init()
     TIMER1->TAMR  =  (TIMER_TAMR_TAMR_PERIOD);              // Configure for periodic interrupts
     TIMER1->TAILR =  (TIMER_1A_RELOAD_VALUE);               // Set the interval value
     TIMER1->IMR  |=  (TIMER_IMR_TATOIM);                    // Set the interrupt mask
-    TIMER1->CTL  |=  (TIMER_CTL_TAEN);                      // Enable the timer
 
     // Configure the interrupt in the NVIC
     NVIC->ISER[0] |= (1 << TIMER_1A_INTERRUPT_SHIFT);
@@ -109,7 +107,6 @@ void clock_timer2a_init()
     TIMER2->TAMR  =  (TIMER_TAMR_TAMR_PERIOD);              // Configure for periodic interrupts
     TIMER2->TAILR =  (TIMER_2A_RELOAD_VALUE);               // Set the interval value
     TIMER2->IMR  |=  (TIMER_IMR_TATOIM);                    // Set the interrupt mask
-    TIMER2->CTL  |=  (TIMER_CTL_TAEN);                      // Enable the timer
 
     // Configure the interrupt in the NVIC
     NVIC->ISER[0] |= (1 << TIMER_2A_INTERRUPT_SHIFT);

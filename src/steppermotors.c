@@ -370,6 +370,7 @@ void stepper_entry(command_t* command)
 
     // TODO: Load velocity values into the clock
     clock_set_timer_period(STEPPER_X_TIMER, STEPPER_X_INITIAL_PERIOD); // Currently only X has an interrupt
+    clock_resume_timer(STEPPER_X_TIMER);
 }
 
 /**

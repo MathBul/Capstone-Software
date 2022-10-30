@@ -57,34 +57,38 @@ int main(void)
     gantry_init();
 
     // Add commands to the queue
+    command_queue_push((command_t*)stepper_build_command(100, 0, 0, 1, 0, 0));
+
     // Main program flow
     while (1)
     {
         // Run the entry function
-        if (!command_queue_pop(p_current_command))
+        if (!command_queue_pop(&p_current_command))
         {
             // Something went wrong. Probably ran out of commands
         }
         else
         {
             p_current_command->p_entry(p_current_command);
+
+            // Run the action function - is_done() determines when action is complete
+            while (!p_current_command->p_is_done(p_current_command))
+            {
+                // Check for a system fault (e-stop, etc.)
+                if (!utils_sys_fault)
+                {
+                    break;  // TODO: Break both loops?
+                }
+                p_current_command->p_action(p_current_command);
+            }
+
+            // Run the exit function
+            p_current_command->p_exit(p_current_command);
+            // Free the command
+            free(p_current_command);
         }
 
-        // Run the action function - is_done() determines when action is complete
-        while (!p_current_command->p_is_done(p_current_command))
-        {
-            // Check for a system fault (e-stop, etc.)
-            if (!utils_sys_fault)
-            {
-                break;  // TODO: Break both loops?
-            }
-            p_current_command->p_action(p_current_command);
-        }
         
-        // Run the exit function
-        p_current_command->p_exit(p_current_command);
-        // Free the command
-        free(p_current_command);
     }
 #endif
 
