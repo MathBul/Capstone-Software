@@ -1,15 +1,24 @@
-/*
- * delay.c
- *
- *  Created on: Oct 30, 2022
- *      Author: EJ
+/**
+ * @file delay.c
+ * @author Eli Jelesko (ebj5hec@virginia.edu)
+ * @brief Implements a waiting command
+ * @version 0.1
+ * @date 2022-10-30
+ * 
+ * @copyright Copyright (c) 2022
+ * 
  */
 
 #include "delay.h"
 
 static uint32_t count;
 
-
+/**
+ * @brief Dynamically allocates a delay command
+ * 
+ * @param time_ms The amount of time to wait in milliseconds (ms)
+ * @return delay_command_t* The command
+ */
 delay_command_t* delay_build_command(uint16_t time_ms)
 {
     delay_command_t* p_command = (delay_command_t*)malloc(sizeof(delay_command_t));
@@ -26,6 +35,11 @@ delay_command_t* delay_build_command(uint16_t time_ms)
     return p_command;
 }
 
+/**
+ * @brief Run once before the action function
+ * 
+ * @param command The delay command from the command queue
+ */
 void delay_entry(command_t* command)
 {
     delay_command_t* p_delay_command = (delay_command_t*) command;
@@ -36,21 +50,43 @@ void delay_entry(command_t* command)
     clock_resume_timer(DELAY_TIMER);
 }
 
+/**
+ * @brief Run repeatedly from the command queue
+ * 
+ * @param command The delay command from the command queue
+ */
 void delay_action(command_t* command)
 {
     return; // All action is in the interrupt
 }
 
+/**
+ * @brief Run once after the action function
+ * 
+ * @param command The delay command from the command queue
+ */
 void delay_exit(command_t* command)
 {
     return; // Nothing
 }
 
+/**
+ * @brief Determines when the action function is complete
+ * 
+ * @param command The delay command from the command queue
+ * @return true If the time_ms has elapsed
+ * @return false 
+ */
 bool delay_is_done(command_t* command)
 {
     return count == 0;
 }
 
+/**
+ * @brief Decrements a counter to effectivly do a busy wait
+ * 
+ * @return __interrupt 
+ */
 __interrupt void DELAY_HANDLER(void)
 {
     // Clear the interrupt flag
