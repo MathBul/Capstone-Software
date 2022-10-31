@@ -22,10 +22,11 @@
 #include "switch.h"
 #include "uart.h"
 #include "utils.h"
+#include "delay.h"
 
 // General gantry defines
-#define GANTRY_TIMER                        (TIMER2)
-#define GANTRY_HANDLER                      (TIMER2A_IRQHandler)
+#define GANTRY_TIMER                        (TIMER4)
+#define GANTRY_HANDLER                      (TIMER4A_IRQHandler)
 
 // Gantry command struct
 typedef struct gantry_command_t {

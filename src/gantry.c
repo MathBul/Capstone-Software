@@ -50,6 +50,9 @@ void gantry_init()
     clock_timer0a_init();
     clock_timer1a_init();
     clock_timer2a_init();
+    clock_timer3a_init();
+    clock_timer4a_init();
+    clock_timer5a_init();
     command_queue_init();
     stepper_init_motors();
 }

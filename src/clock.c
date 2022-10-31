@@ -113,6 +113,72 @@ void clock_timer2a_init()
 }
 
 /**
+ * @brief Configure timer 3A
+ */
+void clock_timer3a_init()
+{
+    // Enable the timer and wait for it to be ready
+    SYSCTL->RCGCTIMER |= SYSCTL_RCGCTIMER_R3;
+    while (!(SYSCTL->PRTIMER & SYSCTL_RCGCTIMER_R3))
+    {
+    }
+
+    // Configure Timer 0A for interrupts
+    TIMER3->CTL  &= ~(TIMER_CTL_TAEN);                      // Disable the timer
+    TIMER3->CFG   =  (0);                                   // Clear the configuration
+    TIMER3->TAMR  =  (TIMER_TAMR_TAMR_PERIOD);              // Configure for periodic interrupts
+    TIMER3->TAILR =  (TIMER_3A_RELOAD_VALUE);               // Set the interval value
+    TIMER3->IMR  |=  (TIMER_IMR_TATOIM);                    // Set the interrupt mask
+
+    // Configure the interrupt in the NVIC
+    NVIC->ISER[0] |= (1 << TIMER_3A_INTERRUPT_SHIFT);
+}
+
+/**
+ * @brief Configure timer 4A
+ */
+void clock_timer4a_init()
+{
+    // Enable the timer and wait for it to be ready
+    SYSCTL->RCGCTIMER |= SYSCTL_RCGCTIMER_R4;
+    while (!(SYSCTL->PRTIMER & SYSCTL_RCGCTIMER_R4))
+    {
+    }
+
+    // Configure Timer 0A for interrupts
+    TIMER4->CTL  &= ~(TIMER_CTL_TAEN);                      // Disable the timer
+    TIMER4->CFG   =  (0);                                   // Clear the configuration
+    TIMER4->TAMR  =  (TIMER_TAMR_TAMR_PERIOD);              // Configure for periodic interrupts
+    TIMER4->TAILR =  (TIMER_4A_RELOAD_VALUE);               // Set the interval value
+    TIMER4->IMR  |=  (TIMER_IMR_TATOIM);                    // Set the interrupt mask
+
+    // Configure the interrupt in the NVIC
+    NVIC->ISER[0] |= (1 << TIMER_4A_INTERRUPT_SHIFT);
+}
+
+/**
+ * @brief Configure timer 5A
+ */
+void clock_timer5a_init()
+{
+    // Enable the timer and wait for it to be ready
+    SYSCTL->RCGCTIMER |= SYSCTL_RCGCTIMER_R5;
+    while (!(SYSCTL->PRTIMER & SYSCTL_RCGCTIMER_R5))
+    {
+    }
+
+    // Configure Timer 0A for interrupts
+    TIMER5->CTL  &= ~(TIMER_CTL_TAEN);                      // Disable the timer
+    TIMER5->CFG   =  (0);                                   // Clear the configuration
+    TIMER5->TAMR  =  (TIMER_TAMR_TAMR_PERIOD);              // Configure for periodic interrupts
+    TIMER5->TAILR =  (TIMER_5A_RELOAD_VALUE);               // Set the interval value
+    TIMER5->IMR  |=  (TIMER_IMR_TATOIM);                    // Set the interrupt mask
+
+    // Configure the interrupt in the NVIC
+    NVIC->ISER[0] |= (1 << TIMER_5A_INTERRUPT_SHIFT);
+}
+
+/**
  * @brief Clears the interrupt flag associated with time-out raw on the given timer (on the a subsubmodule)
  * 
  * @param timer One of TIMERX for X=0,...,5

@@ -30,6 +30,15 @@
 #define STEPPER_X_HANDLER                   (TIMER0A_IRQHandler)
 #define STEPPER_X_INITIAL_PERIOD            (23999)
 
+#define STEPPER_Y_TIMER                     (TIMER1)
+#define STEPPER_Y_HANDLER                   (TIMER1A_IRQHandler)
+#define STEPPER_Y_INITIAL_PERIOD            (23999)
+
+#define STEPPER_Z_TIMER                     (TIMER2)
+#define STEPPER_Z_HANDLER                   (TIMER2A_IRQHandler)
+#define STEPPER_Z_INITIAL_PERIOD            (23999)
+
+
 // Stepper 1 (x-axis)
 #define STEPPER_X_ENABLE_PORT               (GPIOD)
 #define STEPPER_X_ENABLE_PIN                (GPIO_PIN_2)

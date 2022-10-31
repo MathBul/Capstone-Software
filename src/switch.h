@@ -39,8 +39,8 @@
 #define ROCKER_PIN_MASK                     (ROCKER_COLOR_PIN)
 
 // General switch macros
-#define SWITCH_TIMER                        (TIMER1)
-#define SWITCH_HANDLER                      (TIMER1A_IRQHandler)
+#define SWITCH_TIMER                        (TIMER3)
+#define SWITCH_HANDLER                      (TIMER3A_IRQHandler)
 #define SWITCH_MASK                         (BUTTON_PIN_MASK | LIMIT_PIN_MASK | ROCKER_PIN_MASK)
 
 // Button macros
