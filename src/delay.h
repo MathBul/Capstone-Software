@@ -1,8 +1,12 @@
-/*
- * delay.h
- *
- *  Created on: Oct 30, 2022
- *      Author: EJ
+/**
+ * @file delay.h
+ * @author Eli Jelesko (ebj5hec@virginia.edu)
+ * @brief Implements a waiting command
+ * @version 0.1
+ * @date 2022-10-30
+ * 
+ * @copyright Copyright (c) 2022
+ * 
  */
 
 #ifndef SRC_DELAY_H_
