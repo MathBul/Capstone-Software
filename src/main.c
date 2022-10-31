@@ -145,17 +145,11 @@ int main(void)
 
     clock_sys_init();
     uart_init(UART_CHANNEL_0);
-    int i;
 
     // Read whatever comes in to the message string.
     while (1)
     {
         uart_out_string(UART_CHANNEL_0, "Hello world!\n");
-        // Busy wait
-        for (i = 0; i< 100000; i++)
-        {
-
-        }
     }
     #endif
 

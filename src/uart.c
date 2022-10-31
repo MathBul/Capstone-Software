@@ -381,6 +381,8 @@ bool uart_out_string(uint8_t uart_channel, char* string)
             output = false;
         break;
     }
+    // Delay a bit so this isn't spamable
+    utils_delay(200000);
 
     return output;
 }
