@@ -134,6 +134,36 @@ uint8_t utils_bits8_remask(uint8_t byte, uint8_t original_mask, uint8_t new_mask
 }
 
 /**
+ * @brief Restricts a given value to within a given range
+ *
+ * @param value The value to be bounded
+ * @param lower bound If value < lower_bound, the function will return lower_bound
+ * @param upper_bound If value < lower_bound, the function will return lower_bound
+ * @return uint16_t A value between lower_bound and upper_bound
+ */
+uint16_t utils_bound(uint16_t value, uint16_t lower_bound, uint16_t upper_bound)
+{
+    // Make sure the bounds are actually in the correct order
+    if (lower_bound > upper_bound)
+    {
+        uint16_t temp = lower_bound;
+        lower_bound = upper_bound;
+        upper_bound = temp;
+    }
+
+    // Restrict the value
+    if (value < lower_bound)
+    {
+        return lower_bound;
+    }
+    if (value > upper_bound)
+    {
+        return upper_bound;
+    }
+    return value;
+}
+
+/**
  * @brief Computes the Fletcher-16 checksum given an array of chars
  *
  * @param uint8_t *data The array of uint8_t's (chars) with which to compute the checksum

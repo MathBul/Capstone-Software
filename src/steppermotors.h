@@ -84,6 +84,10 @@
 #define STEPPER_Z_DIR_PIN                   (GPIO_PIN_1)
 #define STEPPER_Z_ID                        (2)
 
+// Speeds
+#define STEPPER_MAX_SPEED                   (250) // mm/s
+#define STEPPER_MIN_SPEED                   (90)  // mm/s
+
 // Tracks whether a stepper motor is enabled or disabled
 typedef enum {
     disabled, enabled

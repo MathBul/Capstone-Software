@@ -369,18 +369,12 @@ void stepper_entry(command_t* command)
     stepper_motor_z->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_z);
 
     // TODO: Load velocity values into the clock
+    uint16_t v_x = utils_bound(p_stepper_command->v_x, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
+    uint16_t v_y = utils_bound(p_stepper_command->v_y, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
+    uint16_t v_z = utils_bound(p_stepper_command->v_z, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
     uint32_t stepper_x_period = 120000000 / (stepper_distance_to_transitions(p_stepper_command->v_x));
 
-    // TODO: Move to function. Set limits on speed of 90mm/s to 250mm/s
-    if (stepper_x_period < 24000)
-    {
-        stepper_x_period = 24000;
-    }
-    else if (stepper_x_period > 65535)
-    {
-        stepper_x_period = 65535;
-    }
-    clock_set_timer_period(STEPPER_X_TIMER, 65535); // Currently only X has an interrupt
+    clock_set_timer_period(STEPPER_X_TIMER, stepper_x_period); // Currently only X has an interrupt
     clock_resume_timer(STEPPER_X_TIMER);
 }
 
