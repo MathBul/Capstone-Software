@@ -39,15 +39,15 @@ typedef struct gantry_command_t {
 void gantry_init();
 
 // Command Functions (reading user input)
-void gantry_read_entry(command_t* command);
-void gantry_read_action(command_t* command);
-void gantry_read_exit(command_t* command);
-bool gantry_read_is_done(command_t* command);
+void gantry_human_entry(command_t* command);
+void gantry_human_action(command_t* command);
+void gantry_human_exit(command_t* command);
+bool gantry_human_is_done(command_t* command);
 
 // Command Functions (preparing/performing moves)
-void gantry_move_entry(command_t* command);
-void gantry_move_action(command_t* command);
-void gantry_move_exit(command_t* command);
-bool gantry_move_is_done(command_t* command);
+void gantry_robot_entry(command_t* command);
+void gantry_robot_action(command_t* command);
+void gantry_robot_exit(command_t* command);
+bool gantry_robot_is_done(command_t* command);
 
 #endif /* GANTRY_H_ */

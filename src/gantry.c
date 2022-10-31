@@ -35,15 +35,15 @@ static chess_board_t current_board;
 void gantry_init()
 {
     // Prepare the gantry commands
-    gantry_read_cmd->command.p_entry = &gantry_read_entry;
-    gantry_read_cmd->command.p_action = &gantry_read_action;
-    gantry_read_cmd->command.p_exit = &gantry_read_exit;
-    gantry_read_cmd->command.p_is_done = &gantry_read_is_done;
+    gantry_read_cmd->command.p_entry = &gantry_human_entry;
+    gantry_read_cmd->command.p_action = &gantry_human_action;
+    gantry_read_cmd->command.p_exit = &gantry_human_exit;
+    gantry_read_cmd->command.p_is_done = &gantry_human_is_done;
     
-    gantry_move_cmd->command.p_entry = &gantry_move_entry;
-    gantry_move_cmd->command.p_action = &gantry_move_action;
-    gantry_move_cmd->command.p_exit = &gantry_move_exit;
-    gantry_move_cmd->command.p_is_done = &gantry_move_is_done;
+    gantry_move_cmd->command.p_entry = &gantry_robot_entry;
+    gantry_move_cmd->command.p_action = &gantry_robot_action;
+    gantry_move_cmd->command.p_exit = &gantry_robot_exit;
+    gantry_move_cmd->command.p_is_done = &gantry_robot_is_done;
     
     // System level initialization of all other modules
     clock_sys_init();
@@ -165,7 +165,7 @@ void gantry_clear_command(gantry_command_t* gantry_command)
  * 
  * @param command The gantry command being run
  */
-void gantry_read_entry(command_t* command)
+void gantry_human_entry(command_t* command)
 {
     return;
 }
@@ -175,7 +175,7 @@ void gantry_read_entry(command_t* command)
  * 
  * @param command The gantry command being run
  */
-void gantry_read_action(command_t* command)
+void gantry_human_action(command_t* command)
 {
     return;
 }
@@ -185,7 +185,7 @@ void gantry_read_action(command_t* command)
  * 
  * @param command The gantry command being run
  */
-void gantry_read_exit(command_t* command)
+void gantry_human_exit(command_t* command)
 {
     // Read the current board state
     sensors_read_tile(row_1, col_a);    // TODO: Read more than one tile (poll the board)
@@ -210,7 +210,7 @@ void gantry_read_exit(command_t* command)
  * @param command The gantry command being run
  * @return true If the END_TURN button has been pressed
  */
-bool gantry_read_is_done(command_t* command)
+bool gantry_human_is_done(command_t* command)
 {
     uint8_t switch_data = switch_vport.image;
     return (switch_data & BUTTON_END_TURN);
@@ -221,7 +221,7 @@ bool gantry_read_is_done(command_t* command)
  * 
  * @param command The gantry command being run
  */
-void gantry_move_entry(command_t* command)
+void gantry_robot_entry(command_t* command)
 {
     return;
 }
@@ -231,7 +231,7 @@ void gantry_move_entry(command_t* command)
  * 
  * @param command The gantry command being run
  */
-void gantry_move_action(command_t* command)
+void gantry_robot_action(command_t* command)
 {
     gantry_command_t* p_gantry_command = (gantry_command_t*) command;
     // TODO: Waits, checksums, etc. as needed
@@ -253,7 +253,7 @@ void gantry_move_action(command_t* command)
  * 
  * @param command The gantry command being run
  */
-void gantry_move_exit(command_t* command)
+void gantry_robot_exit(command_t* command)
 {
     gantry_command_t* p_gantry_command = (gantry_command_t*) command;
     
@@ -310,7 +310,7 @@ void gantry_move_exit(command_t* command)
  * @param command The gantry command being run
  * @return true If the RPi responded
  */
-bool gantry_move_is_done(command_t* command)
+bool gantry_robot_is_done(command_t* command)
 {
     return true;
     // TODO: Some sort of check that RPi.receive() found data
