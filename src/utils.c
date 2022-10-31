@@ -167,4 +167,14 @@ void utils_delay(uint32_t ticks)
     for (i = 0; i < ticks; i++) {}
 }
 
+/**
+ * @brief Sets the correct ISER bit in the NVIC
+ */
+void utils_set_nvic(uint8_t interrupt_num)
+{
+    uint8_t interrupt_shift = (interrupt_num % 32);
+    uint8_t iser_position = (interrupt_num - interrupt_shift)/32;
+    NVIC->ISER[iser_position] |= (1 << (interrupt_shift));
+}
+
 /* End utils.c */

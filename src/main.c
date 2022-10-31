@@ -4,7 +4,6 @@
 // Standard includes necessary for base functionality
 #include "msp.h"
 
-//#define STEPPER_DEBUG
 //#define UART_DEBUG
 //#define FUNCTION_DEBUG
 //#define CHESS_ROBOT_MAIN
@@ -15,39 +14,6 @@ extern bool utils_sys_fault;
 
 int main(void)
 {
-#ifdef STEPPER_DEBUG
-    // Initialize the system clock and timer(s)
-    clock_sys_init();
-    clock_timer0a_init();
-
-    // Initialize the stepper motor(s)
-    stepper_init_motors();
-
-    // Serious of position commands
-    stepper_go_home();
-    stepper_go_to_rel_position(250, 0);
-    stepper_go_to_rel_position(0, 250);
-    stepper_go_home();
-    stepper_go_to_rel_position(200, 200);
-    stepper_go_to_rel_position(50, -50);
-    stepper_go_to_rel_position(-50, 50);
-    stepper_go_home();
-    stepper_go_to_rel_position(250, 250);
-    int i = 0;
-    for (i = 3; i < 8; i++)
-    {
-        stepper_go_to_rel_position(0, 10*i);
-        stepper_go_to_rel_position(10*i, 0);
-        stepper_go_to_rel_position(-20*i, -20*i);
-        stepper_go_to_rel_position(10*i, 0);
-        stepper_go_to_rel_position(0, 10*i);
-    }
-    stepper_go_home();
-
-    while(1)
-    {
-    }
-#endif
 
 #ifdef COMMAND_QUEUE
     // Probably need to allocate enough memory for the largest command struct

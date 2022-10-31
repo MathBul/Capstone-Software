@@ -12,6 +12,7 @@
 #define CLOCK_H_
 
 #include "msp.h"
+#include "utils.h"
 
 // Timer 0 defines
 #define TIMER_0A_PERIOD                         23999       // Calculate for steppers to travel 1 foot/sec

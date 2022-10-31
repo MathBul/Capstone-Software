@@ -9,7 +9,6 @@
  *
  */
 
-#include <stdint.h>
 #include "chessboard.h"
 
 static chess_board_t previous_board;
