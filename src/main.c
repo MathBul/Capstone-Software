@@ -58,6 +58,7 @@ int main(void)
 
     // Add commands to the queue
     command_queue_push((command_t*)stepper_build_command(100, 0, 0, 1, 0, 0));
+    command_queue_push((command_t*)stepper_build_command(-100, 0, 0, 1, 0, 0));
 
     // Main program flow
     while (1)
@@ -75,7 +76,7 @@ int main(void)
             while (!p_current_command->p_is_done(p_current_command))
             {
                 // Check for a system fault (e-stop, etc.)
-                if (!utils_sys_fault)
+                if (utils_sys_fault)
                 {
                     break;  // TODO: Break both loops?
                 }

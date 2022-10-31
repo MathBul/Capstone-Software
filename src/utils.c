@@ -10,7 +10,7 @@
 
 #include "utils.h"
 
-bool utils_sys_fault;
+bool utils_sys_fault = false;
 
 /**
  * @brief Enable the specified GPIO port by assigning it a clock

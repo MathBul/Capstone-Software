@@ -50,14 +50,8 @@ void gantry_init()
     clock_timer0a_init();
     clock_timer1a_init();
     clock_timer2a_init();
-    chessboard_init(&previous_board);
-    chessboard_init(&current_board);
     command_queue_init();
-    electromagnet_init();
-    rpi_init();
-    sensors_init();
     stepper_init_motors();
-    switch_init();
 }
 
 /**

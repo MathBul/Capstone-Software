@@ -155,7 +155,6 @@ void clock_set_timer_period(TIMER0_Type* timer, uint16_t value)
 {
     timer->CTL  &= ~(TIMER_CTL_TAEN);                       // Disable the timer
     timer->TAILR =  value;                                  // Set the interval value
-    timer->CTL  |=  (TIMER_CTL_TAEN);                       // Enable the timer
 }
 
 /* End clock.c */
