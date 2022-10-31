@@ -103,7 +103,9 @@ typedef struct {
     uint8_t                enable_pin;                 // Pin used to enable/disable the motor
     stepper_motors_state_t current_state;              // Whether the motor is enabled/disabled
     uint32_t               transitions_to_desired_pos; // (2)*(#periods to desired position)
-    int32_t                distance_to_home;           // Distance (in mm) to travel to home position
+    int8_t                 dir;                        // 1 or -1. 1 If positive direction, negative if in the negative dir
+    int32_t                current_pos;                // Distance (in transitions) along the axis. Measured from home position
+    uint16_t               current_vel;                // Velocity (in register values) at the present moment
 } stepper_motors_t;
 
 // Stepper motor command struct
@@ -126,6 +128,10 @@ void stepper_disable_all_motors();
 void stepper_enable_all_motors();
 void stepper_pause_motors();
 void stepper_resume_motors();
+int16_t stepper_x_get_current_pos();
+int16_t stepper_y_get_current_pos();
+int16_t stepper_z_get_current_pos();
+
 
 
 // Command Functions

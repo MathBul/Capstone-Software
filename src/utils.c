@@ -186,6 +186,8 @@ uint16_t fletcher_16(uint8_t *data, int count)
    return (sum2 << 8) | sum1;
 }
 
+
+
 /**
  * @brief Delay the next operation with a for-loop (used for spacing out UART communication)
  *

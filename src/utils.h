@@ -59,6 +59,8 @@ uint16_t utils_bound(uint16_t value, uint16_t lower_bound, uint16_t upper_bound)
 // Fletcher checksum function
 uint16_t fletcher_16(uint8_t *data, int count);
 
+
+
 // Interrupts
 void utils_set_nvic(uint8_t interrupt_num);
 

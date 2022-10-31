@@ -61,7 +61,9 @@ void stepper_init_motors()
     stepper_motor_x->enable_pin                 = STEPPER_X_ENABLE_PIN;
     stepper_motor_x->current_state              = disabled;
     stepper_motor_x->transitions_to_desired_pos = 0;
-    stepper_motor_x->distance_to_home           = 0;
+    stepper_motor_x->dir                        = 1;
+    stepper_motor_x->current_pos                = 0;
+    stepper_motor_x->current_vel                = 0;
 
 
     /* Stepper 2 (y direction) */
@@ -97,7 +99,9 @@ void stepper_init_motors()
     stepper_motor_y->enable_pin                 = STEPPER_Y_ENABLE_PIN;
     stepper_motor_y->current_state              = disabled;
     stepper_motor_y->transitions_to_desired_pos = 0;
-    stepper_motor_y->distance_to_home           = 0;
+    stepper_motor_y->dir                        = 1;
+    stepper_motor_y->current_pos                = 0;
+    stepper_motor_y->current_vel                = 0;
 
 
     /* Stepper 3 (a direction) */
@@ -133,7 +137,9 @@ void stepper_init_motors()
     stepper_motor_z->enable_pin                 = STEPPER_Z_ENABLE_PIN;
     stepper_motor_z->current_state              = disabled;
     stepper_motor_z->transitions_to_desired_pos = 0;
-    stepper_motor_z->distance_to_home           = 0;
+    stepper_motor_z->dir                        = 1;
+    stepper_motor_z->current_pos                = 0;
+    stepper_motor_z->current_vel                = 0;
 }
 
 /**
@@ -280,6 +286,26 @@ void stepper_resume_motors()
     clock_resume_timer(STEPPER_X_TIMER);
     stepper_enable_all_motors();
 }
+
+/**
+ * @brief Returns the current position of the stepper in mm
+ *
+ */
+int16_t stepper_x_get_current_pos()
+{
+    return stepper_motor_x->current_pos / 20;
+}
+
+int16_t stepper_y_get_current_pos()
+{
+    return stepper_motor_y->current_pos / 20;
+}
+
+int16_t stepper_z_get_current_pos()
+{
+    return stepper_motor_z->current_pos / 20;
+}
+
 
 /* Command Functions */
 
@@ -428,8 +454,12 @@ __interrupt void STEPPER_X_HANDLER(void)
     {
         if ((base_stepper+i)->transitions_to_desired_pos > 0) 
         {
+            // Move the motor
             stepper_edge_transition((base_stepper+i));
+            // Update our counter
             (base_stepper+i)->transitions_to_desired_pos -= 1;
+            // Update the position
+            (base_stepper+i)->current_pos += (base_stepper+i)->dir;
         } 
         else
         {
