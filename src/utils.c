@@ -186,8 +186,6 @@ uint16_t utils_fl16_data_to_csum(uint8_t *data, int count)
    return (sum2 << 8) | sum1;
 }
 
-
-
 /**
  * @brief Computes the Fletcher-16 checkbytes from its checksum
  *

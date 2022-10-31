@@ -129,12 +129,4 @@ chess_file_t rpi_byte_to_file(uint8_t byte);
 chess_rank_t rpi_byte_to_rank(uint8_t byte);
 chess_move_type rpi_byte_to_move_type(uint8_t byte);
 
-
-
-// Command Functions
-void rpi_entry(command_t* command);
-void rpi_action(command_t* command);
-void rpi_exit(command_t* command);
-bool rpi_is_done(command_t* command);
-
 #endif /* RASPBERRYPI_H_ */
