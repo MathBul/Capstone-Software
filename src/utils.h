@@ -53,8 +53,11 @@ void utils_delay(uint32_t ticks);
 uint8_t utils_bits8_mask_to_shift(uint8_t mask);
 uint8_t utils_bits8_remask(uint8_t byte, uint8_t original_mask, uint8_t new_mask);
 
-// Fletcher checksum function
-uint16_t fletcher_16(uint8_t *data, int count);
+// Fletcher-16 checksum functions
+uint16_t utils_fl16_data_to_csum(uint8_t *data, int count);
+char* utils_fl16_csum_to_cbytes(uint16_t checksum, char check_bytes[2]);
+char* utils_fl16_data_to_cbytes(uint8_t *data, int count, char check_bytes[2]);
+bool utils_validate_transmission(uint8_t *data, int count, char check_bytes[2]);
 
 // Interrupts
 void utils_set_nvic(uint8_t interrupt_num);
