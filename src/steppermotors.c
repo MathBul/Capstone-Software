@@ -372,7 +372,7 @@ void stepper_entry(command_t* command)
     uint16_t v_x = utils_bound(p_stepper_command->v_x, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
     uint16_t v_y = utils_bound(p_stepper_command->v_y, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
     uint16_t v_z = utils_bound(p_stepper_command->v_z, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
-    uint32_t stepper_x_period = 120000000 / (stepper_distance_to_transitions(p_stepper_command->v_x));
+    uint32_t stepper_x_period = 120000000 / (stepper_distance_to_transitions(v_x));
 
     clock_set_timer_period(STEPPER_X_TIMER, stepper_x_period); // Currently only X has an interrupt
     clock_resume_timer(STEPPER_X_TIMER);

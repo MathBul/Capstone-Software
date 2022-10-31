@@ -59,10 +59,10 @@ void uart_init(uint8_t uart_channel) {
             UART0->CTL &= ~UART_CTL_UARTEN;
 
             // Set baud clock source to PIOSC (16MHz)
-            // Configure for a 115200 baud rate
-            // 16MHz / (16 * 115200) = 8.8056
-            UART0->IBRD |= (8 << UART_IBRD_DIVINT_S); // Integer
-            UART0->FBRD |= (52 << UART_FBRD_DIVFRAC_S); // Fractional
+            // Configure for a 9600 baud rate
+            // 16MHz / (16 * 9600) = 104.16667
+            UART0->IBRD |= (104 << UART_IBRD_DIVINT_S); // Integer
+            UART0->FBRD |= (11 << UART_FBRD_DIVFRAC_S); // Fractional
 
             // Enable FIFOs and set 8 bit word length
             UART0->LCRH |= (UART_LCRH_FEN | UART_LCRH_WLEN_8);
@@ -263,46 +263,128 @@ bool uart_out_byte(uint8_t uart_channel, uint8_t byte)
     bool output;
     switch (uart_channel)
     {
-    case UART_CHANNEL_0:
-        output = uart_fifo_push(&uart_0_tx, byte);
+        case UART_CHANNEL_0:
+            output = uart_fifo_push(&uart_0_tx, byte);
 
-        // If the Tx FIFO is empty copy to hardware
-        if (UART0->FR & UART_FR_TXFE)
-        {
-            copy_software_to_hardware(UART_CHANNEL_0);
-        }
-        return output;
-    case UART_CHANNEL_2:
-        output = uart_fifo_push(&uart_2_tx, byte);
+            // If the Tx FIFO is empty copy to hardware
+            if (UART0->FR & UART_FR_TXFE)
+            {
+                copy_software_to_hardware(UART_CHANNEL_0);
+            }
+        break;
+        case UART_CHANNEL_2:
+            output = uart_fifo_push(&uart_2_tx, byte);
 
-        // If the Tx FIFO is empty copy to hardware
-        if (UART2->FR & UART_FR_TXFE)
-        {
-            copy_software_to_hardware(UART_CHANNEL_2);
-        }
-        return output;
-    case UART_CHANNEL_3:
-        output = uart_fifo_push(&uart_3_tx, byte);
+            // If the Tx FIFO is empty copy to hardware
+            if (UART2->FR & UART_FR_TXFE)
+            {
+                copy_software_to_hardware(UART_CHANNEL_2);
+            }
+        break;
+        case UART_CHANNEL_3:
+            output = uart_fifo_push(&uart_3_tx, byte);
 
-        // If the Tx FIFO is empty copy to hardware
-        if (UART3->FR & UART_FR_TXFE)
-        {
-            copy_software_to_hardware(UART_CHANNEL_3);
-        }
-        return output;
-    case UART_CHANNEL_6:
-        output = uart_fifo_push(&uart_6_tx, byte);
+            // If the Tx FIFO is empty copy to hardware
+            if (UART3->FR & UART_FR_TXFE)
+            {
+                copy_software_to_hardware(UART_CHANNEL_3);
+            }
+        break;
+        case UART_CHANNEL_6:
+            output = uart_fifo_push(&uart_6_tx, byte);
 
-        // If the Tx FIFO is empty copy to hardware
-        if (UART6->FR & UART_FR_TXFE)
-        {
-            copy_software_to_hardware(UART_CHANNEL_6);
-        }
-        return output;
-    default:
-        return false;
+            // If the Tx FIFO is empty copy to hardware
+            if (UART6->FR & UART_FR_TXFE)
+            {
+                copy_software_to_hardware(UART_CHANNEL_6);
+            }
+        break;
+        default:
+            output = false;
+        break;
     }
+
+    return output;
 }
+
+/**
+ * @brief Sends a string to the specified UART channel
+ *
+ * @param uart_channel One of UART_CHANNEL_X
+ * @param string The string to be sent
+ * @return true The string was sent
+ * @return false The string could not be sent
+ */
+bool uart_out_string(uint8_t uart_channel, char* string)
+{
+    bool output = true;
+    char* val = &string[0];
+    switch (uart_channel)
+    {
+        case UART_CHANNEL_0:
+            // Put all of the characters onto the software buffer
+            while (*(val) != '\0')
+            {
+                output &= uart_fifo_push(&uart_0_tx, (uint8_t) *val);
+                val++;
+            }
+
+            // If the Tx FIFO is empty copy to hardware
+            if (UART0->FR & UART_FR_TXFE)
+            {
+                copy_software_to_hardware(UART_CHANNEL_0);
+            }
+        break;
+        case UART_CHANNEL_2:
+            // Put all of the characters onto the software buffer
+            while (*(val) != '\0')
+            {
+                output &= uart_fifo_push(&uart_2_tx, (uint8_t) *val);
+                val++;
+            }
+
+            // If the Tx FIFO is empty copy to hardware
+            if (UART2->FR & UART_FR_TXFE)
+            {
+                copy_software_to_hardware(UART_CHANNEL_2);
+            }
+        break;
+        case UART_CHANNEL_3:
+            // Put all of the characters onto the software buffer
+            while (*(val) != '\0')
+            {
+                output &= uart_fifo_push(&uart_3_tx, (uint8_t) *val);
+                val++;
+            }
+
+            // If the Tx FIFO is empty copy to hardware
+            if (UART3->FR & UART_FR_TXFE)
+            {
+                copy_software_to_hardware(UART_CHANNEL_3);
+            }
+        break;
+        case UART_CHANNEL_6:
+            // Put all of the characters onto the software buffer
+            while (*(val) != '\0')
+            {
+                output &= uart_fifo_push(&uart_6_tx, (uint8_t) *val);
+                val++;
+            }
+
+            // If the Tx FIFO is empty copy to hardware
+            if (UART6->FR & UART_FR_TXFE)
+            {
+                copy_software_to_hardware(UART_CHANNEL_6);
+            }
+        break;
+        default:
+            output = false;
+        break;
+    }
+
+    return output;
+}
+
 
 /**
  * @brief Reads the last byte in the Rx FIFO. This may not necessarily be the last byte received by the

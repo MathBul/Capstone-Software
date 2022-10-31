@@ -4,10 +4,10 @@
 // Standard includes necessary for base functionality
 #include "msp.h"
 
-//#define UART_DEBUG
+#define UART_DEBUG
 //#define FUNCTION_DEBUG
 //#define CHESS_ROBOT_MAIN
-#define COMMAND_QUEUE
+//#define COMMAND_QUEUE
 
 // Flag that gets set in the utils module when there is a system fault
 extern bool utils_sys_fault;
@@ -142,22 +142,19 @@ int main(void)
     #endif
 
     #ifdef UART_DEBUG
-    char message[64];
-    int i = 0;
 
     clock_sys_init();
-    uart_init(UART_CHANNEL_3);
+    uart_init(UART_CHANNEL_0);
+    int i;
 
     // Read whatever comes in to the message string.
     while (1)
     {
-        // This is "blocking"
-        uart_read_byte(UART_CHANNEL_3, (uint8_t*)&message[i]);
-//        uart_out_byte(UART_CHANNEL_3, (uint8_t) 'A');
-        i++;
-        if (i > 63)
+        uart_out_string(UART_CHANNEL_0, "Hello world!\n");
+        // Busy wait
+        for (i = 0; i< 100000; i++)
         {
-            i = 0;
+
         }
     }
     #endif
