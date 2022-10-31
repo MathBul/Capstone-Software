@@ -29,6 +29,9 @@ extern bool utils_sys_fault;
 static chess_board_t previous_board;
 static chess_board_t current_board;
 
+// Flags
+static bool robot_is_done = false;
+static bool human_is_done = false;
 /**
  * @brief Initializes all modules
  */
@@ -150,12 +153,12 @@ void gantry_kill()
  */
 void gantry_clear_command(gantry_command_t* gantry_command)
 {
-    gantry_command->move[0]        = 0;
-    gantry_command->move[1]        = 0;
-    gantry_command->move[2]        = 0;
-    gantry_command->move[3]        = 0;
-    gantry_command->move[4]        = 0;
-    gantry_command->move_type      = 0;
+    gantry_command->move.source_file = '\0';
+    gantry_command->move.source_rank = 0;
+    gantry_command->move.dest_file = '\0';
+    gantry_command->move.dest_rank = 0;
+    gantry_command->move.move_type = IDLE;
+
 }
 
 /* Command Functions */
@@ -240,11 +243,38 @@ void gantry_robot_action(command_t* command)
     char move[5];
     if (rpi_receive(move, 5))
     {
-        p_gantry_command->move[0] = move[0];
-        p_gantry_command->move[1] = move[1];
-        p_gantry_command->move[2] = move[2];
-        p_gantry_command->move[3] = move[3];
-        p_gantry_command->move[4] = move[4];
+        p_gantry_command->move.source_file = move[0];
+        p_gantry_command->move.source_file = (uint8_t) move[1];
+        p_gantry_command->move.source_file = move[2];
+        p_gantry_command->move.source_file = (uint8_t) move[3];
+
+        switch (move[4])
+        {
+            case 'M':
+                p_gantry_command->move.move_type = MOVE;
+            break;
+
+            case 'P':
+                p_gantry_command->move.move_type = PROMOTION;
+            break;
+
+            case 'C':
+                p_gantry_command->move.move_type = CAPTURE;
+            break;
+
+            case 'c':
+                p_gantry_command->move.move_type = CASTLING;
+            break;
+
+            case 'E':
+                p_gantry_command->move.move_type = EN_PASSENT;
+            break;
+
+            default:
+                p_gantry_command->move.move_type = IDLE;
+            break;
+        }
+
     }
 }
 
@@ -312,8 +342,7 @@ void gantry_robot_exit(command_t* command)
  */
 bool gantry_robot_is_done(command_t* command)
 {
-    return true;
-    // TODO: Some sort of check that RPi.receive() found data
+    return robot_is_done;
 }
 
 /**

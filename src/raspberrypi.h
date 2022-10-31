@@ -68,6 +68,21 @@
  * End UART instruction defines
  */
 
+typedef enum chess_move_type {
+    IDLE, MOVE, CAPTURE, PROMOTION, EN_PASSENT, CASTLING
+} chess_move_type;
+
+// Information from the PI for making a chess move
+// Use '\0' for undefined file and 0 for undefined rank
+typedef struct chess_move_t {
+    char source_file;           // The letter
+    uint8_t source_rank;        // The number
+    char dest_file;
+    uint8_t dest_rank;
+    chess_move_type move_type;
+} chess_move_t;
+
+
 // Public Raspberry Pi functions
 void rpi_init();
 bool rpi_transmit(char* data, uint8_t num_chars);

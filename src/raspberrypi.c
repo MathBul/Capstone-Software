@@ -64,6 +64,15 @@ bool rpi_receive(char *data, uint8_t num_chars)
     }
 
     return true;
+    /*
+     * Dev notes:
+     * Order of operations: (if timeout at any point reset)
+     * 1. Wait for start byte
+     * 2. Once start sequence is received, read the order and assign to variables
+     * 3. Calculate checksum
+     * 4. If checksum passes, send an ack and return the move struct
+     * 4b. If checksum fails, send a bad ack and goto step 1.
+     */
 }
 
 /**
