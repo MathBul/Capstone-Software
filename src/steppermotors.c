@@ -61,7 +61,9 @@ void stepper_init_motors()
     stepper_motor_x->enable_pin                 = STEPPER_X_ENABLE_PIN;
     stepper_motor_x->current_state              = disabled;
     stepper_motor_x->transitions_to_desired_pos = 0;
-    stepper_motor_x->distance_to_home           = 0;
+    stepper_motor_x->dir                        = 1;
+    stepper_motor_x->current_pos                = 0;
+    stepper_motor_x->current_vel                = 0;
 
 
     /* Stepper 2 (y direction) */
@@ -97,7 +99,9 @@ void stepper_init_motors()
     stepper_motor_y->enable_pin                 = STEPPER_Y_ENABLE_PIN;
     stepper_motor_y->current_state              = disabled;
     stepper_motor_y->transitions_to_desired_pos = 0;
-    stepper_motor_y->distance_to_home           = 0;
+    stepper_motor_y->dir                        = 1;
+    stepper_motor_y->current_pos                = 0;
+    stepper_motor_y->current_vel                = 0;
 
 
     /* Stepper 3 (a direction) */
@@ -133,7 +137,9 @@ void stepper_init_motors()
     stepper_motor_z->enable_pin                 = STEPPER_Z_ENABLE_PIN;
     stepper_motor_z->current_state              = disabled;
     stepper_motor_z->transitions_to_desired_pos = 0;
-    stepper_motor_z->distance_to_home           = 0;
+    stepper_motor_z->dir                        = 1;
+    stepper_motor_z->current_pos                = 0;
+    stepper_motor_z->current_vel                = 0;
 }
 
 /**
@@ -281,6 +287,26 @@ void stepper_resume_motors()
     stepper_enable_all_motors();
 }
 
+/**
+ * @brief Returns the current position of the stepper in mm
+ *
+ */
+int16_t stepper_x_get_current_pos()
+{
+    return stepper_motor_x->current_pos / 20;
+}
+
+int16_t stepper_y_get_current_pos()
+{
+    return stepper_motor_y->current_pos / 20;
+}
+
+int16_t stepper_z_get_current_pos()
+{
+    return stepper_motor_z->current_pos / 20;
+}
+
+
 /* Command Functions */
 
 stepper_command_t* stepper_build_command(int16_t rel_x, int16_t rel_y, int16_t rel_z, uint16_t v_x, uint16_t v_y, uint16_t v_z)
@@ -369,18 +395,12 @@ void stepper_entry(command_t* command)
     stepper_motor_z->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_z);
 
     // TODO: Load velocity values into the clock
-    uint32_t stepper_x_period = 120000000 / (stepper_distance_to_transitions(p_stepper_command->v_x));
+    uint16_t v_x = utils_bound(p_stepper_command->v_x, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
+    uint16_t v_y = utils_bound(p_stepper_command->v_y, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
+    uint16_t v_z = utils_bound(p_stepper_command->v_z, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
+    uint32_t stepper_x_period = 120000000 / (stepper_distance_to_transitions(v_x));
 
-    // TODO: Move to function. Set limits on speed of 90mm/s to 250mm/s
-    if (stepper_x_period < 24000)
-    {
-        stepper_x_period = 24000;
-    }
-    else if (stepper_x_period > 65535)
-    {
-        stepper_x_period = 65535;
-    }
-    clock_set_timer_period(STEPPER_X_TIMER, 65535); // Currently only X has an interrupt
+    clock_set_timer_period(STEPPER_X_TIMER, stepper_x_period); // Currently only X has an interrupt
     clock_resume_timer(STEPPER_X_TIMER);
 }
 
@@ -434,8 +454,12 @@ __interrupt void STEPPER_X_HANDLER(void)
     {
         if ((base_stepper+i)->transitions_to_desired_pos > 0) 
         {
+            // Move the motor
             stepper_edge_transition((base_stepper+i));
+            // Update our counter
             (base_stepper+i)->transitions_to_desired_pos -= 1;
+            // Update the position
+            (base_stepper+i)->current_pos += (base_stepper+i)->dir;
         } 
         else
         {

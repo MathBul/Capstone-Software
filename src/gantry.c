@@ -29,6 +29,9 @@ extern bool utils_sys_fault;
 static chess_board_t previous_board;
 static chess_board_t current_board;
 
+// Flags
+static bool robot_is_done = false;
+
 /**
  * @brief Initializes all modules
  */
@@ -55,17 +58,6 @@ void gantry_init()
     clock_timer5a_init();
     command_queue_init();
     stepper_init_motors();
-}
-
-/**
- * @brief Interprets an instruction from the RPi, stored in the gantry_command struct
- * 
- * @param gantry_command The command containing the instruction
- */
-void gantry_interpret(gantry_command_t* gantry_command)
-{
-    // TODO: Switch statement to interpret the instruction read from the Pi
-    //  Store values in the gantry command struct for access in the gantry_exit() function
 }
 
 /**
@@ -150,12 +142,12 @@ void gantry_kill()
  */
 void gantry_clear_command(gantry_command_t* gantry_command)
 {
-    gantry_command->move[0]        = 0;
-    gantry_command->move[1]        = 0;
-    gantry_command->move[2]        = 0;
-    gantry_command->move[3]        = 0;
-    gantry_command->move[4]        = 0;
-    gantry_command->move_type      = 0;
+    gantry_command->move.source_file = FILE_ERROR;
+    gantry_command->move.source_rank = RANK_ERROR;
+    gantry_command->move.dest_file = FILE_ERROR;
+    gantry_command->move.dest_rank = RANK_ERROR;
+    gantry_command->move.move_type = IDLE;
+
 }
 
 /* Command Functions */
@@ -239,7 +231,7 @@ bool gantry_human_is_done(command_t* command)
  */
 void gantry_robot_entry(command_t* command)
 {
-    return;
+    robot_is_done = false;
 }
 
 /**
@@ -279,11 +271,13 @@ void gantry_robot_action(command_t* command)
     }
     if (rpi_receive(move, op_len))
     {
-        p_gantry_command->move[0] = move[0];
-        p_gantry_command->move[1] = move[1];
-        p_gantry_command->move[2] = move[2];
-        p_gantry_command->move[3] = move[3];
-        p_gantry_command->move[4] = move[4];
+        p_gantry_command->move.source_file = rpi_byte_to_file(move[0]);
+        p_gantry_command->move.source_rank = rpi_byte_to_rank(move[1]);
+        p_gantry_command->move.dest_file = rpi_byte_to_file(move[2]);
+        p_gantry_command->move.dest_rank = rpi_byte_to_rank(move[3]);
+
+
+        robot_is_done = true; // We've got the data we need
     }
     // Validate the check bytes
 }
@@ -298,46 +292,71 @@ void gantry_robot_exit(command_t* command)
 {
     gantry_command_t* p_gantry_command = (gantry_command_t*) command;
     
-    // Interpret the move
-    gantry_interpret(p_gantry_command);
+    // We should have the necessary data from the action function
 
     // TODO: Fill this in to load the next commands. Very rough pseudocode follows!
     // lc = led_build_command()
     // command_queue_push(lc)
     
-    // switch (p_gantry_command->move_type) {
-    //     case 'M':   // Move
-    //         sc = stepper_build_command()
-    //         command_queue_push(sc)
-    //         ec = electromagnet_build_command()
-    //         command_queue_push(ec)
-    //         sc = stepper_build_command()
-    //         command_queue_push(sc)
-    //         ec = electromagnet_build_command()
-    //         command_queue_push(ec)
-    //         sc = stepper_build_command()
-    //         command_queue_push(sc)
-    //         break;  
-    //     case 'P':   // Promotion
-    //         // TODO
-    //         break;
+     switch (p_gantry_command->move.move_type) {
+         case MOVE:
+             // Move to the piece to move
+             // the enums are the absolute positions of those ranks/file. current_pos is also absolute
+             command_queue_push
+             (
+                 (command_t*)stepper_build_command
+                 (
+                     p_gantry_command->move.source_file - stepper_x_get_current_pos(),  // rel_x
+                     p_gantry_command->move.source_rank - stepper_y_get_current_pos(),  // rel_y
+                     0,                                                                 // rel_z
+                     1,                                                                 // v_x
+                     0,                                                                 // v_y
+                     0                                                                  // v_z
+                 )
+             );
+             // wait
+             // lower the lifter
+             // grab the piece
+             // raise the lifter
+             // move to the dest
+             // the enums are the absolute positions of those ranks/file. current_pos is also absolute
+             command_queue_push
+             (
+                 (command_t*)stepper_build_command
+                 (
+                     p_gantry_command->move.dest_file - stepper_x_get_current_pos(),    // rel_x
+                     p_gantry_command->move.dest_rank - stepper_y_get_current_pos(),    // rel_y
+                     0,                                                                 // rel_z
+                     1,                                                                 // v_x
+                     0,                                                                 // v_y
+                     0                                                                  // v_z
+                 )
+             );
+             // lower the lifter
+             // release the piece
+             // raise the lifter
+             // home
+         break;
+         case PROMOTION:
+             // TODO
+         break;
         
-    //     case 'C':   // Capture
-    //         // TODO 
-    //         break;
+         case CAPTURE:
+             // TODO
+         break;
 
-    //     case 'c':   // Castling
-    //         // TODO
-    //         break;
+         case CASTLING:
+             // TODO
+         break;
 
-    //     case 'E':   // En passante
-    //         // TODO
-    //         break;
+         case EN_PASSENT:
+             // TODO
+         break;
 
-    //     default:
-    //         // TODO
-    //         break;
-    // }
+         default:
+             // TODO
+         break;
+     }
 
     // lc = led_build_command()
     // command_queue_push(lc)
@@ -353,8 +372,7 @@ void gantry_robot_exit(command_t* command)
  */
 bool gantry_robot_is_done(command_t* command)
 {
-    return true;
-    // TODO: Some sort of check that RPi.receive() found data
+    return robot_is_done;
 }
 
 /**

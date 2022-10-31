@@ -74,6 +74,45 @@
  * End UART instruction defines
  */
 
+typedef enum chess_move_type {
+    IDLE, MOVE, CAPTURE, PROMOTION, EN_PASSENT, CASTLING
+} chess_move_type;
+
+typedef enum chess_file_t {
+    A = -25,
+    B = -50,
+    C = -75,
+    D = -100,
+    E = -125,
+    F = -150,
+    G = -175,
+    H = -200,
+    FILE_ERROR = 0
+} chess_file_t;
+
+typedef enum chess_rank_t {
+    FIRST = 25,
+    SECOND = 50,
+    THIRD = 75,
+    FOURTH = 100,
+    FIFTH = 125,
+    SIXTH = 150,
+    SEVENTH = 175,
+    EIGHTH = 200,
+    RANK_ERROR = 0
+} chess_rank_t;
+
+// Information from the PI for making a chess move
+// Use '\0' for undefined file and 0 for undefined rank
+typedef struct chess_move_t {
+    chess_file_t source_file;           // The letter
+    chess_rank_t source_rank;        // The number
+    chess_file_t dest_file;
+    chess_rank_t dest_rank;
+    chess_move_type move_type;
+} chess_move_t;
+
+
 // Public Raspberry Pi functions
 void rpi_init();
 bool rpi_transmit(char* data, uint8_t num_chars);
@@ -84,5 +123,18 @@ void rpi_reset_uart();
 void rpi_transmit_reset(void);
 void rpi_transmit_start(char color);
 void rpi_transmit_human_move(char *move);
+
+// Chess
+chess_file_t rpi_byte_to_file(uint8_t byte);
+chess_rank_t rpi_byte_to_rank(uint8_t byte);
+chess_move_type rpi_byte_to_move_type(uint8_t byte);
+
+
+
+// Command Functions
+void rpi_entry(command_t* command);
+void rpi_action(command_t* command);
+void rpi_exit(command_t* command);
+bool rpi_is_done(command_t* command);
 
 #endif /* RASPBERRYPI_H_ */

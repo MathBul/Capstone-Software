@@ -28,11 +28,12 @@
 #define GANTRY_TIMER                        (TIMER4)
 #define GANTRY_HANDLER                      (TIMER4A_IRQHandler)
 
+
+
 // Gantry command struct
 typedef struct gantry_command_t {
     command_t command;
-    char move[5];                // Full message from the Pi
-    char move_type;              // Indicates: MOVE, CAPTURE, PROMOTION, ETC.
+    chess_move_t move;              // All the info about a chess move
 } gantry_command_t;
 
 // Public functions
