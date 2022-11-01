@@ -1,9 +1,9 @@
 /**
  * @file steppermotors.c
- * @author Nick Cooney (npc4crc@virginia.edu)
+ * @author Nick Cooney (npc4crc@virginia.edu) and Eli Jelesko (ebj5hec@virginia.edu)
  * @brief Provides functions to control stepper motors driven by DRV8824-Q1 chips
  * @version 0.1
- * @date 2022-09-20
+ * @date 2022-10-31
  * 
  * @copyright Copyright (c) 2022
  */
@@ -424,6 +424,9 @@ void stepper_action(command_t* command)
 void stepper_exit(command_t* command)
 {
     stepper_disable_all_motors();
+    clock_pause_timer(STEPPER_X_TIMER);
+    clock_pause_timer(STEPPER_Y_TIMER);
+    clock_pause_timer(STEPPER_Z_TIMER);
 }
 
 /**
