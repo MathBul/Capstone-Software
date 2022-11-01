@@ -75,33 +75,7 @@
  * End UART instruction defines
  */
 
-typedef enum chess_move_type {
-    IDLE, MOVE, CAPTURE, PROMOTION, EN_PASSENT, CASTLING
-} chess_move_type;
 
-typedef enum chess_file_t {
-    A = -25,
-    B = -50,
-    C = -75,
-    D = -100,
-    E = -125,
-    F = -150,
-    G = -175,
-    H = -200,
-    FILE_ERROR = 0
-} chess_file_t;
-
-typedef enum chess_rank_t {
-    FIRST = 25,
-    SECOND = 50,
-    THIRD = 75,
-    FOURTH = 100,
-    FIFTH = 125,
-    SIXTH = 150,
-    SEVENTH = 175,
-    EIGHTH = 200,
-    RANK_ERROR = 0
-} chess_rank_t;
 
 // Information from the PI for making a chess move
 // Use '\0' for undefined file and 0 for undefined rank
@@ -125,9 +99,5 @@ void rpi_transmit_reset(void);
 void rpi_transmit_start(char color);
 void rpi_transmit_human_move(char *move);
 
-// Chess
-chess_file_t rpi_byte_to_file(uint8_t byte);
-chess_rank_t rpi_byte_to_rank(uint8_t byte);
-chess_move_type rpi_byte_to_move_type(uint8_t byte);
 
 #endif /* RASPBERRYPI_H_ */

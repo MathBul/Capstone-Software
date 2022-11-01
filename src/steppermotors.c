@@ -256,10 +256,6 @@ void stepper_x_disable()
  * @brief Disables the STEPPER_Y motor
  * 
  */
-void stepper_y_disable()
-{
-    stepper_disable_motor(stepper_motor_y);
-}
 
 /**
  * @brief Disables the STEPPER_Z motor
@@ -295,29 +291,29 @@ void stepper_resume_motors()
  */
 int16_t stepper_x_get_current_pos()
 {
-    return stepper_motor_x->current_pos / 40; // TODO: Make this calculated from the stepping size
+    return stepper_motor_x->current_pos / 20; // TODO: Make this calculated from the stepping size
 }
 
 int16_t stepper_y_get_current_pos()
 {
-    return stepper_motor_y->current_pos / 40;
+    return stepper_motor_y->current_pos / 20;
 }
 
 int16_t stepper_z_get_current_pos()
 {
-    return stepper_motor_z->current_pos / 40;
+    return stepper_motor_z->current_pos / 20;
 }
 
 
 /* Command Functions */
 
-stepper_command_t* stepper_build_command(int16_t rel_x, int16_t rel_y, int16_t rel_z, uint16_t v_x, uint16_t v_y, uint16_t v_z)
+stepper_rel_command_t* stepper_build_rel_command(int16_t rel_x, int16_t rel_y, int16_t rel_z, uint16_t v_x, uint16_t v_y, uint16_t v_z)
 {
     // The thing to return
-    stepper_command_t* p_command = (stepper_command_t*)malloc(sizeof(stepper_command_t));
+    stepper_rel_command_t* p_command = (stepper_rel_command_t*)malloc(sizeof(stepper_rel_command_t));
 
     // Functions
-    p_command->command.p_entry = &stepper_entry;
+    p_command->command.p_entry = &stepper_rel_entry;
     p_command->command.p_action = &stepper_action;
     p_command->command.p_exit = &stepper_exit;
     p_command->command.p_is_done = &stepper_is_done;
@@ -333,15 +329,37 @@ stepper_command_t* stepper_build_command(int16_t rel_x, int16_t rel_y, int16_t r
     return p_command;
 }
 
+stepper_chess_command_t* stepper_build_chess_command(chess_file_t file, chess_rank_t rank, uint16_t v_x, uint16_t v_y, uint16_t v_z)
+{
+    // The thing to return
+    stepper_chess_command_t* p_command = (stepper_chess_command_t*)malloc(sizeof(stepper_chess_command_t));
+
+    // Functions
+    p_command->command.p_entry = &stepper_chess_entry;
+    p_command->command.p_action = &stepper_action;
+    p_command->command.p_exit = &stepper_exit;
+    p_command->command.p_is_done = &stepper_is_done;
+
+    // Data
+    p_command->file = file;
+    p_command->rank = rank;
+    p_command->v_x = v_x;
+    p_command->v_y = v_y;
+
+    return p_command;
+
+}
+
+
 
 /**
  * @brief Prepares the steppers for this command
  * 
  * @param command 
  */
-void stepper_entry(command_t* command)
+void stepper_rel_entry(command_t* command)
 {
-    stepper_command_t* p_stepper_command = (stepper_command_t*) command;
+    stepper_rel_command_t* p_stepper_command = (stepper_rel_command_t*) command;
 
     // X-axis
     if (p_stepper_command->rel_x != 0)
@@ -395,6 +413,72 @@ void stepper_entry(command_t* command)
     stepper_motor_x->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_x);
     stepper_motor_y->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_y);
     stepper_motor_z->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_z);
+
+    // TODO: Load velocity values into the clock
+    if (p_stepper_command->v_x != 0)
+    {
+        uint16_t v_x = utils_bound(p_stepper_command->v_x, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
+        uint32_t stepper_x_period = 120000000 / (stepper_distance_to_transitions(v_x));
+        clock_set_timer_period(STEPPER_X_TIMER, stepper_x_period); // Currently only X has an interrupt
+        clock_resume_timer(STEPPER_X_TIMER);
+    }
+}
+
+/**
+ * @brief Prepares the steppers for this command
+ *
+ * @param command
+ */
+void stepper_chess_entry(command_t* command)
+{
+    int16_t rel_move_x;
+    int16_t rel_move_y;
+    int16_t current_x = stepper_x_get_current_pos();
+    int16_t current_y = stepper_y_get_current_pos();
+
+    stepper_chess_command_t* p_stepper_command = (stepper_chess_command_t*) command;
+
+    // X-axis
+    if (p_stepper_command->file != FILE_ERROR)
+    {
+        stepper_enable_motor(stepper_motor_x);
+
+        // Find how far we need to go to get there
+        rel_move_x = p_stepper_command->file - stepper_x_get_current_pos();
+
+        // Set the directions
+        if (rel_move_x > 0)
+        {
+            stepper_set_direction_counterclockwise(stepper_motor_x);
+        }
+        else
+        {
+            stepper_set_direction_clockwise(stepper_motor_x);
+        }
+    }
+
+    // Y-axis
+    if (p_stepper_command->rank != RANK_ERROR)
+    {
+        stepper_enable_motor(stepper_motor_y);
+
+        // Find how far we need to go to get there
+        rel_move_y = p_stepper_command->rank - stepper_y_get_current_pos();
+
+        // Set the direction
+        if (rel_move_y > 0)
+        {
+            stepper_set_direction_counterclockwise(stepper_motor_y);
+        }
+        else
+        {
+            stepper_set_direction_clockwise(stepper_motor_y);
+        }
+    }
+
+    // Determine the distance to go
+    stepper_motor_x->transitions_to_desired_pos = stepper_distance_to_transitions(rel_move_x);
+    stepper_motor_y->transitions_to_desired_pos = stepper_distance_to_transitions(rel_move_y);
 
     // TODO: Load velocity values into the clock
     if (p_stepper_command->v_x != 0)

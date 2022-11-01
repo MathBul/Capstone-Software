@@ -75,7 +75,7 @@ void gpio_set_as_input(GPIO_Type* port, uint8_t pin)
 }
 
 /**
- * @brief Reads the specified GPIO port/pin
+ * @brief Reads the specified GPIO port/pin. Returns either a 0 or a 1
  * 
  * @param port GPIO_Type for the port being used
  * @param pin Pin being used, should be one of GPIO_PIN_X

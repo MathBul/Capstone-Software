@@ -10,12 +10,19 @@
 
 #include "switch.h"
 
+//#define ALL_PORTS
+
 // Private functions
 static uint8_t switch_shift_assign(uint8_t port_raw);
 
 // Declare the switches
+#ifdef ALL_PORTS
+static switches_t switches;
+static switches_t* p_switches = &switches;
+#else
 static switch_state_t switches;
 static switch_state_t* p_switches = (&switches);
+#endif
 
 /**
  * @brief Initialize all buttons
@@ -56,6 +63,27 @@ __interrupt void SWITCH_HANDLER(void)
     // Clear the interrupt flag
     clock_clear_interrupt(SWITCH_TIMER);
 
+
+#ifdef ALL_PORTS
+    // Eli's Theory
+    switches.image.alpha |= (((uint8_t)GPIOA->DATA) << 0);
+    switches.image.alpha |= (((uint8_t)GPIOB->DATA) << 8);
+    switches.image.alpha |= (((uint8_t)GPIOC->DATA) << 16);
+    switches.image.alpha |= (((uint8_t)GPIOD->DATA) << 24);
+    switches.image.alpha |= (((uint8_t)GPIOE->DATA) << 32);
+    switches.image.alpha |= (((uint8_t)GPIOF->DATA) << 40);
+    switches.image.alpha |= (((uint8_t)GPIOG->DATA) << 48);
+    switches.image.alpha |= (((uint8_t)GPIOH->DATA) << 56);
+    switches.image.beta |= (((uint8_t)GPIOJ->DATA) << 0);
+    switches.image.beta |= (((uint8_t)GPIOK->DATA) << 8);
+    switches.image.beta |= (((uint8_t)GPIOL->DATA) << 16);
+    switches.image.beta |= (((uint8_t)GPIOM->DATA) << 24);
+    switches.image.beta |= (((uint8_t)GPION->DATA) << 32);
+    switches.image.beta |= (((uint8_t)GPIOP->DATA) << 40);
+    switches.image.beta |= (((uint8_t)GPIOQ->DATA) << 48);
+
+
+#else
     // Read the switches into the vport image. Lets us model a physical port with a custom bit ordering
     uint8_t switches_raw        = gpio_read_input(SWITCH_PORT, SWITCH_MASK);
     switch_vport.image          = switch_shift_assign(switches_raw);
@@ -66,6 +94,10 @@ __interrupt void SWITCH_HANDLER(void)
     p_switches->pos_transitions = (p_switches->current_inputs & p_switches->edges);
     p_switches->neg_transitions = ((~p_switches->current_inputs) & p_switches->edges);
     p_switches->previous_inputs = p_switches->current_inputs;
+#endif
+
+
+
 }
 
 /* End buttons.c */

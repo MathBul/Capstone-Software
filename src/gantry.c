@@ -62,12 +62,12 @@ void gantry_init()
     
     // System level initialization of all other modules
     clock_sys_init();
-    clock_timer0a_init();
-    clock_timer1a_init();
-    clock_timer2a_init();
-    clock_timer3a_init();
-    clock_timer4a_init();
-    clock_timer5a_init();
+    clock_timer0a_init(); // x
+    clock_timer1a_init(); // y
+    clock_timer2a_init(); // z
+    clock_timer3a_init(); // switches
+    clock_timer4a_init(); // gantry
+    clock_timer5a_init(); // delay
     command_queue_init();
     stepper_init_motors();
     rpi_init();
@@ -92,7 +92,7 @@ void gantry_limit_stop(uint8_t limit_readings)
     }
     if (limit_readings & LIMIT_Y)
     {
-        stepper_y_disable();
+        //stepper_y_disable();
     }
     if (limit_readings & LIMIT_Z)
     {
@@ -305,11 +305,11 @@ void gantry_robot_action(command_t* command)
          * 4. If checksum passes, send an ack and return the move struct
          * 4b. If checksum fails, send a bad ack and goto step 1.
          */
-        p_gantry_command->move.source_file = rpi_byte_to_file(move[0]);
-        p_gantry_command->move.source_rank = rpi_byte_to_rank(move[1]);
-        p_gantry_command->move.dest_file = rpi_byte_to_file(move[2]);
-        p_gantry_command->move.dest_rank = rpi_byte_to_rank(move[3]);
-        p_gantry_command->move.move_type = rpi_byte_to_move_type(move[4]);
+        p_gantry_command->move.source_file = utils_byte_to_file(move[0]);
+        p_gantry_command->move.source_rank = utils_byte_to_rank(move[1]);
+        p_gantry_command->move.dest_file = utils_byte_to_file(move[2]);
+        p_gantry_command->move.dest_rank = utils_byte_to_rank(move[3]);
+        p_gantry_command->move.move_type = utils_byte_to_move_type(move[4]);
 
         robot_is_done = true; // We've got the data we need
     }
@@ -397,17 +397,15 @@ void gantry_robot_exit(command_t* command)
              }
              // Move to the piece to move
              // the enums are the absolute positions of those ranks/file. current_pos is also absolute
-             int16_t to_move = p_gantry_command->move.source_file - stepper_x_get_current_pos();
              command_queue_push
              (
-                 (command_t*)stepper_build_command
+                 (command_t*)stepper_build_chess_command
                  (
-                     p_gantry_command->move.source_file - stepper_x_get_current_pos(),  // rel_x
-                     p_gantry_command->move.source_rank - stepper_y_get_current_pos(),  // rel_y
-                     0,                                                                 // rel_z
-                     1,                                                                 // v_x
-                     1,                                                                 // v_y
-                     0                                                                  // v_z
+                     p_gantry_command->move.source_file,  // file
+                     p_gantry_command->move.source_rank,  // rank
+                     1,                                   // v_x
+                     1,                                   // v_y
+                     0                                    // v_z
                  )
              );
              // wait
@@ -419,14 +417,13 @@ void gantry_robot_exit(command_t* command)
              // the enums are the absolute positions of those ranks/file. current_pos is also absolute
              command_queue_push
              (
-                 (command_t*)stepper_build_command
+                 (command_t*)stepper_build_chess_command
                  (
-                     p_gantry_command->move.dest_file - stepper_x_get_current_pos(),    // rel_x
-                     p_gantry_command->move.dest_rank - stepper_y_get_current_pos(),    // rel_y
-                     0,                                                                 // rel_z
-                     1,                                                                 // v_x
-                     1,                                                                 // v_y
-                     0                                                                  // v_z
+                     p_gantry_command->move.dest_file, // file
+                     p_gantry_command->move.dest_rank, // rank
+                     1,                                // v_x
+                     1,                                // v_y
+                     0                                 // v_z
                  )
              );
              // wait

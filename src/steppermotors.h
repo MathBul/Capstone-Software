@@ -70,18 +70,18 @@
 #define STEPPER_Y_ID                        (1)
 
 // Stepper 3 (z-axis)
-#define STEPPER_Z_ENABLE_PORT               (GPIOM)
-#define STEPPER_Z_ENABLE_PIN                (GPIO_PIN_0)
-#define STEPPER_Z_MS1_PORT                  (GPIOK)
-#define STEPPER_Z_MS1_PIN                   (GPIO_PIN_5)
-#define STEPPER_Z_MS2_PORT                  (GPIOK)
-#define STEPPER_Z_MS2_PIN                   (GPIO_PIN_4)
+#define STEPPER_Z_ENABLE_PORT               (GPIOF)
+#define STEPPER_Z_ENABLE_PIN                (GPIO_PIN_1)
+#define STEPPER_Z_MS1_PORT                  (GPIOF)
+#define STEPPER_Z_MS1_PIN                   (GPIO_PIN_2)
+#define STEPPER_Z_MS2_PORT                  (GPIOF)
+#define STEPPER_Z_MS2_PIN                   (GPIO_PIN_3)
 #define STEPPER_Z_MS3_PORT                  (GPIOG)
-#define STEPPER_Z_MS3_PIN                   (GPIO_PIN_1)
-#define STEPPER_Z_STEP_PORT                 (GPIOM)
-#define STEPPER_Z_STEP_PIN                  (GPIO_PIN_2)
-#define STEPPER_Z_DIR_PORT                  (GPIOM)
-#define STEPPER_Z_DIR_PIN                   (GPIO_PIN_1)
+#define STEPPER_Z_MS3_PIN                   (GPIO_PIN_0)
+#define STEPPER_Z_STEP_PORT                 (GPIOL)
+#define STEPPER_Z_STEP_PIN                  (GPIO_PIN_4)
+#define STEPPER_Z_DIR_PORT                  (GPIOL)
+#define STEPPER_Z_DIR_PIN                   (GPIO_PIN_5)
 #define STEPPER_Z_ID                        (2)
 
 // Speeds
@@ -109,7 +109,7 @@ typedef struct {
 } stepper_motors_t;
 
 // Stepper motor command struct
-typedef struct stepper_command_t {
+typedef struct stepper_rel_command_t {
     command_t command;
     int16_t rel_x; // The distance to move in x (relative to current position) mm
     int16_t rel_y; // The distance to move in y (relative to current position) mm
@@ -117,12 +117,19 @@ typedef struct stepper_command_t {
     uint16_t v_x;  // The speed in x (direction is determined by the sign of the distance to move) mm/s
     uint16_t v_y;  // The speed in y (direction is determined by the sign of the distance to move) mm/s
     uint16_t v_z;  // The speed in z (direction is determined by the sign of the distance to move) mm/s
-} stepper_command_t;
+} stepper_rel_command_t;
+
+typedef struct stepper_chess_command_t {
+    command_t command;
+    chess_file_t file;  // The distance to move in x (relative to current position) mm
+    chess_rank_t rank;  // The distance to move in y (relative to current position) mm
+    uint16_t v_x;       // The speed in x (direction is determined by the sign of the distance to move) mm/s
+    uint16_t v_y;       // The speed in y (direction is determined by the sign of the distance to move) mm/s
+} stepper_chess_command_t;
 
 // Public functions
 void stepper_init_motors();
 void stepper_x_disable();
-void stepper_y_disable();
 void stepper_z_disable();
 void stepper_disable_all_motors();
 void stepper_enable_all_motors();
@@ -135,8 +142,10 @@ int16_t stepper_z_get_current_pos();
 
 
 // Command Functions
-stepper_command_t* stepper_build_command(int16_t rel_x, int16_t rel_y, int16_t rel_z, uint16_t v_x, uint16_t v_y, uint16_t v_z);
-void stepper_entry(command_t* command);
+stepper_rel_command_t* stepper_build_rel_command(int16_t rel_x, int16_t rel_y, int16_t rel_z, uint16_t v_x, uint16_t v_y, uint16_t v_z);
+stepper_chess_command_t* stepper_build_chess_command(chess_file_t file, chess_rank_t rank, uint16_t v_x, uint16_t v_y, uint16_t v_z);
+void stepper_rel_entry(command_t* command);
+void stepper_chess_entry(command_t* command);
 void stepper_action(command_t* command);
 void stepper_exit(command_t* command);
 bool stepper_is_done(command_t* command);

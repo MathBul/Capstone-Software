@@ -26,6 +26,10 @@
 
 // General utility macros
 #define BITS8_MASK(shift)                   ((uint8_t) (1 << shift))
+#define SQUARE_CENTER_TO_CENTER             (48) //mm
+#define SQUARE_X_INITIAL                    (-100)
+#define SQUARE_Y_INITIAL                    (30)
+
 
 // Bitfield for peripheral imaging (accessing RAM)
 typedef struct {
@@ -38,6 +42,36 @@ typedef struct {
     volatile unsigned bit_6 : 1;
     volatile unsigned bit_7 : 1;
 } utils_bits8_t;
+
+typedef enum chess_move_type {
+    IDLE, MOVE, CAPTURE, PROMOTION, EN_PASSENT, CASTLING
+} chess_move_type;
+
+
+
+typedef enum chess_file_t {
+    A = SQUARE_X_INITIAL - 7*SQUARE_CENTER_TO_CENTER,
+    B = SQUARE_X_INITIAL - 6*SQUARE_CENTER_TO_CENTER,
+    C = SQUARE_X_INITIAL - 5*SQUARE_CENTER_TO_CENTER,
+    D = SQUARE_X_INITIAL - 4*SQUARE_CENTER_TO_CENTER,
+    E = SQUARE_X_INITIAL - 3*SQUARE_CENTER_TO_CENTER,
+    F = SQUARE_X_INITIAL - 2*SQUARE_CENTER_TO_CENTER,
+    G = SQUARE_X_INITIAL - 1*SQUARE_CENTER_TO_CENTER,
+    H = SQUARE_X_INITIAL,
+    FILE_ERROR = 0
+} chess_file_t;
+
+typedef enum chess_rank_t {
+    FIRST   = SQUARE_Y_INITIAL,
+    SECOND  = SQUARE_Y_INITIAL + 1*SQUARE_CENTER_TO_CENTER,
+    THIRD   = SQUARE_Y_INITIAL + 2*SQUARE_CENTER_TO_CENTER,
+    FOURTH  = SQUARE_Y_INITIAL + 3*SQUARE_CENTER_TO_CENTER,
+    FIFTH   = SQUARE_Y_INITIAL + 4*SQUARE_CENTER_TO_CENTER,
+    SIXTH   = SQUARE_Y_INITIAL + 5*SQUARE_CENTER_TO_CENTER,
+    SEVENTH = SQUARE_Y_INITIAL + 6*SQUARE_CENTER_TO_CENTER,
+    EIGHTH  = SQUARE_Y_INITIAL + 7*SQUARE_CENTER_TO_CENTER,
+    RANK_ERROR = 0
+} chess_rank_t;
 
 // Virtual port for peripheral imaging
 typedef union utils_vport_t {
@@ -61,6 +95,12 @@ bool utils_validate_transmission(uint8_t *data, int count, char check_bytes[2]);
 
 // Math utility
 uint16_t utils_bound(uint16_t value, uint16_t lower_bound, uint16_t upper_bound);
+
+// Chess
+chess_file_t utils_byte_to_file(uint8_t byte);
+chess_rank_t utils_byte_to_rank(uint8_t byte);
+chess_move_type utils_byte_to_move_type(uint8_t byte);
+
 
 // Interrupts
 void utils_set_nvic(uint8_t interrupt_num);
