@@ -160,6 +160,7 @@ void stepper_set_direction_clockwise(stepper_motors_t *stepper_motor)
 static void stepper_set_direction_counterclockwise(stepper_motors_t *stepper_motor)
 {
     gpio_set_output_low(stepper_motor->dir_port, stepper_motor->dir_pin);
+    stepper_motor->dir = 1;
 }
 
 /**
@@ -170,6 +171,7 @@ static void stepper_set_direction_counterclockwise(stepper_motors_t *stepper_mot
 static void stepper_edge_transition(stepper_motors_t *stepper_motor)
 {
     gpio_set_output_toggle(stepper_motor->step_port, stepper_motor->step_pin);
+    stepper_motor->dir = -1;
 }
 
 /**
@@ -293,17 +295,17 @@ void stepper_resume_motors()
  */
 int16_t stepper_x_get_current_pos()
 {
-    return stepper_motor_x->current_pos / 20;
+    return stepper_motor_x->current_pos / 40; // TODO: Make this calculated from the stepping size
 }
 
 int16_t stepper_y_get_current_pos()
 {
-    return stepper_motor_y->current_pos / 20;
+    return stepper_motor_y->current_pos / 40;
 }
 
 int16_t stepper_z_get_current_pos()
 {
-    return stepper_motor_z->current_pos / 20;
+    return stepper_motor_z->current_pos / 40;
 }
 
 

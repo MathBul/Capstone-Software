@@ -397,6 +397,7 @@ void gantry_robot_exit(command_t* command)
              }
              // Move to the piece to move
              // the enums are the absolute positions of those ranks/file. current_pos is also absolute
+             int16_t to_move = p_gantry_command->move.source_file - stepper_x_get_current_pos();
              command_queue_push
              (
                  (command_t*)stepper_build_command

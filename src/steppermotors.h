@@ -86,7 +86,7 @@
 
 // Speeds
 #define STEPPER_MAX_SPEED                   (250) // mm/s
-#define STEPPER_MIN_SPEED                   (90)  // mm/s
+#define STEPPER_MIN_SPEED                   (100)  // mm/s
 
 // Tracks whether a stepper motor is enabled or disabled
 typedef enum {
