@@ -150,6 +150,7 @@ void stepper_init_motors()
 void stepper_set_direction_clockwise(stepper_motors_t *stepper_motor)
 {
     gpio_set_output_high(stepper_motor->dir_port, stepper_motor->dir_pin);
+    stepper_motor->dir = -1;
 }
 
 /**
@@ -171,7 +172,6 @@ static void stepper_set_direction_counterclockwise(stepper_motors_t *stepper_mot
 static void stepper_edge_transition(stepper_motors_t *stepper_motor)
 {
     gpio_set_output_toggle(stepper_motor->step_port, stepper_motor->step_pin);
-    stepper_motor->dir = -1;
 }
 
 /**
@@ -376,18 +376,18 @@ void stepper_entry(command_t* command)
     }
 
     // Z-axis
-    if (p_stepper_command->rel_y != 0)
+    if (p_stepper_command->rel_z != 0)
     {
-        stepper_enable_motor(stepper_motor_y);
+        stepper_enable_motor(stepper_motor_z);
 
         // Set the direction
-        if (p_stepper_command->rel_y > 0)
+        if (p_stepper_command->rel_z > 0)
         {
-            stepper_set_direction_counterclockwise(stepper_motor_y);
+            stepper_set_direction_counterclockwise(stepper_motor_z);
         }
         else
         {
-            stepper_set_direction_clockwise(stepper_motor_y);
+            stepper_set_direction_clockwise(stepper_motor_z);
         }
     }
 
@@ -397,13 +397,13 @@ void stepper_entry(command_t* command)
     stepper_motor_z->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_z);
 
     // TODO: Load velocity values into the clock
-    uint16_t v_x = utils_bound(p_stepper_command->v_x, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
-    uint16_t v_y = utils_bound(p_stepper_command->v_y, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
-    uint16_t v_z = utils_bound(p_stepper_command->v_z, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
-    uint32_t stepper_x_period = 120000000 / (stepper_distance_to_transitions(v_x));
-
-    clock_set_timer_period(STEPPER_X_TIMER, stepper_x_period); // Currently only X has an interrupt
-    clock_resume_timer(STEPPER_X_TIMER);
+    if (p_stepper_command->v_x != 0)
+    {
+        uint16_t v_x = utils_bound(p_stepper_command->v_x, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
+        uint32_t stepper_x_period = 120000000 / (stepper_distance_to_transitions(v_x));
+        clock_set_timer_period(STEPPER_X_TIMER, stepper_x_period); // Currently only X has an interrupt
+        clock_resume_timer(STEPPER_X_TIMER);
+    }
 }
 
 /**

@@ -23,7 +23,8 @@ int main(void)
     gantry_init();
 
     // Add commands to the queue
-    gantry_start();
+    //gantry_start();
+    command_queue_push((command_t*)stepper_build_command(0, 100, 0, 1, 0, 0));
 
     // Main program flow
     while (1)

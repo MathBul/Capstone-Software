@@ -406,7 +406,7 @@ void gantry_robot_exit(command_t* command)
                      p_gantry_command->move.source_rank - stepper_y_get_current_pos(),  // rel_y
                      0,                                                                 // rel_z
                      1,                                                                 // v_x
-                     0,                                                                 // v_y
+                     1,                                                                 // v_y
                      0                                                                  // v_z
                  )
              );
@@ -425,7 +425,7 @@ void gantry_robot_exit(command_t* command)
                      p_gantry_command->move.dest_rank - stepper_y_get_current_pos(),    // rel_y
                      0,                                                                 // rel_z
                      1,                                                                 // v_x
-                     0,                                                                 // v_y
+                     1,                                                                 // v_y
                      0                                                                  // v_z
                  )
              );
