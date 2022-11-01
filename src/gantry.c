@@ -201,18 +201,33 @@ void gantry_human_exit(command_t* command)
     // Read the current board state
     sensors_read_tile(row_1, col_a);    // TODO: Read more than one tile (poll the board)
 
-    // Interpret the board state
+    // Set up char arrays
     char move[5];
+    char check_bytes[2];
+    char message[9];
+
+    // Interpret the board state
     chessboard_get_move(&previous_board, &current_board, move);
 
-    // Transmit the move to the RPi
-    rpi_transmit(move, 5);
+    // This will always be a HUMAN_MOVE instruction
+    message[0] = START_BYTE;
+    message[1] = HUMAN_MOVE_INSTR_AND_LEN;
+    message[2] = move[0];
+    message[3] = move[1];
+    message[4] = move[2];
+    message[5] = move[3];
+    message[6] = move[4];
+    utils_fl16_data_to_cbytes((uint8_t *) message, 7, check_bytes);
+    message[7] = check_bytes[0];
+    message[8] = check_bytes[1];
 
     // Clear the data in the next gantry_move command
     gantry_clear_command(gantry_human_move_cmd);
 
     // Place the gantry_move command on the queue
     command_queue_push((command_t*)gantry_human_move_cmd);
+    // Transmit the move to the RPi (9 bytes long)
+    rpi_transmit(message, 9);
 }
 
 /**
@@ -254,7 +269,31 @@ void gantry_robot_action(command_t* command)
     // TODO: Waits, checksums, etc. as needed
 
     // Receive a move from the RPi and load it into the command struct for the exit() function
-    char move[5];
+
+    /* RPi can send back 3 instructions: ROBOT_MOVE, ILLEGAL_MOVE,
+     * or GAME_STATUS. Only the first two should be possible here.
+     * GAME_STATUS will only be sent in response to a legal move. */
+
+    /* Receive arrays */
+    char move[5]; // NOTE: May not be used if ILLEGAL_MOVE is received
+//    char start_instr_op_len[2];
+//    uint8_t instr;
+//    uint8_t op_len;
+
+//    char checksum[2];
+//
+//    // First, read the first two bytes of the entire message
+//    if (rpi_receive(start_instr_op_len, 2)) {
+//        if (start_instr_op_len[0] == START_BYTE)
+//        {
+//            instr = start_instr_op_len[1] >> 4;
+//            op_len = start_instr_op_len[1] & (~0xF0);
+//        }
+//        else
+//        {
+//            // Error occurred; no message should begin without 0x0A
+//        }
+//    }
     if (rpi_receive(move, 5))
     {
         /*
@@ -275,11 +314,13 @@ void gantry_robot_action(command_t* command)
 
         robot_is_done = true; // We've got the data we need
     }
+    // Validate the check bytes
 }
 
 /**
  * @brief Interprets the RPi's move, and adds the appropriate commands to the queue
- * 
+ *        Additionally, waits for the game status from RPi.
+ *
  * @param command The gantry command being run
  */
 void gantry_robot_exit(command_t* command)

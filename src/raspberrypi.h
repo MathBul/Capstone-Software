@@ -20,14 +20,13 @@
 #include <stdbool.h>
 
 // Mode switch
-#define EMULATOR
+#define USER_MODE
 
 // General Raspberry Pi defines
-#ifdef EMULATOR
-#define RPI_UART_CHANNEL                    (UART_CHANNEL_0)
+#ifdef USER_MODE
+#define RPI_UART_CHANNEL               (UART_CHANNEL_0)
 #else
-#define RPI_UART_CHANNEL                    (UART_CHANNEL_3)
-
+#define RPI_UART_CHANNEL               (UART_CHANNEL_3)
 #endif
 
 /*
@@ -130,13 +129,5 @@ void rpi_transmit_human_move(char *move);
 chess_file_t rpi_byte_to_file(uint8_t byte);
 chess_rank_t rpi_byte_to_rank(uint8_t byte);
 chess_move_type rpi_byte_to_move_type(uint8_t byte);
-
-
-
-// Command Functions
-void rpi_entry(command_t* command);
-void rpi_action(command_t* command);
-void rpi_exit(command_t* command);
-bool rpi_is_done(command_t* command);
 
 #endif /* RASPBERRYPI_H_ */

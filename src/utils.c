@@ -171,7 +171,7 @@ uint16_t utils_bound(uint16_t value, uint16_t lower_bound, uint16_t upper_bound)
  *                  checksum calculation
  * @return uint16_t The 16-bit Fletcher checksum of the given array
  */
-uint16_t fletcher_16(uint8_t *data, int count)
+uint16_t utils_fl16_data_to_csum(uint8_t *data, int count)
 {
    uint16_t sum1 = 0;
    uint16_t sum2 = 0;
@@ -186,7 +186,67 @@ uint16_t fletcher_16(uint8_t *data, int count)
    return (sum2 << 8) | sum1;
 }
 
+/**
+ * @brief Computes the Fletcher-16 checkbytes from its checksum
+ *
+ * @param uint16_t checksum The checksum (returned from fletcher_16())
+ * @param char check_bytes[2] A char array to write the check bytes into
+ *
+ * @return char* The same array that was passed in as check_bytes
+ */
+char* utils_fl16_csum_to_cbytes(uint16_t checksum, char check_bytes[2])
+{
+    uint16_t f0, f1, c0, c1;
+    f0 = checksum & 0xFF;
+    f1 = (checksum >> 8) & 0xFF;
+    c0 = 0xFF - ((f0 + f1) % 0xFF);
+    c1 = 0xFF - ((f0 + c0) % 0xFF);
+    check_bytes[0] = c0;
+    check_bytes[1] = c1;
+    return check_bytes;
+}
 
+/**
+ * @brief Combines the other two Fletcher16 functions to get from a char
+ *        array directly to its check bytes (most common use case)
+ *
+ * @param uint8_t *data The array of uint8_t's (chars) with which to compute the checksum
+ * @param int count The number of chars in the array, or the number to consider in the
+ *                  checksum calculation
+ * @param char check_bytes[2] A char array to write the check bytes into
+ *
+ * @return char* The same array that was passed in as check_bytes
+ */
+char* utils_fl16_data_to_cbytes(uint8_t *data, int count, char check_bytes[2])
+{
+    // Get the checksum from the data
+    uint16_t checksum = utils_fl16_data_to_csum(data, count);
+    // Get the check bytes from the checksum and write them to check_bytes
+    utils_fl16_csum_to_cbytes(checksum, check_bytes);
+
+    return check_bytes;
+}
+
+/**
+ * @brief Validates transmission integrity by comparing the received check bytes of
+ *        a message to its manually-calculated check bytes.
+ *
+ * @param uint8_t *data The array of uint8_t's (chars) with which to manually
+ *                      calculate the check bytes.
+ * @param int count The number of chars to use in the array (this should be the
+ *                  length of the message, minus its 2 checksum bytes)
+ * @param char check_bytes[2] A char array representing the "actual" check bytes
+ *
+ * @return bool true if expected and actual checksums match, false if not
+ */
+bool utils_validate_transmission(uint8_t *data, int count, char check_bytes[2])
+{
+    char expected[2];
+    utils_fl16_data_to_cbytes(data, count, expected);
+    bool result0 = (expected[0] == check_bytes[0]);
+    bool result1 = (expected[1] == check_bytes[1]);
+    return (result0 && result1);
+}
 
 /**
  * @brief Delay the next operation with a for-loop (used for spacing out UART communication)
