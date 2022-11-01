@@ -311,9 +311,64 @@ void gantry_robot_action(command_t* command)
         p_gantry_command->move.dest_rank = rpi_byte_to_rank(move[3]);
         p_gantry_command->move.move_type = rpi_byte_to_move_type(move[4]);
 
-
         robot_is_done = true; // We've got the data we need
     }
+// Keenan your stuff starts here
+//    char check_bytes[2];
+//    char message[7];
+//
+//    // First, read the first two bytes of the entire message
+//    if (rpi_receive(start_instr_op_len, 2))
+//    {
+//        if (start_instr_op_len[0] == START_BYTE)
+//        {
+//            instr = start_instr_op_len[1] >> 4;
+//            op_len = start_instr_op_len[1] & (~0xF0);
+//        }
+//        else
+//        {
+//            // Error occurred; no message should begin without 0x0A
+//        }
+//    }
+//
+//    // Depending on the instruction, take a particular action
+//    if (instr == ROBOT_MOVE_INSTR)
+//    {
+//        if (rpi_receive(move, 5))
+//        {
+//            p_gantry_command->move.source_file = rpi_byte_to_file(move[0]);
+//            p_gantry_command->move.source_rank = rpi_byte_to_rank(move[1]);
+//            p_gantry_command->move.dest_file = rpi_byte_to_file(move[2]);
+//            p_gantry_command->move.dest_rank = rpi_byte_to_rank(move[3]);
+//            message[0] = start_instr_op_len[0];
+//            message[1] = start_instr_op_len[1];
+//            message[2] = move[0];
+//            message[3] = move[1];
+//            message[4] = move[2];
+//            message[5] = move[3];
+//            message[6] = move[4];
+//            rpi_receive(check_bytes, 2);
+//            if (!utils_validate_transmission(message, 7, check_bytes))
+//            {
+//                // Checksum error; corrupted data
+//            }
+//        }
+//    }
+//    else if (instr == ILLEGAL_MOVE_INSTR)
+//    {
+//        // Still player's turn; robot will not move.
+//        message[0] = start_instr_op_len[0];
+//        message[1] = start_instr_op_len[1];
+//        rpi_receive(check_bytes, 2);
+//        if (!utils_validate_transmission(message, 2, check_bytes))
+//        {
+//            // Checksum error; corrupted data
+//        }
+//    }
+//    else
+//    {
+//        // Error occurred; found no matching instruction
+//    }
     // Validate the check bytes
 }
 
