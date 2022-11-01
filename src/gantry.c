@@ -17,10 +17,10 @@ void gantry_reset();
 void gantry_kill();
 void gantry_clear_command(gantry_command_t* gantry_command);
 
-// Array of gantry commands
-gantry_command_t gantry_cmds[COMMAND_QUEUE_SIZE];
-static gantry_command_t* gantry_read_cmd = &gantry_cmds[0];
-static gantry_command_t* gantry_move_cmd = &gantry_cmds[1];
+// Gantry commands
+static gantry_command_t gantry_cmd_array[2];
+static gantry_command_t* gantry_human_move_cmd = &gantry_cmd_array[0];
+static gantry_command_t* gantry_robot_move_cmd = &gantry_cmd_array[1];
 
 // Flag that gets set in the utils module when there is a system fault
 extern bool utils_sys_fault;
@@ -38,15 +38,27 @@ static bool robot_is_done = false;
 void gantry_init()
 {
     // Prepare the gantry commands
-    gantry_read_cmd->command.p_entry = &gantry_human_entry;
-    gantry_read_cmd->command.p_action = &gantry_human_action;
-    gantry_read_cmd->command.p_exit = &gantry_human_exit;
-    gantry_read_cmd->command.p_is_done = &gantry_human_is_done;
+    gantry_human_move_cmd->command.p_entry = &gantry_human_entry;
+    gantry_human_move_cmd->command.p_action = &gantry_human_action;
+    gantry_human_move_cmd->command.p_exit = &gantry_human_exit;
+    gantry_human_move_cmd->command.p_is_done = &gantry_human_is_done;
+
+    gantry_human_move_cmd->move.source_file = FILE_ERROR;
+    gantry_human_move_cmd->move.source_rank = RANK_ERROR;
+    gantry_human_move_cmd->move.dest_file = FILE_ERROR;
+    gantry_human_move_cmd->move.dest_rank = RANK_ERROR;
+    gantry_human_move_cmd->move.move_type = IDLE;
+
+    gantry_robot_move_cmd->command.p_entry = &gantry_robot_entry;
+    gantry_robot_move_cmd->command.p_action = &gantry_robot_action;
+    gantry_robot_move_cmd->command.p_exit = &gantry_robot_exit;
+    gantry_robot_move_cmd->command.p_is_done = &gantry_robot_is_done;
     
-    gantry_move_cmd->command.p_entry = &gantry_robot_entry;
-    gantry_move_cmd->command.p_action = &gantry_robot_action;
-    gantry_move_cmd->command.p_exit = &gantry_robot_exit;
-    gantry_move_cmd->command.p_is_done = &gantry_robot_is_done;
+    gantry_robot_move_cmd->move.source_file = FILE_ERROR;
+    gantry_robot_move_cmd->move.source_rank = RANK_ERROR;
+    gantry_robot_move_cmd->move.dest_file = FILE_ERROR;
+    gantry_robot_move_cmd->move.dest_rank = RANK_ERROR;
+    gantry_robot_move_cmd->move.move_type = IDLE;
     
     // System level initialization of all other modules
     clock_sys_init();
@@ -58,6 +70,13 @@ void gantry_init()
     clock_timer5a_init();
     command_queue_init();
     stepper_init_motors();
+    rpi_init();
+}
+
+// Adds itself to the command queue
+void gantry_start()
+{
+    command_queue_push((command_t*)gantry_robot_move_cmd);
 }
 
 /**
@@ -190,10 +209,10 @@ void gantry_human_exit(command_t* command)
     rpi_transmit(move, 5);
 
     // Clear the data in the next gantry_move command
-    gantry_clear_command(gantry_move_cmd);
+    gantry_clear_command(gantry_human_move_cmd);
 
     // Place the gantry_move command on the queue
-    command_queue_push((command_t*)gantry_move_cmd);
+    command_queue_push((command_t*)gantry_human_move_cmd);
 }
 
 /**
@@ -215,7 +234,13 @@ bool gantry_human_is_done(command_t* command)
  */
 void gantry_robot_entry(command_t* command)
 {
+    // Reset everything
     robot_is_done = false;
+    gantry_robot_move_cmd->move.source_file = FILE_ERROR;
+    gantry_robot_move_cmd->move.source_rank = RANK_ERROR;
+    gantry_robot_move_cmd->move.dest_file = FILE_ERROR;
+    gantry_robot_move_cmd->move.dest_rank = RANK_ERROR;
+    gantry_robot_move_cmd->move.move_type = IDLE;
 }
 
 /**
@@ -232,10 +257,20 @@ void gantry_robot_action(command_t* command)
     char move[5];
     if (rpi_receive(move, 5))
     {
+        /*
+         * Dev notes:
+         * Order of operations: (if timeout at any point reset)
+         * 1. Wait for start byte
+         * 2. Once start sequence is received, read the order and assign to variables
+         * 3. Calculate checksum
+         * 4. If checksum passes, send an ack and return the move struct
+         * 4b. If checksum fails, send a bad ack and goto step 1.
+         */
         p_gantry_command->move.source_file = rpi_byte_to_file(move[0]);
         p_gantry_command->move.source_rank = rpi_byte_to_rank(move[1]);
         p_gantry_command->move.dest_file = rpi_byte_to_file(move[2]);
         p_gantry_command->move.dest_rank = rpi_byte_to_rank(move[3]);
+        p_gantry_command->move.move_type = rpi_byte_to_move_type(move[4]);
 
 
         robot_is_done = true; // We've got the data we need
@@ -259,6 +294,11 @@ void gantry_robot_exit(command_t* command)
     
      switch (p_gantry_command->move.move_type) {
          case MOVE:
+             // Error checking
+             if (p_gantry_command->move.source_file == FILE_ERROR || p_gantry_command->move.source_rank == RANK_ERROR)
+             {
+                 break;
+             }
              // Move to the piece to move
              // the enums are the absolute positions of those ranks/file. current_pos is also absolute
              command_queue_push
@@ -274,6 +314,7 @@ void gantry_robot_exit(command_t* command)
                  )
              );
              // wait
+             command_queue_push((command_t*)delay_build_command(1000));
              // lower the lifter
              // grab the piece
              // raise the lifter
@@ -291,6 +332,8 @@ void gantry_robot_exit(command_t* command)
                      0                                                                  // v_z
                  )
              );
+             // wait
+             command_queue_push((command_t*)delay_build_command(1000));
              // lower the lifter
              // release the piece
              // raise the lifter
@@ -321,6 +364,8 @@ void gantry_robot_exit(command_t* command)
     // command_queue_push(lc)
     // snc = sensor_network_build_command()
     // command_queue_push(snc)
+     // Do it again !
+     command_queue_push((command_t*)gantry_robot_move_cmd);
 }
 
 /**

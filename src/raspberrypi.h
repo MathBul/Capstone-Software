@@ -19,8 +19,16 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// Mode switch
+#define EMULATOR
+
 // General Raspberry Pi defines
+#ifdef EMULATOR
+#define RPI_UART_CHANNEL                    (UART_CHANNEL_0)
+#else
 #define RPI_UART_CHANNEL                    (UART_CHANNEL_3)
+
+#endif
 
 /*
  * All UART instruction defines

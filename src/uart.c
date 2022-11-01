@@ -399,23 +399,31 @@ bool uart_out_string(uint8_t uart_channel, char* string)
  */
 bool uart_read_byte(uint8_t uart_channel, uint8_t* byte)
 {
+    bool output = false;
     switch (uart_channel)
     {
-    case UART_CHANNEL_0:
-        while (!uart_fifo_pop(&uart_0_rx, byte)){}
-        return true;
-    case UART_CHANNEL_2:
-        while (!uart_fifo_pop(&uart_2_rx, byte)){}
-        return true;
-    case UART_CHANNEL_3:
-        while (!uart_fifo_pop(&uart_3_rx, byte)){}
-        return true;
-    case UART_CHANNEL_6:
-        while (!uart_fifo_pop(&uart_6_rx, byte)){}
-        return true;
-    default:
-        return false;
+        case UART_CHANNEL_0:
+            output = uart_fifo_pop(&uart_0_rx, byte);
+        break;
+
+        case UART_CHANNEL_2:
+            output = uart_fifo_pop(&uart_2_rx, byte);
+        break;
+
+        case UART_CHANNEL_3:
+            output = uart_fifo_pop(&uart_3_rx, byte);
+        break;
+
+        case UART_CHANNEL_6:
+            output = uart_fifo_pop(&uart_6_rx, byte);
+        break;
+
+        default:
+            output = false;
+        break;
     }
+
+    return output;
 }
 
 /**

@@ -65,15 +65,7 @@ bool rpi_receive(char *data, uint8_t num_chars)
     }
 
     return true;
-    /*
-     * Dev notes:
-     * Order of operations: (if timeout at any point reset)
-     * 1. Wait for start byte
-     * 2. Once start sequence is received, read the order and assign to variables
-     * 3. Calculate checksum
-     * 4. If checksum passes, send an ack and return the move struct
-     * 4b. If checksum fails, send a bad ack and goto step 1.
-     */
+
 }
 
 /**
@@ -170,28 +162,28 @@ chess_rank_t rpi_byte_to_rank(uint8_t byte)
     chess_rank_t rank = RANK_ERROR;
     switch (byte)
     {
-        case 1:
+        case '1':
             rank = FIRST;
         break;
-        case 2:
+        case '2':
             rank = SECOND;
         break;
-        case 3:
+        case '3':
             rank = THIRD;
         break;
-        case 4:
+        case '4':
             rank = FOURTH;
         break;
-        case 5:
+        case '5':
             rank = FIFTH;
         break;
-        case 6:
+        case '6':
             rank = SIXTH;
         break;
-        case 7:
+        case '7':
             rank = SEVENTH;
         break;
-        case 8:
+        case '8':
             rank = EIGHTH;
         break;
         default:

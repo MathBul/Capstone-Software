@@ -4,10 +4,10 @@
 // Standard includes necessary for base functionality
 #include "msp.h"
 
-#define UART_DEBUG
+//#define UART_DEBUG
 //#define FUNCTION_DEBUG
 //#define CHESS_ROBOT_MAIN
-//#define COMMAND_QUEUE
+#define COMMAND_QUEUE
 
 // Flag that gets set in the utils module when there is a system fault
 extern bool utils_sys_fault;
@@ -23,9 +23,7 @@ int main(void)
     gantry_init();
 
     // Add commands to the queue
-    command_queue_push((command_t*)stepper_build_command(100, 0, 0, 1, 0, 0));
-    command_queue_push((command_t*)delay_build_command(3000));
-    command_queue_push((command_t*)stepper_build_command(-100, 0, 0, 1, 0, 0));
+    gantry_start();
 
     // Main program flow
     while (1)

@@ -38,6 +38,7 @@ typedef struct gantry_command_t {
 
 // Public functions
 void gantry_init();
+void gantry_start();
 
 // Command Functions (reading user input)
 void gantry_human_entry(command_t* command);
