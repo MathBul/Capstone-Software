@@ -14,8 +14,8 @@
 static uint8_t switch_shift_assign(uint8_t port_raw);
 
 // Declare the switches
-static switch_t switches;
-static switch_t* p_switches = (&switches);
+static switch_state_t switches;
+static switch_state_t* p_switches = (&switches);
 
 /**
  * @brief Initialize all buttons

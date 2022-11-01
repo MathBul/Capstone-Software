@@ -57,6 +57,23 @@
 // Rocker macros
 #define ROCKER_COLOR                        (BITS8_MASK(7))
 
+// Storage for the switches
+typedef struct switch_name_t {
+    uint8_t limit_x : 1;
+    uint8_t limit_y : 1;
+    uint8_t limit_z : 1;
+    uint8_t reserved_1 : 1;
+    uint8_t reserved_2 : 1;
+    uint8_t reserved_3 : 1;
+    uint8_t reserved_4 : 1;
+    uint8_t reserved_5 : 1;
+} switch_name_t;
+
+typedef union switches_t {
+    switch_name named;
+    uint8_t raw;
+}switches_t;
+
 // Local representation of the switches
 typedef struct {
     uint8_t current_inputs;
@@ -65,7 +82,7 @@ typedef struct {
     uint8_t neg_transitions;
     uint8_t previous_inputs;
     char    color_latch;
-} switch_t;
+} switch_state_t;
 
 // Virtual port for the switches
 union utils_vport_t switch_vport;
