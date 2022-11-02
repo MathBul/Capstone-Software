@@ -538,7 +538,7 @@ void gantry_home()
             (command_t*)stepper_build_rel_command
             (
                     -6,
-                    0,
+                    6,
                     0,
                     1,                                   // v_x
                     1,                                   // v_y

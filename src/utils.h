@@ -27,7 +27,7 @@
 // General utility macros
 #define BITS8_MASK(shift)                   ((uint8_t) (1 << shift))
 #define SQUARE_CENTER_TO_CENTER             (48) //mm
-#define SQUARE_X_INITIAL                    (-100)
+#define SQUARE_X_INITIAL                    (-115)
 #define SQUARE_Y_INITIAL                    (30)
 
 

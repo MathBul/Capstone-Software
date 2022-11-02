@@ -282,6 +282,8 @@ void stepper_z_stop()
 void stepper_pause_motors()
 {
     clock_pause_timer(STEPPER_X_TIMER);
+    clock_pause_timer(STEPPER_Y_TIMER);
+    clock_pause_timer(STEPPER_Z_TIMER);
     stepper_disable_all_motors();
 }
 
@@ -373,7 +375,7 @@ stepper_rel_command_t* stepper_build_home_command()
 
     // Data
     p_command->rel_x = 999;
-    p_command->rel_y = 0;
+    p_command->rel_y = -999;
     p_command->rel_z = 0;
     p_command->v_x = 1;
     p_command->v_y = 1;
@@ -454,6 +456,13 @@ void stepper_rel_entry(command_t* command)
         clock_set_timer_period(STEPPER_X_TIMER, stepper_x_period); // Currently only X has an interrupt
         clock_resume_timer(STEPPER_X_TIMER);
     }
+    if (p_stepper_command->v_y != 0)
+    {
+        uint16_t v_y = utils_bound(p_stepper_command->v_y, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
+        uint32_t stepper_y_period = 120000000 / (stepper_distance_to_transitions(v_y));
+        clock_set_timer_period(STEPPER_Y_TIMER, stepper_y_period); // Currently only X has an interrupt
+        clock_resume_timer(STEPPER_Y_TIMER);
+    }
 }
 
 /**
@@ -519,6 +528,13 @@ void stepper_chess_entry(command_t* command)
         uint32_t stepper_x_period = 120000000 / (stepper_distance_to_transitions(v_x));
         clock_set_timer_period(STEPPER_X_TIMER, stepper_x_period); // Currently only X has an interrupt
         clock_resume_timer(STEPPER_X_TIMER);
+    }
+    if (p_stepper_command->v_y != 0)
+    {
+        uint16_t v_y = utils_bound(p_stepper_command->v_y, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
+        uint32_t stepper_y_period = 120000000 / (stepper_distance_to_transitions(v_y));
+        clock_set_timer_period(STEPPER_Y_TIMER, stepper_y_period); // Currently only X has an interrupt
+        clock_resume_timer(STEPPER_Y_TIMER);
     }
 }
 
@@ -596,24 +612,42 @@ __interrupt void STEPPER_X_HANDLER(void)
     clock_clear_interrupt(STEPPER_X_TIMER);
 
     // Move each stepper until it reaches its destination, then disable
-    stepper_motors_t* base_stepper = &stepper_motors[0];
-    uint8_t i = 0;
-    
-    for (i = 0; i < NUMBER_OF_STEPPER_MOTORS; i++)
+    if (stepper_motor_x->transitions_to_desired_pos > 0)
     {
-        if ((base_stepper+i)->transitions_to_desired_pos > 0) 
-        {
-            // Move the motor
-            stepper_edge_transition((base_stepper+i));
-            // Update our counter
-            (base_stepper+i)->transitions_to_desired_pos -= 1;
-            // Update the position
-            (base_stepper+i)->current_pos += (base_stepper+i)->dir;
-        } 
-        else
-        {
-            stepper_disable_motor((base_stepper+i));
-        }
+        // Move the motor
+        stepper_edge_transition(stepper_motor_x);
+        // Update our counter
+        stepper_motor_x->transitions_to_desired_pos -= 1;
+        // Update the position
+        stepper_motor_x->current_pos += stepper_motor_x->dir;
+    }
+    else
+    {
+        stepper_disable_motor(stepper_motor_x);
+    }
+}
+
+/**
+ * @brief Interrupt handler for the stepper module
+ */
+__interrupt void STEPPER_Y_HANDLER(void)
+{
+    // Clear the interrupt flag
+    clock_clear_interrupt(STEPPER_Y_TIMER);
+
+    // Move each stepper until it reaches its destination, then disable
+    if (stepper_motor_y->transitions_to_desired_pos > 0)
+    {
+        // Move the motor
+        stepper_edge_transition(stepper_motor_y);
+        // Update our counter
+        stepper_motor_y->transitions_to_desired_pos -= 1;
+        // Update the position
+        stepper_motor_y->current_pos += stepper_motor_y->dir;
+    }
+    else
+    {
+        stepper_disable_motor(stepper_motor_y);
     }
 }
 
