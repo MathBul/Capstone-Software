@@ -360,6 +360,28 @@ stepper_chess_command_t* stepper_build_chess_command(chess_file_t file, chess_ra
 
 }
 
+stepper_rel_command_t* stepper_build_home_command()
+{
+    // The thing to return
+    stepper_rel_command_t* p_command = (stepper_rel_command_t*)malloc(sizeof(stepper_rel_command_t));
+
+    // Functions
+    p_command->command.p_entry = &stepper_rel_entry;
+    p_command->command.p_action = &stepper_home_action;
+    p_command->command.p_exit = &stepper_exit;
+    p_command->command.p_is_done = &stepper_is_done;
+
+    // Data
+    p_command->rel_x = 999;
+    p_command->rel_y = 0;
+    p_command->rel_z = 0;
+    p_command->v_x = 1;
+    p_command->v_y = 1;
+    p_command->v_z = 0;
+
+    return p_command;
+}
+
 
 
 /**
@@ -501,13 +523,41 @@ void stepper_chess_entry(command_t* command)
 }
 
 /**
- * @brief Stepping is handled in the ISR, so this action is empty
- * 
+ * @brief Does nothing
+ *
  * @param command The stepper command being run
  */
 void stepper_action(command_t* command)
 {
     return;
+}
+
+/**
+ * @brief Make sure no limit switch has been pressed
+ *
+ * @param command The stepper command being run
+ */
+void stepper_home_action(command_t* command)
+{
+    // Check the current switch readings
+    uint8_t switch_data = switch_vport.image;
+
+    // If a limit switch was pressed, disable the appropriate motor
+    if (switch_data & LIMIT_X)
+    {
+        stepper_x_stop();
+        stepper_motor_x->current_pos = 0;
+    }
+    if (switch_data & LIMIT_Y)
+    {
+        stepper_y_stop();
+        stepper_motor_y->current_pos = 0;
+    }
+    if (switch_data & LIMIT_Z)
+    {
+        stepper_z_stop();
+        stepper_motor_z->current_pos = 0;
+    }
 }
 
 /**

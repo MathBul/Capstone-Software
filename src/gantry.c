@@ -1,7 +1,7 @@
 /**
  * @file gantry.c
  * @author Nick Cooney (npc4crc@virginia.edu)
- * @brief Code to unite all other modules. All ISRs are implemented here
+ * @brief Code to unite all other modules
  * @version 0.1
  * @date 2022-10-19
  * 
@@ -10,17 +10,15 @@
 
 #include "gantry.h"
 
+// Homing flag
+static bool gantry_homing = false;
+
 // Private functions
 void gantry_limit_stop(uint8_t limit_readings);
 void gantry_home();
 void gantry_reset();
 void gantry_kill();
 void gantry_clear_command(gantry_command_t* gantry_command);
-
-// Gantry commands
-static gantry_command_t gantry_cmd_array[2];
-static gantry_command_t* gantry_human_move_cmd = &gantry_cmd_array[0];
-static gantry_command_t* gantry_robot_move_cmd = &gantry_cmd_array[1];
 
 // Flag that gets set in the utils module when there is a system fault
 extern bool utils_sys_fault;
@@ -37,29 +35,6 @@ static bool robot_is_done = false;
  */
 void gantry_init()
 {
-    // Prepare the gantry commands
-    gantry_human_move_cmd->command.p_entry = &gantry_human_entry;
-    gantry_human_move_cmd->command.p_action = &gantry_human_action;
-    gantry_human_move_cmd->command.p_exit = &gantry_human_exit;
-    gantry_human_move_cmd->command.p_is_done = &gantry_human_is_done;
-
-    gantry_human_move_cmd->move.source_file = FILE_ERROR;
-    gantry_human_move_cmd->move.source_rank = RANK_ERROR;
-    gantry_human_move_cmd->move.dest_file = FILE_ERROR;
-    gantry_human_move_cmd->move.dest_rank = RANK_ERROR;
-    gantry_human_move_cmd->move.move_type = IDLE;
-
-    gantry_robot_move_cmd->command.p_entry = &gantry_robot_entry;
-    gantry_robot_move_cmd->command.p_action = &gantry_robot_action;
-    gantry_robot_move_cmd->command.p_exit = &gantry_robot_exit;
-    gantry_robot_move_cmd->command.p_is_done = &gantry_robot_is_done;
-    
-    gantry_robot_move_cmd->move.source_file = FILE_ERROR;
-    gantry_robot_move_cmd->move.source_rank = RANK_ERROR;
-    gantry_robot_move_cmd->move.dest_file = FILE_ERROR;
-    gantry_robot_move_cmd->move.dest_rank = RANK_ERROR;
-    gantry_robot_move_cmd->move.move_type = IDLE;
-    
     // System level initialization of all other modules
     clock_sys_init();
     clock_timer0a_init(); // x
@@ -69,7 +44,7 @@ void gantry_init()
     clock_timer4a_init(); // gantry
     clock_timer5a_init(); // delay
     clock_resume_timer(SWITCH_TIMER);
-    clock_resume_timer(GANTRY_TIMER);
+//    clock_resume_timer(GANTRY_TIMER);
     command_queue_init();
     switch_init();
     stepper_init_motors();
@@ -79,46 +54,22 @@ void gantry_init()
 // Adds itself to the command queue
 void gantry_start()
 {
-    command_queue_push((command_t*)gantry_robot_move_cmd);
+    gantry_home();
+    command_queue_push((command_t*)gantry_robot_build_command());
 }
 
 /**
- * @brief Stops steper motors based on the current limit switch readings
+ * @brief Stops stepper motors based on the current limit switch readings
+ *  TODO: Add LIMIT_Y and LIMIT_Z. Change functionality beyond kill
  * 
  * @param limit_readings A limit switch reading configured according to the switch vport
  */
 void gantry_limit_stop(uint8_t limit_readings)
 {
-    if (limit_readings & LIMIT_X)
+    if ((!gantry_homing) && (limit_readings & (LIMIT_X | LIMIT_Y | LIMIT_Z)))
     {
-        stepper_x_stop();
+        gantry_kill();
     }
-    if (limit_readings & LIMIT_Y)
-    {
-        stepper_y_stop();
-    }
-    if (limit_readings & LIMIT_Z)
-    {
-        stepper_z_stop();
-    }
-}
-
-/**
- * @brief Homes the gantry system (motors all the way up, right, back from pov of robot)
- */
-void gantry_home()
-{
-    // Pause the motors
-    stepper_pause_motors();
-
-    // Clear the command queue
-    command_queue_clear();
-
-    // Add a homing command to the queue
-    // TODO: Add stepper_home command
-
-    // Resume motor motion
-    stepper_pause_motors();
 }
 
 /**
@@ -149,7 +100,9 @@ void gantry_reset()
 void gantry_kill()
 {
     // Disable all motors
-    stepper_disable_all_motors();
+    stepper_x_stop();
+    stepper_y_stop();
+    stepper_z_stop();
 
     // Set the system fault flag
     utils_sys_fault = true;
@@ -158,21 +111,28 @@ void gantry_kill()
     command_queue_clear();
 }
 
-/**
- * @brief Clears a gantry command before it is placed back on the queue
- * 
- */
-void gantry_clear_command(gantry_command_t* gantry_command)
-{
-    gantry_command->move.source_file = FILE_ERROR;
-    gantry_command->move.source_rank = RANK_ERROR;
-    gantry_command->move.dest_file = FILE_ERROR;
-    gantry_command->move.dest_rank = RANK_ERROR;
-    gantry_command->move.move_type = IDLE;
-
-}
-
 /* Command Functions */
+
+gantry_command_t* gantry_human_build_command()
+{
+    // The thing to return
+    gantry_command_t* p_command = (gantry_command_t*)malloc(sizeof(gantry_command_t));
+
+    // Functions
+    p_command->command.p_entry = &gantry_human_entry;
+    p_command->command.p_action = &gantry_human_action;
+    p_command->command.p_exit = &gantry_human_exit;
+    p_command->command.p_is_done = &gantry_human_is_done;
+
+    // Data
+    p_command->move.source_file = FILE_ERROR;
+    p_command->move.source_rank = RANK_ERROR;
+    p_command->move.dest_file = FILE_ERROR;
+    p_command->move.dest_rank = RANK_ERROR;
+    p_command->move.move_type = IDLE;
+
+    return p_command;
+}
 
 /**
  * @brief Prepares the gantry for a read command. Nothing is done in this case
@@ -224,11 +184,9 @@ void gantry_human_exit(command_t* command)
     message[7] = check_bytes[0];
     message[8] = check_bytes[1];
 
-    // Clear the data in the next gantry_move command
-    gantry_clear_command(gantry_human_move_cmd);
-
     // Place the gantry_move command on the queue
-    command_queue_push((command_t*)gantry_human_move_cmd);
+    command_queue_push((command_t*)gantry_human_build_command());
+
     // Transmit the move to the RPi (9 bytes long)
     rpi_transmit(message, 9);
 }
@@ -245,6 +203,27 @@ bool gantry_human_is_done(command_t* command)
     return (switch_data & BUTTON_END_TURN);
 }
 
+gantry_command_t* gantry_robot_build_command()
+{
+    // The thing to return
+    gantry_command_t* p_command = (gantry_command_t*)malloc(sizeof(gantry_command_t));
+
+    // Functions
+    p_command->command.p_entry = &gantry_robot_entry;
+    p_command->command.p_action = &gantry_robot_action;
+    p_command->command.p_exit = &gantry_robot_exit;
+    p_command->command.p_is_done = &gantry_robot_is_done;
+
+    // Data
+    p_command->move.source_file = FILE_ERROR;
+    p_command->move.source_rank = RANK_ERROR;
+    p_command->move.dest_file = FILE_ERROR;
+    p_command->move.dest_rank = RANK_ERROR;
+    p_command->move.move_type = IDLE;
+
+    return p_command;
+}
+
 /**
  * @brief Prepares the gantry for a move command. Nothing is done in this case
  * 
@@ -252,6 +231,7 @@ bool gantry_human_is_done(command_t* command)
  */
 void gantry_robot_entry(command_t* command)
 {
+    gantry_command_t* gantry_robot_move_cmd = (gantry_command_t*) command;
     // Reset everything
     robot_is_done = false;
     gantry_robot_move_cmd->move.source_file = FILE_ERROR;
@@ -462,7 +442,7 @@ void gantry_robot_exit(command_t* command)
     // snc = sensor_network_build_command()
     // command_queue_push(snc)
      // Do it again !
-     command_queue_push((command_t*)gantry_robot_move_cmd);
+     command_queue_push((command_t*)gantry_robot_build_command());
 }
 
 /**
@@ -474,6 +454,100 @@ void gantry_robot_exit(command_t* command)
 bool gantry_robot_is_done(command_t* command)
 {
     return robot_is_done;
+}
+
+gantry_command_t* gantry_home_build_command()
+{
+    // The thing to return
+    gantry_command_t* p_command = (gantry_command_t*)malloc(sizeof(gantry_command_t));
+
+    // Functions
+    p_command->command.p_entry = &gantry_home_entry;
+    p_command->command.p_action = &gantry_home_action;
+    p_command->command.p_exit = &gantry_home_exit;
+    p_command->command.p_is_done = &gantry_home_is_done;
+
+    // Data
+    p_command->move.source_file = FILE_ERROR;
+    p_command->move.source_rank = RANK_ERROR;
+    p_command->move.dest_file = FILE_ERROR;
+    p_command->move.dest_rank = RANK_ERROR;
+    p_command->move.move_type = IDLE;
+
+    return p_command;
+}
+
+/**
+ * @brief Toggles the homing flag
+ *
+ * @param command The gantry command being run
+ */
+void gantry_home_entry(command_t* command)
+{
+    gantry_homing = !gantry_homing;
+}
+
+/**
+ * @brief Empty
+ *
+ * @param command The gantry command being run
+ */
+void gantry_home_action(command_t* command)
+{
+    return;
+}
+
+/**
+ * @brief Empty
+ *
+ * @param command The gantry command being run
+ */
+void gantry_home_exit(command_t* command)
+{
+    return;
+}
+
+/**
+ * @brief Homing flag is toggled in entry, so return true always
+ *
+ * @param command The gantry command being run
+ * @return true Always
+ */
+bool gantry_home_is_done(command_t* command)
+{
+    return true;
+}
+
+
+/**
+ * @brief Homes the gantry system (motors all the way up, right, back from point-of-view of the robot)
+ */
+void gantry_home()
+{
+    // Set the homing flag
+    command_queue_push((command_t*)gantry_home_build_command());
+
+    // Home the motors
+    //  TODO: Place two relative commands on the queue. First is Z. Second is X and Y.
+    command_queue_push((command_t*)stepper_build_home_command());
+    command_queue_push((command_t*)delay_build_command(100));
+
+    // Back away from the edge
+    command_queue_push  // TODO: Place two relative commands on the queue. First is Z. Second is X and Y.
+    (
+            (command_t*)stepper_build_rel_command
+            (
+                    -6,
+                    0,
+                    0,
+                    1,                                   // v_x
+                    1,                                   // v_y
+                    0                                    // v_z
+            )
+    );
+
+    // Clear the homing flag
+    command_queue_push((command_t*)gantry_home_build_command());
 }
 
 /**
@@ -490,23 +564,22 @@ __interrupt void GANTRY_HANDLER(void)
     // If the emergency stop button was pressed, kill everything
     if (switch_data & BUTTON_ESTOP)
     {
-        gantry_kill();
+//        gantry_kill();
     }
 
     // If a limit switch was pressed, disable the appropriate motor
-    uint8_t limit_reading = ((switch_data) & (LIMIT_X | LIMIT_Y | LIMIT_Z));
-    gantry_limit_stop(limit_reading);
+    gantry_limit_stop(switch_data);
 
     // If the start/reset button was pressed, send the appropriate "new game" signal
     if (switch_data & BUTTON_START_RESET)
     {
-        gantry_reset();
+//        gantry_reset();
     }
 
     // If the home button was pressed, clear the queue and execute a homing command
     if (switch_data & BUTTON_HOME)
     {
-        gantry_home();
+//        gantry_home();
     }
 }
 

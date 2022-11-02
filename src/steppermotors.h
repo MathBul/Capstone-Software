@@ -20,6 +20,7 @@
 #include "gpio.h"
 #include "clock.h"
 #include "command_queue.h"
+#include "switch.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -140,14 +141,14 @@ int16_t stepper_x_get_current_pos();
 int16_t stepper_y_get_current_pos();
 int16_t stepper_z_get_current_pos();
 
-
-
 // Command Functions
 stepper_rel_command_t* stepper_build_rel_command(int16_t rel_x, int16_t rel_y, int16_t rel_z, uint16_t v_x, uint16_t v_y, uint16_t v_z);
 stepper_chess_command_t* stepper_build_chess_command(chess_file_t file, chess_rank_t rank, uint16_t v_x, uint16_t v_y, uint16_t v_z);
+stepper_rel_command_t* stepper_build_home_command();
 void stepper_rel_entry(command_t* command);
 void stepper_chess_entry(command_t* command);
 void stepper_action(command_t* command);
+void stepper_home_action(command_t* command);
 void stepper_exit(command_t* command);
 bool stepper_is_done(command_t* command);
 

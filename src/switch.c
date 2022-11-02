@@ -88,6 +88,9 @@ __interrupt void SWITCH_HANDLER(void)
     uint8_t switches_raw        = gpio_read_input(SWITCH_PORT, SWITCH_MASK);
     switch_vport.image          = switch_shift_assign(switches_raw);
 
+    // TODO: Remove this once all limit switches are in play
+    switch_vport.image          = (switch_vport.image & ~(LIMIT_Y | LIMIT_Z));
+
     // Update the switch transition information
     p_switches->current_inputs  = switch_vport.image;
     p_switches->edges           = (p_switches->current_inputs ^ p_switches->previous_inputs);
