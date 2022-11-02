@@ -44,7 +44,7 @@ void gantry_init()
     clock_timer4a_init(); // gantry
     clock_timer5a_init(); // delay
     clock_resume_timer(SWITCH_TIMER);
-//    clock_resume_timer(GANTRY_TIMER);
+    clock_resume_timer(GANTRY_TIMER);
     command_queue_init();
     switch_init();
     stepper_init_motors();
