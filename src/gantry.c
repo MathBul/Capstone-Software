@@ -68,7 +68,10 @@ void gantry_init()
     clock_timer3a_init(); // switches
     clock_timer4a_init(); // gantry
     clock_timer5a_init(); // delay
+    clock_resume_timer(SWITCH_TIMER);
+    clock_resume_timer(GANTRY_TIMER);
     command_queue_init();
+    switch_init();
     stepper_init_motors();
     rpi_init();
 }
@@ -88,15 +91,15 @@ void gantry_limit_stop(uint8_t limit_readings)
 {
     if (limit_readings & LIMIT_X)
     {
-        stepper_x_disable();
+        stepper_x_stop();
     }
     if (limit_readings & LIMIT_Y)
     {
-        //stepper_y_disable();
+        stepper_y_stop();
     }
     if (limit_readings & LIMIT_Z)
     {
-        stepper_z_disable();
+        stepper_z_stop();
     }
 }
 

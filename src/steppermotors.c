@@ -247,23 +247,33 @@ void stepper_enable_all_motors()
  * @brief Disables the STEPPER_X motor
  * 
  */
-void stepper_x_disable()
+void stepper_x_stop()
 {
     stepper_disable_motor(stepper_motor_x);
+    stepper_motor_x->transitions_to_desired_pos = 0;
+    clock_pause_timer(STEPPER_X_TIMER);
 }
 
 /**
  * @brief Disables the STEPPER_Y motor
  * 
  */
+void stepper_y_stop()
+{
+    stepper_disable_motor(stepper_motor_y);
+    stepper_motor_y->transitions_to_desired_pos = 0;
+    clock_pause_timer(STEPPER_Y_TIMER);
+}
 
 /**
  * @brief Disables the STEPPER_Z motor
  * 
  */
-void stepper_z_disable()
+void stepper_z_stop()
 {
     stepper_disable_motor(stepper_motor_z);
+    stepper_motor_z->transitions_to_desired_pos = 0;
+    clock_pause_timer(STEPPER_Z_TIMER);
 }
 
 /**

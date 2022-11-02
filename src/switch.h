@@ -25,12 +25,12 @@
 #include <stdint.h>
 
 // Switch GPIO macros
-#define SWITCH_PORT                         (GPIOD)         // TODO: Update when known
+#define SWITCH_PORT                         (GPIOE)         // TODO: Update when known
 #define BUTTON_RESET_PIN                    (GPIO_PIN_0)    // TODO: Update when known
 #define BUTTON_END_TURN_PIN                 (GPIO_PIN_1)    // TODO: Update when known
-#define BUTTON_ESTOP_PIN                    (GPIO_PIN_2)    // TODO: Update when known
+#define BUTTON_ESTOP_PIN                    (GPIO_PIN_4)    // TODO: Update when known
 #define BUTTON_HOME_PIN                     (GPIO_PIN_3)    // TODO: Update when known
-#define LIMIT_X_PIN                         (GPIO_PIN_4)    // TODO: Update when known
+#define LIMIT_X_PIN                         (GPIO_PIN_2)    // TODO: Update when known
 #define LIMIT_Y_PIN                         (GPIO_PIN_5)    // TODO: Update when known
 #define LIMIT_Z_PIN                         (GPIO_PIN_6)    // TODO: Update when known
 #define ROCKER_COLOR_PIN                    (GPIO_PIN_7)    // TODO: Update when known
@@ -213,7 +213,6 @@ typedef struct {
     uint8_t pos_transitions;
     uint8_t neg_transitions;
     uint8_t previous_inputs;
-    char    color_latch;
 } switch_state_t;
 
 // Virtual port for the switches

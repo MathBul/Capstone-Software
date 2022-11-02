@@ -129,8 +129,9 @@ typedef struct stepper_chess_command_t {
 
 // Public functions
 void stepper_init_motors();
-void stepper_x_disable();
-void stepper_z_disable();
+void stepper_x_stop();
+void stepper_y_stop();
+void stepper_z_stop();
 void stepper_disable_all_motors();
 void stepper_enable_all_motors();
 void stepper_pause_motors();
