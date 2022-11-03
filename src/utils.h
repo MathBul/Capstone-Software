@@ -26,10 +26,9 @@
 
 // General utility macros
 #define BITS8_MASK(shift)                   ((uint8_t) (1 << shift))
-#define SQUARE_CENTER_TO_CENTER             (48) //mm
-#define SQUARE_X_INITIAL                    (-115)
-#define SQUARE_Y_INITIAL                    (30)
-
+#define SQUARE_CENTER_TO_CENTER             (48)    // mm
+#define SQUARE_X_INITIAL                    (-115)  // mm
+#define SQUARE_Y_INITIAL                    (30)    // mm
 
 // Bitfield for peripheral imaging (accessing RAM)
 typedef struct {
@@ -43,12 +42,12 @@ typedef struct {
     volatile unsigned bit_7 : 1;
 } utils_bits8_t;
 
+// Tracks move type
 typedef enum chess_move_type {
     IDLE, MOVE, CAPTURE, PROMOTION, EN_PASSENT, CASTLING
 } chess_move_type;
 
-
-
+// Translates file on the board to distance in mm
 typedef enum chess_file_t {
     A = SQUARE_X_INITIAL - 7*SQUARE_CENTER_TO_CENTER,
     B = SQUARE_X_INITIAL - 6*SQUARE_CENTER_TO_CENTER,
@@ -61,6 +60,7 @@ typedef enum chess_file_t {
     FILE_ERROR = 0
 } chess_file_t;
 
+// Translates rank on the board to distance in mm
 typedef enum chess_rank_t {
     FIRST   = SQUARE_Y_INITIAL,
     SECOND  = SQUARE_Y_INITIAL + 1*SQUARE_CENTER_TO_CENTER,
@@ -93,16 +93,18 @@ char* utils_fl16_csum_to_cbytes(uint16_t checksum, char check_bytes[2]);
 char* utils_fl16_data_to_cbytes(uint8_t *data, int count, char check_bytes[2]);
 bool utils_validate_transmission(uint8_t *data, int count, char check_bytes[2]);
 
-// Math utility
+// Math utilities
 uint16_t utils_bound(uint16_t value, uint16_t lower_bound, uint16_t upper_bound);
 
-// Chess
+// Chess utilities
 chess_file_t utils_byte_to_file(uint8_t byte);
 chess_rank_t utils_byte_to_rank(uint8_t byte);
 chess_move_type utils_byte_to_move_type(uint8_t byte);
 
-
 // Interrupts
 void utils_set_nvic(uint8_t interrupt_num);
+
+// Command queue related
+void utils_empty_function();
 
 #endif /* UTILS_H_ */

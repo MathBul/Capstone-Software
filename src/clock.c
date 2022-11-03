@@ -195,7 +195,7 @@ void clock_clear_interrupt(TIMER0_Type* timer)
  * @param timer One of TIMERX for X=0,...,5
  * @param type One of timer_a or timer_b
  */
-void clock_pause_timer(TIMER0_Type* timer)
+void clock_stop_timer(TIMER0_Type* timer)
 {
     timer->CTL &= ~(TIMER_CTL_TAEN);
 }
@@ -206,7 +206,7 @@ void clock_pause_timer(TIMER0_Type* timer)
  * @param timer One of TIMERX for X=0,...,5
  * @param type One of timer_a or timer_b
  */
-void clock_resume_timer(TIMER0_Type* timer)
+void clock_start_timer(TIMER0_Type* timer)
 {
     timer->CTL |= (TIMER_CTL_TAEN);
 }

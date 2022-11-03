@@ -10,6 +10,8 @@
 
 #include "gantry.h"
 
+//#define KEENAN_TEST
+
 // Homing flag
 static bool gantry_homing = false;
 
@@ -20,15 +22,13 @@ void gantry_reset();
 void gantry_kill();
 void gantry_clear_command(gantry_command_t* gantry_command);
 
-// Flag that gets set in the utils module when there is a system fault
-extern bool utils_sys_fault;
-
 // Previous and current chess boards
 static chess_board_t previous_board;
 static chess_board_t current_board;
 
 // Flags
 static bool robot_is_done = false;
+extern bool utils_sys_fault;
 
 /**
  * @brief Initializes all modules
@@ -37,14 +37,14 @@ void gantry_init()
 {
     // System level initialization of all other modules
     clock_sys_init();
-    clock_timer0a_init(); // x
-    clock_timer1a_init(); // y
-    clock_timer2a_init(); // z
-    clock_timer3a_init(); // switches
-    clock_timer4a_init(); // gantry
-    clock_timer5a_init(); // delay
-    clock_resume_timer(SWITCH_TIMER);
-    clock_resume_timer(GANTRY_TIMER);
+    clock_timer0a_init();               // X
+    clock_timer1a_init();               // Y
+    clock_timer2a_init();               // Z
+    clock_timer3a_init();               // Switches
+    clock_timer4a_init();               // Gantry
+    clock_timer5a_init();               // Delay
+    clock_start_timer(SWITCH_TIMER);
+    clock_start_timer(GANTRY_TIMER);
     command_queue_init();
     switch_init();
     stepper_init_motors();
@@ -60,7 +60,7 @@ void gantry_start()
 
 /**
  * @brief Stops stepper motors based on the current limit switch readings
- *  TODO: Add LIMIT_Y and LIMIT_Z. Change functionality beyond kill
+ *  TODO: Change functionality beyond kill
  * 
  * @param limit_readings A limit switch reading configured according to the switch vport
  */
@@ -113,49 +113,35 @@ void gantry_kill()
 
 /* Command Functions */
 
+/**
+ * @brief Build a gantry_human command
+ *
+ * @returns Pointer to the dynamically-allocated command
+ */
 gantry_command_t* gantry_human_build_command()
 {
     // The thing to return
-    gantry_command_t* p_command = (gantry_command_t*)malloc(sizeof(gantry_command_t));
+    gantry_command_t* p_command = (gantry_command_t*) malloc(sizeof(gantry_command_t));
 
     // Functions
-    p_command->command.p_entry = &gantry_human_entry;
-    p_command->command.p_action = &gantry_human_action;
-    p_command->command.p_exit = &gantry_human_exit;
+    p_command->command.p_entry   = &utils_empty_function;
+    p_command->command.p_action  = &utils_empty_function;
+    p_command->command.p_exit    = &gantry_human_exit;
     p_command->command.p_is_done = &gantry_human_is_done;
 
     // Data
     p_command->move.source_file = FILE_ERROR;
     p_command->move.source_rank = RANK_ERROR;
-    p_command->move.dest_file = FILE_ERROR;
-    p_command->move.dest_rank = RANK_ERROR;
-    p_command->move.move_type = IDLE;
+    p_command->move.dest_file   = FILE_ERROR;
+    p_command->move.dest_rank   = RANK_ERROR;
+    p_command->move.move_type   = IDLE;
 
     return p_command;
 }
 
 /**
- * @brief Prepares the gantry for a read command. Nothing is done in this case
- * 
- * @param command The gantry command being run
- */
-void gantry_human_entry(command_t* command)
-{
-    return;
-}
-
-/**
- * @brief Waits for user interaction
- * 
- * @param command The gantry command being run
- */
-void gantry_human_action(command_t* command)
-{
-    return;
-}
-
-/**
  * @brief Interprets the RPi's move, and adds the appropriate commands to the queue
+ *  TODO: Incomplete
  * 
  * @param command The gantry command being run
  */
@@ -193,6 +179,7 @@ void gantry_human_exit(command_t* command)
 
 /**
  * @brief Moves to the next command once the END_TURN button has been pressed
+ *  TODO: Incomplete
  * 
  * @param command The gantry command being run
  * @return true If the END_TURN button has been pressed
@@ -203,23 +190,28 @@ bool gantry_human_is_done(command_t* command)
     return (switch_data & BUTTON_END_TURN);
 }
 
+/**
+ * @brief Build a gantry_robot command
+ *
+ * @returns Pointer to the dynamically-allocated command
+ */
 gantry_command_t* gantry_robot_build_command()
 {
     // The thing to return
     gantry_command_t* p_command = (gantry_command_t*)malloc(sizeof(gantry_command_t));
 
     // Functions
-    p_command->command.p_entry = &gantry_robot_entry;
-    p_command->command.p_action = &gantry_robot_action;
-    p_command->command.p_exit = &gantry_robot_exit;
+    p_command->command.p_entry   = &gantry_robot_entry;
+    p_command->command.p_action  = &gantry_robot_action;
+    p_command->command.p_exit    = &gantry_robot_exit;
     p_command->command.p_is_done = &gantry_robot_is_done;
 
     // Data
     p_command->move.source_file = FILE_ERROR;
     p_command->move.source_rank = RANK_ERROR;
-    p_command->move.dest_file = FILE_ERROR;
-    p_command->move.dest_rank = RANK_ERROR;
-    p_command->move.move_type = IDLE;
+    p_command->move.dest_file   = FILE_ERROR;
+    p_command->move.dest_rank   = RANK_ERROR;
+    p_command->move.move_type   = IDLE;
 
     return p_command;
 }
@@ -236,9 +228,9 @@ void gantry_robot_entry(command_t* command)
     robot_is_done = false;
     gantry_robot_move_cmd->move.source_file = FILE_ERROR;
     gantry_robot_move_cmd->move.source_rank = RANK_ERROR;
-    gantry_robot_move_cmd->move.dest_file = FILE_ERROR;
-    gantry_robot_move_cmd->move.dest_rank = RANK_ERROR;
-    gantry_robot_move_cmd->move.move_type = IDLE;
+    gantry_robot_move_cmd->move.dest_file   = FILE_ERROR;
+    gantry_robot_move_cmd->move.dest_rank   = RANK_ERROR;
+    gantry_robot_move_cmd->move.move_type   = IDLE;
 }
 
 /**
@@ -259,24 +251,6 @@ void gantry_robot_action(command_t* command)
 
     /* Receive arrays */
     char move[5]; // NOTE: May not be used if ILLEGAL_MOVE is received
-//    char start_instr_op_len[2];
-//    uint8_t instr;
-//    uint8_t op_len;
-
-//    char checksum[2];
-//
-//    // First, read the first two bytes of the entire message
-//    if (rpi_receive(start_instr_op_len, 2)) {
-//        if (start_instr_op_len[0] == START_BYTE)
-//        {
-//            instr = start_instr_op_len[1] >> 4;
-//            op_len = start_instr_op_len[1] & (~0xF0);
-//        }
-//        else
-//        {
-//            // Error occurred; no message should begin without 0x0A
-//        }
-//    }
     if (rpi_receive(move, 5))
     {
         /*
@@ -290,68 +264,90 @@ void gantry_robot_action(command_t* command)
          */
         p_gantry_command->move.source_file = utils_byte_to_file(move[0]);
         p_gantry_command->move.source_rank = utils_byte_to_rank(move[1]);
-        p_gantry_command->move.dest_file = utils_byte_to_file(move[2]);
-        p_gantry_command->move.dest_rank = utils_byte_to_rank(move[3]);
-        p_gantry_command->move.move_type = utils_byte_to_move_type(move[4]);
+        p_gantry_command->move.dest_file   = utils_byte_to_file(move[2]);
+        p_gantry_command->move.dest_rank   = utils_byte_to_rank(move[3]);
+        p_gantry_command->move.move_type   = utils_byte_to_move_type(move[4]);
 
         robot_is_done = true; // We've got the data we need
     }
-// Keenan your stuff starts here
-//    char check_bytes[2];
-//    char message[7];
-//
-//    // First, read the first two bytes of the entire message
-//    if (rpi_receive(start_instr_op_len, 2))
-//    {
-//        if (start_instr_op_len[0] == START_BYTE)
-//        {
-//            instr = start_instr_op_len[1] >> 4;
-//            op_len = start_instr_op_len[1] & (~0xF0);
-//        }
-//        else
-//        {
-//            // Error occurred; no message should begin without 0x0A
-//        }
-//    }
-//
-//    // Depending on the instruction, take a particular action
-//    if (instr == ROBOT_MOVE_INSTR)
-//    {
-//        if (rpi_receive(move, 5))
-//        {
-//            p_gantry_command->move.source_file = rpi_byte_to_file(move[0]);
-//            p_gantry_command->move.source_rank = rpi_byte_to_rank(move[1]);
-//            p_gantry_command->move.dest_file = rpi_byte_to_file(move[2]);
-//            p_gantry_command->move.dest_rank = rpi_byte_to_rank(move[3]);
-//            message[0] = start_instr_op_len[0];
-//            message[1] = start_instr_op_len[1];
-//            message[2] = move[0];
-//            message[3] = move[1];
-//            message[4] = move[2];
-//            message[5] = move[3];
-//            message[6] = move[4];
-//            rpi_receive(check_bytes, 2);
-//            if (!utils_validate_transmission(message, 7, check_bytes))
-//            {
-//                // Checksum error; corrupted data
-//            }
-//        }
-//    }
-//    else if (instr == ILLEGAL_MOVE_INSTR)
-//    {
-//        // Still player's turn; robot will not move.
-//        message[0] = start_instr_op_len[0];
-//        message[1] = start_instr_op_len[1];
-//        rpi_receive(check_bytes, 2);
-//        if (!utils_validate_transmission(message, 2, check_bytes))
-//        {
-//            // Checksum error; corrupted data
-//        }
-//    }
-//    else
-//    {
-//        // Error occurred; found no matching instruction
-//    }
+
+#ifdef KEENAN_TEST
+    char start_instr_op_len[2];
+    uint8_t instr;
+    uint8_t op_len;
+
+    char checksum[2];
+
+    // First, read the first two bytes of the entire message
+    if (rpi_receive(start_instr_op_len, 2)) {
+        if (start_instr_op_len[0] == START_BYTE)
+        {
+            instr = start_instr_op_len[1] >> 4;
+            op_len = start_instr_op_len[1] & (~0xF0);
+        }
+        else
+        {
+            // Error occurred; no message should begin without 0x0A
+        }
+    }
+
+    char check_bytes[2];
+    char message[7];
+
+    // First, read the first two bytes of the entire message
+    if (rpi_receive(start_instr_op_len, 2))
+    {
+        if (start_instr_op_len[0] == START_BYTE)
+        {
+            instr = start_instr_op_len[1] >> 4;
+            op_len = start_instr_op_len[1] & (~0xF0);
+        }
+        else
+        {
+            // Error occurred; no message should begin without 0x0A
+        }
+    }
+
+    // Depending on the instruction, take a particular action
+    if (instr == ROBOT_MOVE_INSTR)
+    {
+        if (rpi_receive(move, 5))
+        {
+            p_gantry_command->move.source_file = rpi_byte_to_file(move[0]);
+            p_gantry_command->move.source_rank = rpi_byte_to_rank(move[1]);
+            p_gantry_command->move.dest_file = rpi_byte_to_file(move[2]);
+            p_gantry_command->move.dest_rank = rpi_byte_to_rank(move[3]);
+            message[0] = start_instr_op_len[0];
+            message[1] = start_instr_op_len[1];
+            message[2] = move[0];
+            message[3] = move[1];
+            message[4] = move[2];
+            message[5] = move[3];
+            message[6] = move[4];
+            rpi_receive(check_bytes, 2);
+            if (!utils_validate_transmission(message, 7, check_bytes))
+            {
+                // Checksum error; corrupted data
+            }
+        }
+    }
+    else if (instr == ILLEGAL_MOVE_INSTR)
+    {
+        // Still player's turn; robot will not move.
+        message[0] = start_instr_op_len[0];
+        message[1] = start_instr_op_len[1];
+        rpi_receive(check_bytes, 2);
+        if (!utils_validate_transmission(message, 2, check_bytes))
+        {
+            // Checksum error; corrupted data
+        }
+    }
+    else
+    {
+        // Error occurred; found no matching instruction
+    }
+#endif /* KEENAN_TEST */
+
     // Validate the check bytes
 }
 
@@ -456,23 +452,28 @@ bool gantry_robot_is_done(command_t* command)
     return robot_is_done;
 }
 
+/**
+ * @brief Build a gantry_home command
+ *
+ * @returns Pointer to the dynamically-allocated command
+ */
 gantry_command_t* gantry_home_build_command()
 {
     // The thing to return
     gantry_command_t* p_command = (gantry_command_t*)malloc(sizeof(gantry_command_t));
 
     // Functions
-    p_command->command.p_entry = &gantry_home_entry;
-    p_command->command.p_action = &gantry_home_action;
-    p_command->command.p_exit = &gantry_home_exit;
+    p_command->command.p_entry   = &gantry_home_entry;
+    p_command->command.p_action  = &utils_empty_function;
+    p_command->command.p_exit    = &utils_empty_function;
     p_command->command.p_is_done = &gantry_home_is_done;
 
     // Data
     p_command->move.source_file = FILE_ERROR;
     p_command->move.source_rank = RANK_ERROR;
-    p_command->move.dest_file = FILE_ERROR;
-    p_command->move.dest_rank = RANK_ERROR;
-    p_command->move.move_type = IDLE;
+    p_command->move.dest_file   = FILE_ERROR;
+    p_command->move.dest_rank   = RANK_ERROR;
+    p_command->move.move_type   = IDLE;
 
     return p_command;
 }
@@ -485,26 +486,6 @@ gantry_command_t* gantry_home_build_command()
 void gantry_home_entry(command_t* command)
 {
     gantry_homing = !gantry_homing;
-}
-
-/**
- * @brief Empty
- *
- * @param command The gantry command being run
- */
-void gantry_home_action(command_t* command)
-{
-    return;
-}
-
-/**
- * @brief Empty
- *
- * @param command The gantry command being run
- */
-void gantry_home_exit(command_t* command)
-{
-    return;
 }
 
 /**

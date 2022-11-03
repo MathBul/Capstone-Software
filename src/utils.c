@@ -376,4 +376,12 @@ void utils_set_nvic(uint8_t interrupt_num)
     NVIC->ISER[iser_position] |= (1 << (interrupt_shift));
 }
 
+/**
+ * @brief A general purpose empty function for command {entry, action, exit} that do nothing
+ */
+void utils_empty_function()
+{
+    return;
+}
+
 /* End utils.c */

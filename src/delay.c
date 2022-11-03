@@ -47,7 +47,7 @@ void delay_entry(command_t* command)
 
     // Enable the timer
     clock_set_timer_period(DELAY_TIMER, DELAY_PERIOD);
-    clock_resume_timer(DELAY_TIMER);
+    clock_start_timer(DELAY_TIMER);
 }
 
 /**
@@ -97,7 +97,7 @@ __interrupt void DELAY_HANDLER(void)
 
     if (count == 0)
     {
-        clock_pause_timer(DELAY_TIMER);
+        clock_stop_timer(DELAY_TIMER);
     }
 
 }
