@@ -427,6 +427,33 @@ bool uart_read_byte(uint8_t uart_channel, uint8_t* byte)
 }
 
 /**
+ * @brief Uses UART to read data from any UART channel to the MSP
+ *
+ * @param uart_channel the UART channel number to read from
+ * @param data The character array to read the data into
+ * @param num_chars the number of bytes to read
+ * @return True if successful; false otherwise
+ */
+bool uart_receive(uint8_t uart_channel, char *data, uint8_t num_chars)
+{
+    bool status;
+    uint8_t i = 0;
+
+    for (i = 0; i < num_chars; i++)
+    {
+        status = uart_read_byte(uart_channel, (uint8_t*) &data[i]);
+
+        if (!status)
+        {
+            return false;
+        }
+    }
+
+    return true;
+
+}
+
+/**
  * @brief Moves the data from the hardware FIFO to our software one. 
  * 
  * @param uart_channel One of UART_CHANNEL_X

@@ -10,8 +10,6 @@
 
 #include "gantry.h"
 
-//#define KEENAN_TEST
-
 // Homing flag
 static bool gantry_homing = false;
 
@@ -28,6 +26,7 @@ static chess_board_t current_board;
 
 // Flags
 static bool robot_is_done = false;
+static bool comm_error = false;
 extern bool utils_sys_fault;
 
 /**
@@ -49,6 +48,7 @@ void gantry_init()
     switch_init();
     stepper_init_motors();
     rpi_init();
+    uart_init(UART_CHANNEL_0);
 }
 
 // Adds itself to the command queue
@@ -147,6 +147,7 @@ gantry_command_t* gantry_human_build_command()
  */
 void gantry_human_exit(command_t* command)
 {
+#ifdef FINAL_IMPLEMENTATION_MODE
     // Read the current board state
     sensors_read_tile(row_1, col_a);    // TODO: Read more than one tile (poll the board)
 
@@ -175,6 +176,71 @@ void gantry_human_exit(command_t* command)
 
     // Transmit the move to the RPi (9 bytes long)
     rpi_transmit(message, 9);
+#endif
+
+#ifdef THREE_PARTY_MODE
+    char start_instr_op_len[2];
+    char move[5];
+    char check_bytes[2];
+    char user_message[7];
+    char pi_message[9];
+    uint8_t instr;
+    uint8_t op_len;
+
+    // First, read the first two bytes of the entire message from terminal
+    if (uart_receive(USER_CHANNEL, start_instr_op_len, 2))
+    {
+        if (start_instr_op_len[0] == START_BYTE)
+        {
+            instr = start_instr_op_len[1] >> 4;
+            op_len = start_instr_op_len[1] & (~0xF0);
+        }
+        else
+        {
+            // Error occurred; no message should begin without 0x0A
+            comm_error = true;
+        }
+    }
+
+    // For three-party mode, HUMAN_MOVE_INSTR is the only one possible
+    if (instr == HUMAN_MOVE_INSTR)
+    {
+        // Read the 5 bytes of the move
+        if (uart_receive(USER_CHANNEL, move, 5))
+        {
+            user_message[0] = start_instr_op_len[0];
+            user_message[1] = start_instr_op_len[1];
+            user_message[2] = move[0];
+            user_message[3] = move[1];
+            user_message[4] = move[2];
+            user_message[5] = move[3];
+            user_message[6] = move[4];
+        }
+    }
+    else
+    {
+        // Error occurred; found no matching instruction
+        bool comm_error = true;
+    }
+
+    // This will always be a HUMAN_MOVE instruction
+    pi_message[0] = START_BYTE;
+    pi_message[1] = HUMAN_MOVE_INSTR_AND_LEN;
+    pi_message[2] = move[0];
+    pi_message[3] = move[1];
+    pi_message[4] = move[2];
+    pi_message[5] = move[3];
+    pi_message[6] = move[4];
+    utils_fl16_data_to_cbytes((uint8_t *) message, 7, check_bytes);
+    pi_message[7] = check_bytes[0];
+    pi_message[8] = check_bytes[1];
+
+    // Place the gantry_move command on the queue
+    command_queue_push((command_t*)gantry_human_build_command());
+
+    // Transmit the move to the RPi (9 bytes long)
+    rpi_transmit(pi_message, 9);
+#endif
 }
 
 /**
@@ -226,6 +292,7 @@ void gantry_robot_entry(command_t* command)
     gantry_command_t* gantry_robot_move_cmd = (gantry_command_t*) command;
     // Reset everything
     robot_is_done = false;
+    comm_error = false;
     gantry_robot_move_cmd->move.source_file = FILE_ERROR;
     gantry_robot_move_cmd->move.source_rank = RANK_ERROR;
     gantry_robot_move_cmd->move.dest_file   = FILE_ERROR;
@@ -240,6 +307,7 @@ void gantry_robot_entry(command_t* command)
  */
 void gantry_robot_action(command_t* command)
 {
+#ifdef USER_MODE
     gantry_command_t* p_gantry_command = (gantry_command_t*) command;
     // TODO: Waits, checksums, etc. as needed
 
@@ -270,29 +338,15 @@ void gantry_robot_action(command_t* command)
 
         robot_is_done = true; // We've got the data we need
     }
+#endif /* USER_MODE */
 
-#ifdef KEENAN_TEST
+#if defined(KEENAN_TEST) || defined(THREE_PARTY_MODE)
     char start_instr_op_len[2];
-    uint8_t instr;
-    uint8_t op_len;
-
-    char checksum[2];
-
-    // First, read the first two bytes of the entire message
-    if (rpi_receive(start_instr_op_len, 2)) {
-        if (start_instr_op_len[0] == START_BYTE)
-        {
-            instr = start_instr_op_len[1] >> 4;
-            op_len = start_instr_op_len[1] & (~0xF0);
-        }
-        else
-        {
-            // Error occurred; no message should begin without 0x0A
-        }
-    }
-
+    char move[5];
     char check_bytes[2];
     char message[7];
+    uint8_t instr;
+    uint8_t op_len;
 
     // First, read the first two bytes of the entire message
     if (rpi_receive(start_instr_op_len, 2))
@@ -305,12 +359,14 @@ void gantry_robot_action(command_t* command)
         else
         {
             // Error occurred; no message should begin without 0x0A
+            comm_error = true;
         }
     }
 
     // Depending on the instruction, take a particular action
     if (instr == ROBOT_MOVE_INSTR)
     {
+        // Read the 5 bytes of the move
         if (rpi_receive(move, 5))
         {
             p_gantry_command->move.source_file = rpi_byte_to_file(move[0]);
@@ -328,6 +384,7 @@ void gantry_robot_action(command_t* command)
             if (!utils_validate_transmission(message, 7, check_bytes))
             {
                 // Checksum error; corrupted data
+                comm_error = true;
             }
         }
     }
@@ -340,15 +397,15 @@ void gantry_robot_action(command_t* command)
         if (!utils_validate_transmission(message, 2, check_bytes))
         {
             // Checksum error; corrupted data
+            bool comm_error = false;
         }
     }
     else
     {
         // Error occurred; found no matching instruction
+        bool comm_error = false;
     }
 #endif /* KEENAN_TEST */
-
-    // Validate the check bytes
 }
 
 /**

@@ -19,12 +19,17 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-// Mode switch
-#define USER_MODE
+// Mode switch (define one at a time)
+//#define USER_MODE // (user, through UART0 terminal, sends moves to MSP directly)
+#define THREE_PARTY_MODE // (user sends moves to MSP, which sends moves to RPi, which sends moves back)
+//#define FINAL_IMPLEMENTATION_MODE // (ideally, final implementation w/board reading)
 
 // General Raspberry Pi defines
 #ifdef USER_MODE
 #define RPI_UART_CHANNEL               (UART_CHANNEL_0)
+#elif defined(THREE_PARTY_MODE)
+#define RPI_UART_CHANNEL               (UART_CHANNEL_3)
+#define USER_CHANNEL                   (UART_CHANNEL_0)
 #else
 #define RPI_UART_CHANNEL               (UART_CHANNEL_3)
 #endif
