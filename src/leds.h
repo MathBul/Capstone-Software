@@ -11,43 +11,49 @@
 #ifndef LEDS_H_
 #define LEDS_H_
 
-// Assumed LED translations:
-//  RED   <=> Error     (illegal move, etc.)
-//  BLUE  <=> Wait      (opponent should wait, robot is moving)
-//  GREEN <=> Move      (opponent should move, robot is waiting)
+// Chosen LED translations:
+//  RED   <=> ERROR     (illegal move, etc.)
+//  BLUE  <=> WAIT      (opponent should wait, robot is moving)
+//  GREEN <=> MOVE      (opponent should move, robot is waiting)
 
 #include "msp.h"
 #include "command_queue.h"
 #include "gpio.h"
 #include <stdint.h>
+#include <stdlib.h>
 
 // RGB LED 1 defines
 #define NUMBER_OF_LEDS                      (3)
-#define LED_1_RED_PORT                      (GPIOD)         // TODO: Update when known
-#define LED_1_RED_PIN                       (GPIO_PIN_0)    // TODO: Update when known
-#define LED_1_BLUE_PORT                     (GPIOD)         // TODO: Update when known
-#define LED_1_BLUE_PIN                      (GPIO_PIN_1)    // TODO: Update when known
-#define LED_1_GREEN_PORT                    (GPIOD)         // TODO: Update when known
-#define LED_1_GREEN_PIN                     (GPIO_PIN_2)    // TODO: Update when known
+#define LED_1_RED_PORT                      (GPIOC)
+#define LED_1_RED_PIN                       (GPIO_PIN_4)
+#define LED_1_BLUE_PORT                     (GPIOC)
+#define LED_1_BLUE_PIN                      (GPIO_PIN_5)
+#define LED_1_GREEN_PORT                    (GPIOE)
+#define LED_1_GREEN_PIN                     (GPIO_PIN_4)
+
+// LED indicator type
+typedef enum {
+    LED_ERROR, LED_WAIT, LED_MOVE
+} led_indicator_t;
 
 // LED structure
 typedef struct {
-    GPIO_Type* enable_port;       // Port for the LED
-    uint8_t    enable_pin;        // Pin for the LED, active low
+    GPIO_Type*      enable_port;       // Port for the LED
+    uint8_t         enable_pin;        // Pin for the LED, active low
 } led_t;
+
+// LED command struct
+typedef struct {
+    command_t          command;
+    led_indicator_t    indicator_type;
+    peripheral_state_t desired_state;
+} led_command_t;
 
 // Public functions
 void leds_init();
-void leds_error_on();
-void leds_error_off();
-void leds_wait_on();
-void leds_wait_off();
-void leds_move_on();
-void leds_move_off();
-void leds_all_on();
-void leds_all_off();
 
 // Command functions
+led_command_t* leds_build_command(led_indicator_t indicator, peripheral_state_t desired_state);
 void leds_entry(command_t* command);
 void leds_action(command_t* command);
 void leds_exit(command_t* command);

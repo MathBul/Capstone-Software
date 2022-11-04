@@ -10,6 +10,14 @@
 
 #include "leds.h"
 
+// Private functions
+static void leds_error_on();
+static void leds_error_off();
+static void leds_wait_on();
+static void leds_wait_off();
+static void leds_move_on();
+static void leds_move_off();
+
 // Declare the LEDs
 led_t leds[NUMBER_OF_LEDS];
 static led_t* led_error = &leds[0];
@@ -99,30 +107,95 @@ void leds_move_off()
     gpio_set_output_high(led_move->enable_port, led_move->enable_pin);
 }
 
+/* Command Functions */
+
 /**
- * @brief Turn the move LED on (opponent should move, robot is waiting)
+ * @brief Builds an LED command to turn on/off the desired indicator
+ * 
+ * @param indicator One of {ERROR, WAIT, MOVE}
+ * @param desired_state One of {enabled, disabled}
+ * @return Pointer to the command object
  */
-void leds_all_on()
+led_command_t* leds_build_command(led_indicator_t indicator, peripheral_state_t desired_state)
 {
-    int i = 0;
-    led_t* base_led = &leds[0];
-    for (i = 0; i < NUMBER_OF_LEDS; i++)
+    // The thing to return
+    led_command_t* p_command = (led_command_t*) malloc(sizeof(led_command_t));
+
+    // Functions
+    p_command->command.p_entry   = &leds_entry;
+    p_command->command.p_action  = &utils_empty_function;
+    p_command->command.p_exit    = &utils_empty_function;
+    p_command->command.p_is_done = &leds_is_done;
+
+    // Data
+    p_command->indicator_type = indicator;
+    p_command->desired_state  = desired_state;
+
+    return p_command;
+}
+
+/**
+ * @brief Enables or disables the desired LED
+ * 
+ * @param command Pointer to the LED command
+ */
+void leds_entry(command_t* command)
+{
+    led_command_t* p_command = (led_command_t*) command;
+
+    // Get the desired settings
+    led_indicator_t indicator = p_command->indicator_type;
+    peripheral_state_t desired_state = p_command->desired_state;
+
+    // Enable or disable the ERROR LED if desired
+    if (indicator == LED_ERROR)
     {
-        gpio_set_output_low((base_led+i)->enable_port, (base_led+i)->enable_pin);
+        if (desired_state == enabled)
+        {
+            leds_error_on();
+        }
+        else 
+        {
+            leds_error_off();
+        }
+    }
+
+    // Enable or disable the ERROR LED if desired
+    if (indicator == LED_WAIT)
+    {
+        if (desired_state == enabled)
+        {
+            leds_wait_on();
+        }
+        else 
+        {
+            leds_wait_off();
+        }
+    }
+
+    // Enable or disable the MOVE LED if desired
+    if (indicator == LED_MOVE)
+    {
+        if (desired_state == enabled)
+        {
+            leds_move_on();
+        }
+        else 
+        {
+            leds_move_off();
+        }
     }
 }
 
 /**
- * @brief Turn the move LED off (opponent should move, robot is waiting)
+ * @brief Always returns true since no action is done
+ * 
+ * @param command Pointer to the LED command
+ * @return true Always
  */
-void leds_all_off()
+bool leds_is_done(command_t* command)
 {
-    int i = 0;
-    led_t* base_led = &leds[0];
-    for (i = 0; i < NUMBER_OF_LEDS; i++)
-    {
-        gpio_set_output_high((base_led+i)->enable_port, (base_led+i)->enable_pin);
-    }
+    return true;
 }
 
 /* End leds.c */

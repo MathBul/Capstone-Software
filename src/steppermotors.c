@@ -16,6 +16,14 @@ static void stepper_set_direction_clockwise(stepper_motors_t *stepper_motor);
 static void stepper_set_direction_counterclockwise(stepper_motors_t *stepper_motor);
 static void stepper_disable_motor(stepper_motors_t *stepper_motor);
 static void stepper_enable_motor(stepper_motors_t *stepper_motor);
+static void stepper_disable_all_motors();
+static void stepper_enable_all_motors();
+static void stepper_pause_all_motors();
+static void stepper_resume_all_motors();
+static uint32_t stepper_distance_to_transitions(int32_t distance);
+static uint32_t stepper_velocity_to_timer_period(uint16_t velocity);
+static void stepper_interrupt_activity(uint8_t stepper_id);
+static int16_t stepper_get_current_pos(uint8_t stepper_id);
 
 // Declare the stepper motors
 stepper_motors_t stepper_motors[NUMBER_OF_STEPPER_MOTORS];
@@ -147,7 +155,7 @@ void stepper_init_motors()
  * 
  * @param stepper_motor The stepper motor to set direction on 
  */
-void stepper_set_direction_clockwise(stepper_motors_t *stepper_motor)
+static void stepper_set_direction_clockwise(stepper_motors_t *stepper_motor)
 {
     gpio_set_output_high(stepper_motor->dir_port, stepper_motor->dir_pin);
     stepper_motor->dir = -1;
@@ -176,11 +184,7 @@ static void stepper_edge_transition(stepper_motors_t *stepper_motor)
 
 /**
  * @brief Convert a distance (mm) to the number of edge transitions required to drive a stepper that far
- *  Stepper performs 200 steps/revolution. We microstep to 1/2 steps, so 400 microsteps/revolution
- *  Belt pitch is 2 mm, and rotor has 20 teeth, so 40mm/revolution
- *  There are 2 transitions/microstep
- *      ==> (2 transitions/microstep)*(400 microsteps/revolution)/(40mm/revolution) = 20 transitions/mm
- * 
+ *
  * @param distance The distance to travel
  * @return The number of edge transitions to travel that distance
  */
@@ -188,9 +192,20 @@ static uint32_t stepper_distance_to_transitions(int32_t distance)
 {
     if (distance < 0)
     {
-        return (-20)*distance;
+        return (-TRANSITIONS_PER_MM)*distance;
     }
-    return 20*distance;
+    return TRANSITIONS_PER_MM*distance;
+}
+
+/**
+ * @brief Converts a velocity (mm/s) to the timer period required to reach it
+ *
+ * @param velocity The desired velocity (bounded)
+ * @return The period for the appropriate timer
+ */
+static uint32_t stepper_velocity_to_timer_period(uint16_t velocity)
+{
+    return (SYSCLOCK_FREQUENCY / stepper_distance_to_transitions(velocity));
 }
 
 /**
@@ -207,7 +222,7 @@ static void stepper_disable_motor(stepper_motors_t *stepper_motor)
 /**
  * @brief Disable all motors
  */
-void stepper_disable_all_motors()
+static void stepper_disable_all_motors()
 {
     stepper_motors_t* base_stepper = &stepper_motors[0];
     uint8_t i = 0;
@@ -232,7 +247,7 @@ static void stepper_enable_motor(stepper_motors_t *stepper_motor)
 /**
  * @brief Enable all motors
  */
-void stepper_enable_all_motors()
+static void stepper_enable_all_motors()
 {
     stepper_motors_t* base_stepper = &stepper_motors[0];
     uint8_t i = 0;
@@ -277,9 +292,9 @@ void stepper_z_stop()
 }
 
 /**
- * @brief Stop the motors and the ISR clock, can resume from this point later
+ * @brief Pause all motors and their ISR clocks, can resume from this point later
  */
-void stepper_pause_motors()
+void stepper_pause_all_motors()
 {
     clock_stop_timer(STEPPER_X_TIMER);
     clock_stop_timer(STEPPER_Y_TIMER);
@@ -288,46 +303,51 @@ void stepper_pause_motors()
 }
 
 /**
- * @brief Resume the motors and the ISR clock from its paused state
+ * @brief Resume all motors and their ISR clock from its paused state
  * 
  */
-void stepper_resume_motors()
+void stepper_resume_all_motors()
 {
-    clock_start_timer(STEPPER_X_TIMER);
     stepper_enable_all_motors();
+    clock_start_timer(STEPPER_X_TIMER);
+    clock_start_timer(STEPPER_Y_TIMER);
+    clock_start_timer(STEPPER_Z_TIMER);
 }
 
 /**
  * @brief Returns the current position of the stepper in mm
  *
+ * @param One of {STEPPER_X_ID, STEPPER_Y_ID, STEPPER_Z_ID}
+ * @return Current position in mm
  */
-int16_t stepper_x_get_current_pos()
+static int16_t stepper_get_current_pos(uint8_t stepper_id)
 {
-    return stepper_motor_x->current_pos / 20; // TODO: Make this calculated from the stepping size
+    stepper_motors_t* stepper_motor = &stepper_motors[stepper_id];
+    return stepper_motor->current_pos / TRANSITIONS_PER_MM;
 }
-
-int16_t stepper_y_get_current_pos()
-{
-    return stepper_motor_y->current_pos / 20;
-}
-
-int16_t stepper_z_get_current_pos()
-{
-    return stepper_motor_z->current_pos / 20;
-}
-
 
 /* Command Functions */
 
+/**
+ * @brief Builds a stepper relative movement command (moves relative to current position)
+ *
+ * @param rel_x Relative distance to travel in X direction (mm)
+ * @param rel_y Relative distance to travel in Y direction (mm)
+ * @param rel_z Relative distance to travel in Z direction (mm)
+ * @param vel_x Travel velocity for X movement (mm/s)
+ * @param vel_y Travel velocity for Y movement (mm/s)
+ * @param vel_z Travel velocity for Z movement (mm/s)
+ * @return Pointer to the command object
+ */
 stepper_rel_command_t* stepper_build_rel_command(int16_t rel_x, int16_t rel_y, int16_t rel_z, uint16_t v_x, uint16_t v_y, uint16_t v_z)
 {
     // The thing to return
-    stepper_rel_command_t* p_command = (stepper_rel_command_t*)malloc(sizeof(stepper_rel_command_t));
+    stepper_rel_command_t* p_command = (stepper_rel_command_t*) malloc(sizeof(stepper_rel_command_t));
 
     // Functions
-    p_command->command.p_entry = &stepper_rel_entry;
-    p_command->command.p_action = &stepper_action;
-    p_command->command.p_exit = &stepper_exit;
+    p_command->command.p_entry   = &stepper_rel_entry;
+    p_command->command.p_action  = &utils_empty_function;
+    p_command->command.p_exit    = &stepper_exit;
     p_command->command.p_is_done = &stepper_is_done;
 
     // Data
@@ -341,49 +361,93 @@ stepper_rel_command_t* stepper_build_rel_command(int16_t rel_x, int16_t rel_y, i
     return p_command;
 }
 
-stepper_chess_command_t* stepper_build_chess_command(chess_file_t file, chess_rank_t rank, uint16_t v_x, uint16_t v_y, uint16_t v_z)
+/**
+ * @brief Builds a stepper chess movement command (moves to absolute position)
+ *
+ * @param file The board column to travel to
+ * @param rank The board row to travel to
+ * @param piece The piece type at the given tile
+ * @param vel_x Travel velocity for X movement (mm/s)
+ * @param vel_y Travel velocity for Y movement (mm/s)
+ * @param vel_z Travel velocity for Z movement (mm/s)
+ * @return Pointer to the command object
+ */
+stepper_chess_command_t* stepper_build_chess_command(chess_file_t file, chess_rank_t rank, chess_piece_t piece, uint16_t v_x, uint16_t v_y, uint16_t v_z)
 {
     // The thing to return
-    stepper_chess_command_t* p_command = (stepper_chess_command_t*)malloc(sizeof(stepper_chess_command_t));
+    stepper_chess_command_t* p_command = (stepper_chess_command_t*) malloc(sizeof(stepper_chess_command_t));
 
     // Functions
-    p_command->command.p_entry = &stepper_chess_entry;
-    p_command->command.p_action = &stepper_action;
-    p_command->command.p_exit = &stepper_exit;
+    p_command->command.p_entry   = &stepper_chess_entry;
+    p_command->command.p_action  = &utils_empty_function;
+    p_command->command.p_exit    = &stepper_exit;
     p_command->command.p_is_done = &stepper_is_done;
 
     // Data
-    p_command->file = file;
-    p_command->rank = rank;
-    p_command->v_x = v_x;
-    p_command->v_y = v_y;
+    p_command->file  = file;
+    p_command->rank  = rank;
+    p_command->piece = piece;
+    p_command->v_x   = v_x;
+    p_command->v_y   = v_y;
+    p_command->v_z   = v_z;
 
     return p_command;
 
 }
 
-stepper_rel_command_t* stepper_build_home_command()
+/**
+ * @brief Builds a stepper home movement command for the {X,Y} directions (separate from Z so we do not break the rack on the buttress)
+ *
+ * @return Pointer to the command object
+ */
+stepper_rel_command_t* stepper_build_home_xy_command()
 {
     // The thing to return
-    stepper_rel_command_t* p_command = (stepper_rel_command_t*)malloc(sizeof(stepper_rel_command_t));
+    stepper_rel_command_t* p_command = (stepper_rel_command_t*) malloc(sizeof(stepper_rel_command_t));
 
     // Functions
-    p_command->command.p_entry = &stepper_rel_entry;
-    p_command->command.p_action = &stepper_home_action;
-    p_command->command.p_exit = &stepper_exit;
+    p_command->command.p_entry   = &stepper_rel_entry;
+    p_command->command.p_action  = &stepper_home_action;
+    p_command->command.p_exit    = &stepper_exit;
     p_command->command.p_is_done = &stepper_is_done;
 
     // Data
-    p_command->rel_x = 999;
-    p_command->rel_y = -999;
+    p_command->rel_x = STEPPER_HOME_DISTANCE;
+    p_command->rel_y = -STEPPER_HOME_DISTANCE;
     p_command->rel_z = 0;
-    p_command->v_x = 1;
-    p_command->v_y = 1;
-    p_command->v_z = 0;
+    p_command->v_x   = STEPPER_HOME_VELOCITY;
+    p_command->v_y   = STEPPER_HOME_VELOCITY;
+    p_command->v_z   = 0;
 
     return p_command;
 }
 
+/**
+ * @brief Builds a stepper home movement command for the Z direction (separate from {X,Y} so we do not break the rack on the buttress)
+ *
+ * @return Pointer to the command object
+ */
+stepper_rel_command_t* stepper_build_home_z_command()
+{
+    // The thing to return
+    stepper_rel_command_t* p_command = (stepper_rel_command_t*) malloc(sizeof(stepper_rel_command_t));
+
+    // Functions
+    p_command->command.p_entry   = &stepper_rel_entry;
+    p_command->command.p_action  = &stepper_home_action;
+    p_command->command.p_exit    = &stepper_exit;
+    p_command->command.p_is_done = &stepper_is_done;
+
+    // Data
+    p_command->rel_x = 0;
+    p_command->rel_y = 0;
+    p_command->rel_z = -STEPPER_HOME_DISTANCE;
+    p_command->v_x   = 0;
+    p_command->v_y   = 0;
+    p_command->v_z   = STEPPER_HOME_VELOCITY;
+
+    return p_command;
+}
 
 
 /**
@@ -448,19 +512,19 @@ void stepper_rel_entry(command_t* command)
     stepper_motor_y->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_y);
     stepper_motor_z->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_z);
 
-    // TODO: Load velocity values into the clock
+    // TODO: Load velocity values into the clock, add STEPPER_Z
     if (p_stepper_command->v_x != 0)
     {
         uint16_t v_x = utils_bound(p_stepper_command->v_x, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
-        uint32_t stepper_x_period = 120000000 / (stepper_distance_to_transitions(v_x));
-        clock_set_timer_period(STEPPER_X_TIMER, stepper_x_period); // Currently only X has an interrupt
+        uint32_t stepper_x_period = stepper_velocity_to_timer_period(v_x);
+        clock_set_timer_period(STEPPER_X_TIMER, stepper_x_period);
         clock_start_timer(STEPPER_X_TIMER);
     }
     if (p_stepper_command->v_y != 0)
     {
         uint16_t v_y = utils_bound(p_stepper_command->v_y, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
-        uint32_t stepper_y_period = 120000000 / (stepper_distance_to_transitions(v_y));
-        clock_set_timer_period(STEPPER_Y_TIMER, stepper_y_period); // Currently only X has an interrupt
+        uint32_t stepper_y_period = stepper_velocity_to_timer_period(v_y);
+        clock_set_timer_period(STEPPER_Y_TIMER, stepper_y_period);
         clock_start_timer(STEPPER_Y_TIMER);
     }
 }
@@ -474,8 +538,8 @@ void stepper_chess_entry(command_t* command)
 {
     int16_t rel_move_x;
     int16_t rel_move_y;
-    int16_t current_x = stepper_x_get_current_pos();
-    int16_t current_y = stepper_y_get_current_pos();
+    int16_t current_x = stepper_get_current_pos(STEPPER_X_ID);
+    int16_t current_y = stepper_get_current_pos(STEPPER_Y_ID);
 
     stepper_chess_command_t* p_stepper_command = (stepper_chess_command_t*) command;
 
@@ -485,7 +549,7 @@ void stepper_chess_entry(command_t* command)
         stepper_enable_motor(stepper_motor_x);
 
         // Find how far we need to go to get there
-        rel_move_x = p_stepper_command->file - stepper_x_get_current_pos();
+        rel_move_x = p_stepper_command->file - current_x;
 
         // Set the directions
         if (rel_move_x > 0)
@@ -504,7 +568,7 @@ void stepper_chess_entry(command_t* command)
         stepper_enable_motor(stepper_motor_y);
 
         // Find how far we need to go to get there
-        rel_move_y = p_stepper_command->rank - stepper_y_get_current_pos();
+        rel_move_y = p_stepper_command->rank - current_y;
 
         // Set the direction
         if (rel_move_y > 0)
@@ -521,31 +585,21 @@ void stepper_chess_entry(command_t* command)
     stepper_motor_x->transitions_to_desired_pos = stepper_distance_to_transitions(rel_move_x);
     stepper_motor_y->transitions_to_desired_pos = stepper_distance_to_transitions(rel_move_y);
 
-    // TODO: Load velocity values into the clock
+    // TODO: Load velocity values into the clock, add STEPPER_Z
     if (p_stepper_command->v_x != 0)
     {
         uint16_t v_x = utils_bound(p_stepper_command->v_x, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
-        uint32_t stepper_x_period = 120000000 / (stepper_distance_to_transitions(v_x));
-        clock_set_timer_period(STEPPER_X_TIMER, stepper_x_period); // Currently only X has an interrupt
+        uint32_t stepper_x_period = stepper_velocity_to_timer_period(v_x);
+        clock_set_timer_period(STEPPER_X_TIMER, stepper_x_period);
         clock_start_timer(STEPPER_X_TIMER);
     }
     if (p_stepper_command->v_y != 0)
     {
         uint16_t v_y = utils_bound(p_stepper_command->v_y, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
-        uint32_t stepper_y_period = 120000000 / (stepper_distance_to_transitions(v_y));
-        clock_set_timer_period(STEPPER_Y_TIMER, stepper_y_period); // Currently only X has an interrupt
+        uint32_t stepper_y_period = stepper_velocity_to_timer_period(v_y);
+        clock_set_timer_period(STEPPER_Y_TIMER, stepper_y_period);
         clock_start_timer(STEPPER_Y_TIMER);
     }
-}
-
-/**
- * @brief Does nothing
- *
- * @param command The stepper command being run
- */
-void stepper_action(command_t* command)
-{
-    return;
 }
 
 /**
@@ -556,7 +610,7 @@ void stepper_action(command_t* command)
 void stepper_home_action(command_t* command)
 {
     // Check the current switch readings
-    uint8_t switch_data = switch_vport.image;
+    uint8_t switch_data = switch_get_reading();
 
     // If a limit switch was pressed, disable the appropriate motor
     if (switch_data & LIMIT_X)
@@ -603,52 +657,70 @@ bool stepper_is_done(command_t* command)
            (stepper_motor_z->transitions_to_desired_pos == 0);
 }
 
+/* Interrupts */
+
 /**
- * @brief Interrupt handler for the stepper module
+ * @brief Helper function to perform the interrupt activity for the specified stepper motor
+ *
+ * @param stepper_id One of {STEPPER_X_ID, STEPPER_Y_ID, STEPPER_Z_ID}
+ */
+static void stepper_interrupt_activity(uint8_t stepper_id)
+{
+    stepper_motors_t* stepper_motor = &stepper_motors[stepper_id];
+
+    // Move each stepper until it reaches its destination, then disable
+    if (stepper_motor->transitions_to_desired_pos > 0)
+    {
+        // Move the motor
+        stepper_edge_transition(stepper_motor);
+
+        // Update our counter
+        stepper_motor->transitions_to_desired_pos -= 1;
+
+        // Update the position
+        stepper_motor->current_pos += stepper_motor->dir;
+    }
+    else
+    {
+        // Disable the motor
+        stepper_disable_motor(stepper_motor);
+    }
+}
+
+/**
+ * @brief Interrupt handler for STEPPER_X
  */
 __interrupt void STEPPER_X_HANDLER(void)
 {
     // Clear the interrupt flag
     clock_clear_interrupt(STEPPER_X_TIMER);
 
-    // Move each stepper until it reaches its destination, then disable
-    if (stepper_motor_x->transitions_to_desired_pos > 0)
-    {
-        // Move the motor
-        stepper_edge_transition(stepper_motor_x);
-        // Update our counter
-        stepper_motor_x->transitions_to_desired_pos -= 1;
-        // Update the position
-        stepper_motor_x->current_pos += stepper_motor_x->dir;
-    }
-    else
-    {
-        stepper_disable_motor(stepper_motor_x);
-    }
+    // Perform the stepper interrupt activity
+    stepper_interrupt_activity(STEPPER_X_ID);
 }
 
 /**
- * @brief Interrupt handler for the stepper module
+ * @brief Interrupt handler for STEPPER_Y
  */
 __interrupt void STEPPER_Y_HANDLER(void)
 {
     // Clear the interrupt flag
     clock_clear_interrupt(STEPPER_Y_TIMER);
 
-    // Move each stepper until it reaches its destination, then disable
-    if (stepper_motor_y->transitions_to_desired_pos > 0)
-    {
-        // Move the motor
-        stepper_edge_transition(stepper_motor_y);
-        // Update our counter
-        stepper_motor_y->transitions_to_desired_pos -= 1;
-        // Update the position
-        stepper_motor_y->current_pos += stepper_motor_y->dir;
-    }
-    else
-    {
-        stepper_disable_motor(stepper_motor_y);
-    }
+    // Perform the stepper interrupt activity
+    stepper_interrupt_activity(STEPPER_Y_ID);
+}
+
+/**
+ * @brief Interrupt handler for STEPPER_Z
+ */
+__interrupt void STEPPER_Z_HANDLER(void)
+{
+    // Clear the interrupt flag
+    clock_clear_interrupt(STEPPER_Z_TIMER);
+
+    // Perform the stepper interrupt activity
+    stepper_interrupt_activity(STEPPER_Z_ID);
 }
 
 /* End steppermotors.c */

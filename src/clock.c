@@ -179,6 +179,28 @@ void clock_timer5a_init()
 }
 
 /**
+ * @brief Configure timer 5A
+ */
+void clock_timer6a_init()
+{
+    // Enable the timer and wait for it to be ready
+    SYSCTL->RCGCTIMER |= SYSCTL_RCGCTIMER_R6;
+    while (!(SYSCTL->PRTIMER & SYSCTL_RCGCTIMER_R6))
+    {
+    }
+
+    // Configure Timer 0A for interrupts
+    TIMER6->CTL  &= ~(TIMER_CTL_TAEN);                      // Disable the timer
+    TIMER6->CFG   =  (0);                                   // Clear the configuration
+    TIMER6->TAMR  =  (TIMER_TAMR_TAMR_PERIOD);              // Configure for periodic interrupts
+    TIMER6->TAILR =  (TIMER_6A_RELOAD_VALUE);               // Set the interval value
+    TIMER6->IMR  |=  (TIMER_IMR_TATOIM);                    // Set the interrupt mask
+
+    // Configure the interrupt in the NVIC
+    utils_set_nvic(TIMER_6A_INTERRUPT_SHIFT);
+}
+
+/**
  * @brief Clears the interrupt flag associated with time-out raw on the given timer (on the a subsubmodule)
  * 
  * @param timer One of TIMERX for X=0,...,5

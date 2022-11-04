@@ -11,9 +11,7 @@
 #include "gantry.h"
 
 //#define KEENAN_TEST
-
-// Homing flag
-static bool gantry_homing = false;
+//#define PERIPHERALS_ENABLED
 
 // Private functions
 void gantry_limit_stop(uint8_t limit_readings);
@@ -27,6 +25,7 @@ static chess_board_t previous_board;
 static chess_board_t current_board;
 
 // Flags
+static bool gantry_homing = false;
 static bool robot_is_done = false;
 extern bool utils_sys_fault;
 
@@ -35,7 +34,7 @@ extern bool utils_sys_fault;
  */
 void gantry_init()
 {
-    // System level initialization of all other modules
+    // System clock and timer initializations
     clock_sys_init();
     clock_timer0a_init();               // X
     clock_timer1a_init();               // Y
@@ -43,19 +42,27 @@ void gantry_init()
     clock_timer3a_init();               // Switches
     clock_timer4a_init();               // Gantry
     clock_timer5a_init();               // Delay
-    clock_start_timer(SWITCH_TIMER);
     clock_start_timer(GANTRY_TIMER);
+
+    // System level initialization of all other modules
     command_queue_init();
+#ifdef PERIPHERALS_ENABLED
+    electromagnet_init();
+    leds_init();
+    sensors_init();
+#endif /* PERIPHERALS_ENABLED */
     switch_init();
     stepper_init_motors();
     rpi_init();
 }
 
-// Adds itself to the command queue
+/**
+ * @brief Homes the system then adds a robot command to the queue
+ */
 void gantry_start()
 {
     gantry_home();
-    command_queue_push((command_t*)gantry_robot_build_command());
+    command_queue_push((command_t*) gantry_robot_build_command());
 }
 
 /**
@@ -89,9 +96,14 @@ void gantry_reset()
     // Reset the rpi
     rpi_reset_uart();
 
-    // Start the new game
-    // TODO: Use (switch_vport.image & ROCKER_COLOR) instead of hard-coding
-    rpi_transmit_start('W');
+    // Start a new game
+    char user_color = 'W';
+    uint8_t switch_data = switch_get_reading();
+    if (switch_data & ROCKER_COLOR)
+    {
+        user_color = 'B';
+    }
+    rpi_transmit_start(user_color);
 }
 
 /**
@@ -148,7 +160,7 @@ gantry_command_t* gantry_human_build_command()
 void gantry_human_exit(command_t* command)
 {
     // Read the current board state
-    sensors_read_tile(row_1, col_a);    // TODO: Read more than one tile (poll the board)
+    uint64_t board_reading = sensor_get_reading();
 
     // Set up char arrays
     char move[5];
@@ -186,7 +198,7 @@ void gantry_human_exit(command_t* command)
  */
 bool gantry_human_is_done(command_t* command)
 {
-    uint8_t switch_data = switch_vport.image;
+    uint8_t switch_data = switch_get_reading();
     return (switch_data & BUTTON_END_TURN);
 }
 
@@ -224,6 +236,7 @@ gantry_command_t* gantry_robot_build_command()
 void gantry_robot_entry(command_t* command)
 {
     gantry_command_t* gantry_robot_move_cmd = (gantry_command_t*) command;
+
     // Reset everything
     robot_is_done = false;
     gantry_robot_move_cmd->move.source_file = FILE_ERROR;
@@ -382,6 +395,7 @@ void gantry_robot_exit(command_t* command)
                  (
                      p_gantry_command->move.source_file,  // file
                      p_gantry_command->move.source_rank,  // rank
+                     EMPTY,                               // piece
                      1,                                   // v_x
                      1,                                   // v_y
                      0                                    // v_z
@@ -400,6 +414,7 @@ void gantry_robot_exit(command_t* command)
                  (
                      p_gantry_command->move.dest_file, // file
                      p_gantry_command->move.dest_rank, // rank
+                     EMPTY,                            // piece
                      1,                                // v_x
                      1,                                // v_y
                      0                                 // v_z
@@ -501,34 +516,30 @@ bool gantry_home_is_done(command_t* command)
 
 
 /**
- * @brief Homes the gantry system (motors all the way up, right, back from point-of-view of the robot)
+ * @brief Homes the gantry system (motors all the way up, right, back -- from point-of-view of the robot)
  */
 void gantry_home()
 {
     // Set the homing flag
-    command_queue_push((command_t*)gantry_home_build_command());
+    command_queue_push((command_t*) gantry_home_build_command());
 
-    // Home the motors
-    //  TODO: Place two relative commands on the queue. First is Z. Second is X and Y.
-    command_queue_push((command_t*)stepper_build_home_command());
-    command_queue_push((command_t*)delay_build_command(100));
+    // Home the motors with delay
+    command_queue_push((command_t*) stepper_build_home_z_command());
+    command_queue_push((command_t*) stepper_build_home_xy_command());
+    command_queue_push((command_t*) delay_build_command(HOMING_DELAY_MS));
 
     // Back away from the edge
-    command_queue_push  // TODO: Place two relative commands on the queue. First is Z. Second is X and Y.
-    (
-            (command_t*)stepper_build_rel_command
-            (
-                    -6,
-                    6,
-                    0,
-                    1,                                   // v_x
-                    1,                                   // v_y
-                    0                                    // v_z
-            )
-    );
+    command_queue_push((command_t*) stepper_build_rel_command(
+            HOMING_X_BACKOFF,
+            HOMING_Y_BACKOFF,
+            HOMING_Z_BACKOFF,
+            HOMING_X_VELOCITY,
+            HOMING_Y_VELOCITY,
+            HOMING_Z_VELOCITY
+    ));
 
     // Clear the homing flag
-    command_queue_push((command_t*)gantry_home_build_command());
+    command_queue_push((command_t*) gantry_home_build_command());
 }
 
 /**
@@ -540,7 +551,7 @@ __interrupt void GANTRY_HANDLER(void)
     clock_clear_interrupt(GANTRY_TIMER);
     
     // Check the current switch readings
-    uint8_t switch_data = switch_vport.image;
+    uint8_t switch_data = switch_get_reading();
 
     // If the emergency stop button was pressed, kill everything
     if (switch_data & BUTTON_ESTOP)
