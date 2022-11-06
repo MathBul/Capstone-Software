@@ -338,11 +338,11 @@ chess_move_type utils_byte_to_move_type(uint8_t byte)
     chess_move_type type = IDLE;
     switch (byte)
     {
-        case 'M':
+        case '_':
             type = MOVE;
         break;
 
-        case 'P':
+        case 'Q':
             type = PROMOTION;
         break;
 

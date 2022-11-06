@@ -83,16 +83,25 @@ void rpi_transmit_reset(void)
  */
 void rpi_transmit_start(char color)
 {
+    char message[4];
+    char check_bytes[2];
+    message[0] = START_BYTE;
     if (color == 'W')
     {
-        uart_out_byte(RPI_UART_CHANNEL, (uint8_t) START_BYTE);
-        uart_out_byte(RPI_UART_CHANNEL, (uint8_t) START_W_INSTR_AND_LEN);
+        message[1] = START_W_INSTR_AND_LEN;
     }
     else if (color == 'B')
     {
-        uart_out_byte(RPI_UART_CHANNEL, (uint8_t) START_BYTE);
-        uart_out_byte(RPI_UART_CHANNEL, (uint8_t) START_B_INSTR_AND_LEN);
+        message[1] = START_B_INSTR_AND_LEN;
     }
+    else
+    {
+        message[1] = START_W_INSTR_AND_LEN;
+    }
+    utils_fl16_data_to_cbytes((uint8_t *) message, 2, check_bytes);
+    message[2] = check_bytes[0];
+    message[3] = check_bytes[1];
+    rpi_transmit(message, 4);
 }
 
 /**
