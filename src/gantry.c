@@ -55,7 +55,11 @@ void gantry_init()
 void gantry_start()
 {
     gantry_home();
+#if defined(FINAL_IMPLEMENTATION_MODE) || defined(THREE_PARTY_MODE)
+    command_queue_push((command_t*)gantry_human_build_command());
+#else
     command_queue_push((command_t*)gantry_robot_build_command());
+#endif
 }
 
 /**
@@ -88,6 +92,9 @@ void gantry_reset()
 
     // Reset the rpi
     rpi_reset_uart();
+#ifdef THREE_PARTY_MODE
+    uart_reset(USER_CHANNEL);
+#endif
 
     // Start the new game
     // TODO: Use (switch_vport.image & ROCKER_COLOR) instead of hard-coding
@@ -220,7 +227,7 @@ void gantry_human_exit(command_t* command)
     else
     {
         // Error occurred; found no matching instruction
-        bool comm_error = true;
+        comm_error = true;
     }
 
     // This will always be a HUMAN_MOVE instruction
@@ -231,12 +238,12 @@ void gantry_human_exit(command_t* command)
     pi_message[4] = move[2];
     pi_message[5] = move[3];
     pi_message[6] = move[4];
-    utils_fl16_data_to_cbytes((uint8_t *) message, 7, check_bytes);
+    utils_fl16_data_to_cbytes((uint8_t *) user_message, 7, check_bytes);
     pi_message[7] = check_bytes[0];
     pi_message[8] = check_bytes[1];
 
     // Place the gantry_move command on the queue
-    command_queue_push((command_t*)gantry_human_build_command());
+    command_queue_push((command_t*)gantry_robot_build_command());
 
     // Transmit the move to the RPi (9 bytes long)
     rpi_transmit(pi_message, 9);
@@ -252,8 +259,12 @@ void gantry_human_exit(command_t* command)
  */
 bool gantry_human_is_done(command_t* command)
 {
+#ifdef FINAL_IMPLEMENTATION_MODE
     uint8_t switch_data = switch_vport.image;
     return (switch_data & BUTTON_END_TURN);
+#elif defined(THREE_PARTY_MODE)
+    return true;
+#endif
 }
 
 /**
@@ -292,7 +303,6 @@ void gantry_robot_entry(command_t* command)
     gantry_command_t* gantry_robot_move_cmd = (gantry_command_t*) command;
     // Reset everything
     robot_is_done = false;
-    comm_error = false;
     gantry_robot_move_cmd->move.source_file = FILE_ERROR;
     gantry_robot_move_cmd->move.source_rank = RANK_ERROR;
     gantry_robot_move_cmd->move.dest_file   = FILE_ERROR;
@@ -341,6 +351,7 @@ void gantry_robot_action(command_t* command)
 #endif /* USER_MODE */
 
 #if defined(KEENAN_TEST) || defined(THREE_PARTY_MODE)
+    gantry_command_t* p_gantry_command = (gantry_command_t*) command;
     char start_instr_op_len[2];
     char move[5];
     char check_bytes[2];
@@ -369,10 +380,10 @@ void gantry_robot_action(command_t* command)
         // Read the 5 bytes of the move
         if (rpi_receive(move, 5))
         {
-            p_gantry_command->move.source_file = rpi_byte_to_file(move[0]);
-            p_gantry_command->move.source_rank = rpi_byte_to_rank(move[1]);
-            p_gantry_command->move.dest_file = rpi_byte_to_file(move[2]);
-            p_gantry_command->move.dest_rank = rpi_byte_to_rank(move[3]);
+            p_gantry_command->move.source_file = utils_byte_to_file(move[0]);
+            p_gantry_command->move.source_rank = utils_byte_to_rank(move[1]);
+            p_gantry_command->move.dest_file = utils_byte_to_file(move[2]);
+            p_gantry_command->move.dest_rank = utils_byte_to_rank(move[3]);
             message[0] = start_instr_op_len[0];
             message[1] = start_instr_op_len[1];
             message[2] = move[0];
@@ -381,7 +392,7 @@ void gantry_robot_action(command_t* command)
             message[5] = move[3];
             message[6] = move[4];
             rpi_receive(check_bytes, 2);
-            if (!utils_validate_transmission(message, 7, check_bytes))
+            if (!utils_validate_transmission((uint8_t *) message, 7, check_bytes))
             {
                 // Checksum error; corrupted data
                 comm_error = true;
@@ -394,10 +405,10 @@ void gantry_robot_action(command_t* command)
         message[0] = start_instr_op_len[0];
         message[1] = start_instr_op_len[1];
         rpi_receive(check_bytes, 2);
-        if (!utils_validate_transmission(message, 2, check_bytes))
+        if (!utils_validate_transmission((uint8_t *) message, 2, check_bytes))
         {
             // Checksum error; corrupted data
-            bool comm_error = false;
+            comm_error = false;
         }
     }
     else
@@ -405,6 +416,7 @@ void gantry_robot_action(command_t* command)
         // Error occurred; found no matching instruction
         bool comm_error = false;
     }
+    robot_is_done = true;
 #endif /* KEENAN_TEST */
 }
 
