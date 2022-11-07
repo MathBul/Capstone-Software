@@ -242,7 +242,7 @@ void gantry_human_action(command_t* command)
 void gantry_human_exit(command_t* command)
 {
     // Place the gantry_move command on the queue
-    command_queue_push((command_t*)gantry_human_build_command());
+    command_queue_push((command_t*)gantry_robot_build_command());
 
     // Reset flag
     human_is_done = false;
@@ -375,6 +375,7 @@ void gantry_robot_action(command_t* command)
                         p_gantry_command->move.source_rank = utils_byte_to_rank(move[1]);
                         p_gantry_command->move.dest_file = utils_byte_to_file(move[2]);
                         p_gantry_command->move.dest_rank = utils_byte_to_rank(move[3]);
+                        p_gantry_command->move.move_type = utils_byte_to_move_type(move[4]);
                         message[0] = first_byte;
                         message[1] = instr_op_len;
                         message[2] = move[0];
@@ -383,12 +384,11 @@ void gantry_robot_action(command_t* command)
                         message[5] = move[3];
                         message[6] = move[4];
                         rpi_receive(check_bytes, 2);
-                        if (!utils_validate_transmission((uint8_t *) message, 7, check_bytes))
+                        if (utils_validate_transmission((uint8_t *) message, 7, check_bytes))
                         {
                             // Checksum error; corrupted data
-                            comm_error = true;
+                            robot_is_done = true;
                         }
-                        robot_is_done = true;
                     }
                 }
                 else if (instr == ILLEGAL_MOVE_INSTR)
@@ -397,17 +397,17 @@ void gantry_robot_action(command_t* command)
                     message[0] = first_byte;
                     message[1] = instr_op_len;
                     rpi_receive(check_bytes, 2);
-                    if (!utils_validate_transmission((uint8_t *) message, 2, check_bytes))
+                    if (utils_validate_transmission((uint8_t *) message, 2, check_bytes))
                     {
                         // Checksum error; corrupted data
-                        comm_error = true;
+                        robot_is_done = true;
                     }
-                    robot_is_done = true;
+                    p_gantry_command->move.move_type = IDLE;
                 }
             }
         }
     }
-#endif /* KEENAN_TEST */
+#endif /* KEENAN_TEST || THREE_PARTY_MODE */
 }
 
 /**
@@ -487,6 +487,11 @@ void gantry_robot_exit(command_t* command)
              // TODO
          break;
 
+         case IDLE:
+             // TODO
+             // Invalid move
+         break;
+
          default:
              // TODO
          break;
@@ -497,7 +502,7 @@ void gantry_robot_exit(command_t* command)
     // snc = sensor_network_build_command()
     // command_queue_push(snc)
      // Do it again !
-     command_queue_push((command_t*)gantry_robot_build_command());
+     command_queue_push((command_t*)gantry_human_build_command());
 }
 
 /**

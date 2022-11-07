@@ -175,7 +175,7 @@ void uart_init(uint8_t uart_channel) {
             // Set the interrupt trigger levels
             // Triggers when both the Tx and Rx FIFOs are 1/8 full
 
-            UART3->IFLS |= (UART_IFLS_RX1_8 | UART_IFLS_TX1_8);
+            UART3->IFLS |= (UART_IFLS_RX2_8 | UART_IFLS_TX1_8);
 
             // Enable the FIFOs and Rx timeout interrupt
             UART3->IM |= (UART_IM_RXIM | UART_IM_TXIM | UART_IM_RTIM);

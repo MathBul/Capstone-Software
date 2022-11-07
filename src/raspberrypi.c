@@ -33,6 +33,8 @@ bool rpi_transmit(char* data, uint8_t num_chars)
     {
         status = uart_out_byte(RPI_UART_CHANNEL, (uint8_t) data[i]);
 
+        utils_delay(70000);
+
         if (!status)
         {
             return false;
