@@ -527,6 +527,13 @@ void stepper_rel_entry(command_t* command)
         clock_set_timer_period(STEPPER_Y_TIMER, stepper_y_period);
         clock_start_timer(STEPPER_Y_TIMER);
     }
+    if (p_stepper_command->v_z != 0)
+    {
+        uint16_t v_z = utils_bound(p_stepper_command->v_z, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
+        uint32_t stepper_z_period = stepper_velocity_to_timer_period(v_z);
+        clock_set_timer_period(STEPPER_Z_TIMER, stepper_z_period);
+        clock_start_timer(STEPPER_Z_TIMER);
+    }
 }
 
 /**

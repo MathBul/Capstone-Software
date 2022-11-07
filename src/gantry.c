@@ -10,7 +10,6 @@
 
 #include "gantry.h"
 
-//#define KEENAN_TEST
 //#define PERIPHERALS_ENABLED
 
 // Private functions
@@ -108,7 +107,7 @@ void gantry_reset()
 #ifdef THREE_PARTY_MODE
     uart_reset(USER_CHANNEL);
 #endif
-
+#ifdef FINAL_IMPLEMENTATION_MODE
     // Start a new game
     char user_color = 'W';
     uint8_t switch_data = switch_get_reading();
@@ -117,6 +116,7 @@ void gantry_reset()
         user_color = 'B';
     }
     rpi_transmit_start(user_color);
+#endif
 }
 
 /**
@@ -590,7 +590,7 @@ void gantry_home()
     command_queue_push((command_t*) gantry_home_build_command());
 
     // Home the motors with delay
-    command_queue_push((command_t*) stepper_build_home_z_command());
+//    command_queue_push((command_t*) stepper_build_home_z_command());
     command_queue_push((command_t*) stepper_build_home_xy_command());
     command_queue_push((command_t*) delay_build_command(HOMING_DELAY_MS));
 
