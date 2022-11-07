@@ -30,6 +30,8 @@
 #define SQUARE_CENTER_TO_CENTER             (48)    // mm
 #define SQUARE_X_INITIAL                    (-115)  // mm
 #define SQUARE_Y_INITIAL                    (30)    // mm
+#define CAPTURE_X                           (-20)
+#define CAPTURE_Y                           (SQUARE_Y_INITIAL + 5*SQUARE_CENTER_TO_CENTER)
 #define HOMING_X_BACKOFF                    (-6)    // mm
 #define HOMING_Y_BACKOFF                    (6)     // mm
 #define HOMING_Z_BACKOFF                    (0)     // mm
@@ -133,6 +135,7 @@ typedef enum chess_file_t {
     F = SQUARE_X_INITIAL - 2*SQUARE_CENTER_TO_CENTER,
     G = SQUARE_X_INITIAL - 1*SQUARE_CENTER_TO_CENTER,
     H = SQUARE_X_INITIAL,
+    CAPTURE_FILE = CAPTURE_X,
     FILE_ERROR = 0
 } chess_file_t;
 
@@ -146,6 +149,7 @@ typedef enum chess_rank_t {
     SIXTH   = SQUARE_Y_INITIAL + 5*SQUARE_CENTER_TO_CENTER,
     SEVENTH = SQUARE_Y_INITIAL + 6*SQUARE_CENTER_TO_CENTER,
     EIGHTH  = SQUARE_Y_INITIAL + 7*SQUARE_CENTER_TO_CENTER,
+    CAPTURE_RANK = CAPTURE_Y,
     RANK_ERROR = 0
 } chess_rank_t;
 

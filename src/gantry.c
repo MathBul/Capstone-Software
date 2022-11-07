@@ -487,13 +487,100 @@ void gantry_robot_exit(command_t* command)
              // release the piece
              // raise the lifter
              // home
+
+             gantry_home();
          break;
          case PROMOTION:
              // TODO
          break;
         
          case CAPTURE:
-             // TODO
+             // Error checking
+              if (p_gantry_command->move.source_file == FILE_ERROR || p_gantry_command->move.source_rank == RANK_ERROR)
+              {
+                  break;
+              }
+              // Move to the piece to move
+              // the enums are the absolute positions of those ranks/file. current_pos is also absolute
+              command_queue_push
+              (
+                  (command_t*)stepper_build_chess_command
+                  (
+                      p_gantry_command->move.dest_file,  // file
+                      p_gantry_command->move.dest_rank,  // rank
+                      EMPTY,                               // piece
+                      1,                                   // v_x
+                      1,                                   // v_y
+                      0                                    // v_z
+                  )
+              );
+              // wait
+              command_queue_push((command_t*)delay_build_command(1000));
+              // lower the lifter
+              // grab the piece
+              // raise the lifter
+              // move to the dest
+              // the enums are the absolute positions of those ranks/file. current_pos is also absolute
+
+              command_queue_push
+              (
+                  (command_t*)stepper_build_chess_command
+                  (
+                      CAPTURE_FILE, // file
+                      CAPTURE_RANK, // rank
+                      EMPTY,                            // piece
+                      1,                                // v_x
+                      1,                                // v_y
+                      0                                 // v_z
+                  )
+              );
+              // wait
+              command_queue_push((command_t*)delay_build_command(1000));
+              // lower the lifter
+              // grab the piece
+              // raise the lifter
+              // move to the dest
+              // the enums are the absolute positions of those ranks/file. current_pos is also absolute
+
+              command_queue_push
+              (
+                  (command_t*)stepper_build_chess_command
+                  (
+                      p_gantry_command->move.source_file, // file
+                      p_gantry_command->move.source_rank, // rank
+                      EMPTY,                            // piece
+                      1,                                // v_x
+                      1,                                // v_y
+                      0                                 // v_z
+                  )
+              );
+              // wait
+              command_queue_push((command_t*)delay_build_command(1000));
+              // lower the lifter
+              // release the piece
+              // raise the lifter
+              // home
+
+              command_queue_push
+              (
+                  (command_t*)stepper_build_chess_command
+                  (
+                      p_gantry_command->move.dest_file, // file
+                      p_gantry_command->move.dest_rank, // rank
+                      EMPTY,                            // piece
+                      1,                                // v_x
+                      1,                                // v_y
+                      0                                 // v_z
+                  )
+              );
+              // wait
+              command_queue_push((command_t*)delay_build_command(1000));
+              // lower the lifter
+              // release the piece
+              // raise the lifter
+              // home
+
+              gantry_home();
          break;
 
          case CASTLING:
