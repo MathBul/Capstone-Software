@@ -14,15 +14,16 @@
 #include "clock.h"
 #include "chessboard.h"
 #include "command_queue.h"
+#include "delay.h"
 #include "electromagnet.h"
 #include "gpio.h"
+#include "leds.h"
 #include "raspberrypi.h"
 #include "sensornetwork.h"
 #include "steppermotors.h"
 #include "switch.h"
 #include "uart.h"
 #include "utils.h"
-#include "delay.h"
 
 // General gantry defines
 #define GANTRY_TIMER                        (TIMER4)

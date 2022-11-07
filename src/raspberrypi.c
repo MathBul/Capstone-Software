@@ -131,14 +131,4 @@ void rpi_reset_uart()
     uart_reset(RPI_UART_CHANNEL);
 }
 
-
-
-
-
-// Command Functions
-void rpi_entry(command_t* command);
-void rpi_action(command_t* command);
-void rpi_exit(command_t* command);
-bool rpi_is_done(command_t* command);
-
 /* End raspberrypi.c */

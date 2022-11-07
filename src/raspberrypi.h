@@ -76,12 +76,6 @@
 #define GAME_STALEMATE                      (0x0A5103)         // Declare the game has ended to stalemate
 #define ILLEGAL_MOVE                        (0x0A60)           // Declare the human has made an illegal move
 
-/*
- * End UART instruction defines
- */
-
-
-
 // Information from the PI for making a chess move
 // Use '\0' for undefined file and 0 for undefined rank
 typedef struct chess_move_t {
@@ -91,7 +85,6 @@ typedef struct chess_move_t {
     chess_rank_t dest_rank;
     chess_move_type move_type;
 } chess_move_t;
-
 
 // Public Raspberry Pi functions
 void rpi_init();
@@ -103,6 +96,5 @@ void rpi_reset_uart();
 void rpi_transmit_reset(void);
 void rpi_transmit_start(char color);
 void rpi_transmit_human_move(char *move);
-
 
 #endif /* RASPBERRYPI_H_ */

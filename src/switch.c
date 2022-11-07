@@ -33,7 +33,23 @@ void switch_init()
     gpio_set_as_input(SWITCH_PORT, BUTTON_PIN_MASK);
     gpio_set_as_input(SWITCH_PORT, LIMIT_PIN_MASK);
     gpio_set_as_input(SWITCH_PORT, ROCKER_PIN_MASK);
+
+    // Start the ISR timer
+    clock_start_timer(SWITCH_TIMER);
 }
+
+
+/**
+ * @brief Gets the current switch readings
+ *
+ * @return uint8_t The switch readings
+ */
+uint8_t switch_get_reading()
+{
+    return p_switches->current_inputs;
+}
+
+/* Interrupts */
 
 /**
  * @brief Shifts all switch-related bits from a vport bitfield to a local ordering
@@ -44,14 +60,14 @@ void switch_init()
 static uint8_t switch_shift_assign(uint8_t port_raw)
 {
      uint8_t switch_reassigned = 0;
-     switch_reassigned |= utils_bits8_remask(port_raw, BUTTON_RESET_PIN,       BUTTON_START_RESET);
-     switch_reassigned |= utils_bits8_remask(port_raw, BUTTON_ESTOP_PIN,       BUTTON_ESTOP);
-     switch_reassigned |= utils_bits8_remask(port_raw, BUTTON_HOME_PIN,        BUTTON_HOME);
-     switch_reassigned |= utils_bits8_remask(port_raw, BUTTON_END_TURN_PIN,    BUTTON_END_TURN);
-     switch_reassigned |= utils_bits8_remask(port_raw, LIMIT_X_PIN,            LIMIT_X);
-     switch_reassigned |= utils_bits8_remask(port_raw, LIMIT_Y_PIN,            LIMIT_Y);
-     switch_reassigned |= utils_bits8_remask(port_raw, LIMIT_Z_PIN,            LIMIT_Z);
-     switch_reassigned |= utils_bits8_remask(port_raw, ROCKER_COLOR_PIN,       ROCKER_COLOR);
+     switch_reassigned |= utils_bits8_remask(port_raw, BUTTON_RESET_PIN,    BUTTON_START_RESET);
+     switch_reassigned |= utils_bits8_remask(port_raw, BUTTON_ESTOP_PIN,    BUTTON_ESTOP);
+     switch_reassigned |= utils_bits8_remask(port_raw, BUTTON_HOME_PIN,     BUTTON_HOME);
+     switch_reassigned |= utils_bits8_remask(port_raw, BUTTON_END_TURN_PIN, BUTTON_END_TURN);
+     switch_reassigned |= utils_bits8_remask(port_raw, LIMIT_X_PIN,         LIMIT_X);
+     switch_reassigned |= utils_bits8_remask(port_raw, LIMIT_Y_PIN,         LIMIT_Y);
+     switch_reassigned |= utils_bits8_remask(port_raw, LIMIT_Z_PIN,         LIMIT_Z);
+     switch_reassigned |= utils_bits8_remask(port_raw, ROCKER_COLOR_PIN,    ROCKER_COLOR);
      return (switch_reassigned ^ SWITCH_MASK);
 }
 
@@ -81,9 +97,8 @@ __interrupt void SWITCH_HANDLER(void)
     switches.image.beta |= (((uint8_t)GPION->DATA) << 32);
     switches.image.beta |= (((uint8_t)GPIOP->DATA) << 40);
     switches.image.beta |= (((uint8_t)GPIOQ->DATA) << 48);
-
-
 #else
+
     // Read the switches into the vport image. Lets us model a physical port with a custom bit ordering
     uint8_t switches_raw        = gpio_read_input(SWITCH_PORT, SWITCH_MASK);
     switch_vport.image          = switch_shift_assign(switches_raw);
@@ -97,10 +112,8 @@ __interrupt void SWITCH_HANDLER(void)
     p_switches->pos_transitions = (p_switches->current_inputs & p_switches->edges);
     p_switches->neg_transitions = ((~p_switches->current_inputs) & p_switches->edges);
     p_switches->previous_inputs = p_switches->current_inputs;
+
 #endif
-
-
-
 }
 
 /* End buttons.c */
