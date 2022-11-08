@@ -32,6 +32,8 @@ bool uart_out_byte(uint8_t uart_channel, uint8_t byte);
 bool uart_read_byte(uint8_t uart_channel, uint8_t* byte);
 bool uart_receive(uint8_t uart_channel, char *data, uint8_t num_chars);
 bool uart_out_string(uint8_t uart_channel, char* string);
+bool uart_out_int16_t(uint8_t uart_channel, int16_t value);
+bool uart_out_uint32_t(uint8_t uart_channel, uint32_t value);
 void uart_reset(uint8_t uart_channel);
 
 #endif /* UART_H */

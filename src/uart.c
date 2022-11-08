@@ -15,6 +15,8 @@
 // TODO: Make sure the elements are only 1 byte long!
 static uart_fifo_t uart_0_rx;
 static uart_fifo_t uart_0_tx;
+static uart_fifo_t uart_1_rx;
+static uart_fifo_t uart_1_tx;
 static uart_fifo_t uart_2_rx;
 static uart_fifo_t uart_2_tx;
 static uart_fifo_t uart_3_rx;
@@ -85,6 +87,58 @@ void uart_init(uint8_t uart_channel) {
 
             // Enable UART
             UART0->CTL |= UART_CTL_UARTEN;
+        break;
+
+        case UART_CHANNEL_1:
+            // Initialize the FIFOS
+            uart_fifo_init(&uart_1_rx);
+            uart_fifo_init(&uart_1_tx);
+
+            // Enable the UART clock gate control
+            SYSCTL->RCGCUART |= SYSCTL_RCGCUART_R1;
+
+            // Wait for the clock to enable
+            while (!(SYSCTL->PRUART & SYSCTL_RCGCUART_R1))
+            {
+            }
+
+            // Enable the GPIO pins
+            utils_gpio_clock_enable(GPIOB);
+            gpio_set_as_input(GPIOB, GPIO_PIN_0); // U1Rx
+            gpio_set_as_output(GPIOB, GPIO_PIN_1); // U1Tx
+            gpio_select_alternate(GPIOB, GPIO_PIN_0, 1); // 1st alternate
+            gpio_select_alternate(GPIOB, GPIO_PIN_1, 1); // 1st alternate
+
+            // Disable UART
+            UART1->CTL &= ~UART_CTL_UARTEN;
+
+            // Set baud clock source to PIOSC (16MHz)
+            // Configure for a 9600 baud rate
+            // 16MHz / (16 * 9600) = 104.16667
+            UART1->IBRD |= (104 << UART_IBRD_DIVINT_S); // Integer
+            UART1->FBRD |= (11 << UART_FBRD_DIVFRAC_S); // Fractional
+
+            // Enable FIFOs and set 8 bit word length
+            UART1->LCRH |= (UART_LCRH_FEN | UART_LCRH_WLEN_8);
+
+            // Set the baud clock source to PIOSC (16 MHz)
+            UART1->CC |= UART_CC_CS_PIOSC;
+
+            // Set the interrupt trigger levels
+            // Triggers when both the Tx and Rx FIFOs are 1/8 full
+            UART1->IFLS |= (UART_IFLS_RX1_8 | UART_IFLS_TX1_8);
+
+            // Enable the FIFOs and Rx timeout interrupt
+            UART1->IM |= (UART_IM_RXIM | UART_IM_TXIM | UART_IM_RTIM);
+
+            // Set the UART1 interrupt to priority 2
+            NVIC->IP[1] |= (2 << NVIC_PRI1_INT6_S);
+
+            // Enable the UART1 interrupt
+            NVIC->ISER[0] |= (1 << UART1_IRQn);
+
+            // Enable UART
+            UART1->CTL |= UART_CTL_UARTEN;
         break;
 
         case UART_CHANNEL_2:
@@ -386,6 +440,51 @@ bool uart_out_string(uint8_t uart_channel, char* string)
 
     return output;
 }
+
+/**
+ * @brief Sends a signed 16 bit integer to the specified UART channel
+ *
+ * @param uart_channel One of UART_CHANNEL_X
+ * @param value The integer to be sent
+ * @return true The integer was sent
+ * @return false The integer could not be sent
+ */
+bool uart_out_int16_t(uint8_t uart_channel, int16_t value)
+{
+    int i;
+    uint8_t send;
+    bool result = true;
+    for (i = 1; i >= 0; i--)
+    {
+        send = (value >> 8*i);
+        result &= uart_out_byte(uart_channel, send);
+    }
+
+    return result;
+}
+
+/**
+ * @brief Sends an unsigned 32 bit integer to the specified UART channel
+ *
+ * @param uart_channel One of UART_CHANNEL_X
+ * @param value The integer to be sent
+ * @return true The integer was sent
+ * @return false The integer could not be sent
+ */
+bool uart_out_uint32_t(uint8_t uart_channel, uint32_t value)
+{
+    int i;
+    uint8_t send;
+    bool result = true;
+    for (i = 3; i >= 0; i--)
+    {
+        send = (value >> 8*i);
+        result &= uart_out_byte(uart_channel, send);
+    }
+
+    return result;
+}
+
 
 
 /**
