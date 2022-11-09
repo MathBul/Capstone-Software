@@ -131,4 +131,69 @@ void rpi_reset_uart()
     uart_reset(RPI_UART_CHANNEL);
 }
 
+chess_move_t rpi_get_castle_rook_move(chess_move_t *king_move)
+{
+    chess_rank_t d_r = king_move->dest_rank;
+    chess_file_t d_f = king_move->dest_file;
+
+    chess_move_t rook_move;
+
+    // White side castle
+    if (d_r == FIRST)
+    {
+        // White queen-side castle
+        // King's move: e1c1 | Rook's move: a1d1
+        if (d_f == C)
+        {
+            rook_move.source_file = A;
+            rook_move.source_rank = FIRST;
+            rook_move.dest_file = D;
+            rook_move.dest_rank = FIRST;
+            rook_move.move_type = MOVE;
+            return rook_move;
+        }
+        // White king-side castle
+        // King's move: e1g1 | Rook's move: h1f1
+        else if (d_f == G)
+        {
+            rook_move.source_file = H;
+            rook_move.source_rank = FIRST;
+            rook_move.dest_file = F;
+            rook_move.dest_rank = FIRST;
+            rook_move.move_type = MOVE;
+            return rook_move;
+        }
+    }
+    // Black side castle
+    else if (d_r == EIGHTH)
+    {
+        // Black queen-side castle
+        // King's move: e8c8 | Rook's move: a8d8
+        if (d_f == C)
+        {
+            rook_move.source_file = A;
+            rook_move.source_rank = EIGHTH;
+            rook_move.dest_file = D;
+            rook_move.dest_rank = EIGHTH;
+            rook_move.move_type = MOVE;
+            return rook_move;
+        }
+        // Black king-side castle
+        // King's move: e8g8 | Rook's move: h8f8
+        else if (d_f == G)
+        {
+            rook_move.source_file = H;
+            rook_move.source_rank = EIGHTH;
+            rook_move.dest_file = F;
+            rook_move.dest_rank = EIGHTH;
+            rook_move.move_type = MOVE;
+            return rook_move;
+        }
+    }
+    else
+    {
+        return *king_move;
+    }
+}
+
 /* End raspberrypi.c */

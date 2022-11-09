@@ -96,5 +96,6 @@ void rpi_reset_uart();
 void rpi_transmit_reset(void);
 void rpi_transmit_start(char color);
 void rpi_transmit_human_move(char *move);
+chess_move_t rpi_get_castle_rook_move(chess_move_t *king_move);
 
 #endif /* RASPBERRYPI_H_ */

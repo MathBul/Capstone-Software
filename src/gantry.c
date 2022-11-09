@@ -416,10 +416,9 @@ void gantry_robot_action(command_t* command)
                     rpi_receive(check_bytes, 2);
                     if (utils_validate_transmission((uint8_t *) message, 2, check_bytes))
                     {
-                        // Checksum error; corrupted data
+                        p_gantry_command->move.move_type = IDLE;
                         robot_is_done = true;
                     }
-                    p_gantry_command->move.move_type = IDLE;
                 }
             }
         }
@@ -586,7 +585,93 @@ void gantry_robot_exit(command_t* command)
          break;
 
          case CASTLING:
-             // TODO
+             // Error checking
+              if (p_gantry_command->move.source_file == FILE_ERROR || p_gantry_command->move.source_rank == RANK_ERROR)
+              {
+                  break;
+              }
+              chess_move_t rook_move = rpi_get_castle_rook_move(&p_gantry_command->move);
+              // Move to the piece to move
+              // the enums are the absolute positions of those ranks/file. current_pos is also absolute
+              command_queue_push
+              (
+                  (command_t*)stepper_build_chess_command
+                  (
+                      p_gantry_command->move.source_file,  // file
+                      p_gantry_command->move.source_rank,  // rank
+                      EMPTY,                               // piece
+                      1,                                   // v_x
+                      1,                                   // v_y
+                      0                                    // v_z
+                  )
+              );
+              // wait
+              command_queue_push((command_t*)delay_build_command(1000));
+              // lower the lifter
+              // grab the piece
+              // raise the lifter
+              // move to the dest
+              // the enums are the absolute positions of those ranks/file. current_pos is also absolute
+
+              command_queue_push
+              (
+                  (command_t*)stepper_build_chess_command
+                  (
+                      p_gantry_command->move.dest_file, // file
+                      p_gantry_command->move.dest_rank, // rank
+                      EMPTY,                            // piece
+                      1,                                // v_x
+                      1,                                // v_y
+                      0                                 // v_z
+                  )
+              );
+              // wait
+              command_queue_push((command_t*)delay_build_command(1000));
+              // lower the lifter
+              // grab the piece
+              // raise the lifter
+              // move to the dest
+              // the enums are the absolute positions of those ranks/file. current_pos is also absolute
+
+              command_queue_push
+              (
+                  (command_t*)stepper_build_chess_command
+                  (
+                      rook_move.source_file, // file
+                      rook_move.source_rank, // rank
+                      EMPTY,                            // piece
+                      1,                                // v_x
+                      1,                                // v_y
+                      0                                 // v_z
+                  )
+              );
+              // wait
+              command_queue_push((command_t*)delay_build_command(1000));
+              // lower the lifter
+              // release the piece
+              // raise the lifter
+              // home
+
+              command_queue_push
+              (
+                  (command_t*)stepper_build_chess_command
+                  (
+                      rook_move.dest_file, // file
+                      rook_move.dest_rank, // rank
+                      EMPTY,                            // piece
+                      1,                                // v_x
+                      1,                                // v_y
+                      0                                 // v_z
+                  )
+              );
+              // wait
+              command_queue_push((command_t*)delay_build_command(1000));
+              // lower the lifter
+              // release the piece
+              // raise the lifter
+              // home
+
+              gantry_home();
          break;
 
          case EN_PASSENT:
