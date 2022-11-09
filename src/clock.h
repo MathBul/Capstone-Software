@@ -66,5 +66,7 @@ void clock_clear_interrupt(TIMER0_Type* timer);
 void clock_stop_timer(TIMER0_Type* timer);
 void clock_start_timer(TIMER0_Type* timer);
 void clock_set_timer_period(TIMER0_Type* timer, uint16_t value);
+uint16_t clock_get_timer_period(TIMER0_Type* timer);
+
 
 #endif /* CLOCK_H_ */

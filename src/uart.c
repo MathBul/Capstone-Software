@@ -61,10 +61,10 @@ void uart_init(uint8_t uart_channel) {
             UART0->CTL &= ~UART_CTL_UARTEN;
 
             // Set baud clock source to PIOSC (16MHz)
-            // Configure for a 9600 baud rate
-            // 16MHz / (16 * 9600) = 104.16667
-            UART0->IBRD |= (104 << UART_IBRD_DIVINT_S); // Integer
-            UART0->FBRD |= (11 << UART_FBRD_DIVFRAC_S); // Fractional
+            // Configure for a 115200 baud rate
+            // 16MHz / (16 * 115200) = 8.8056
+            UART0->IBRD |= (8 << UART_IBRD_DIVINT_S); // Integer
+            UART0->FBRD |= (52 << UART_FBRD_DIVFRAC_S); // Fractional
 
             // Enable FIFOs and set 8 bit word length
             UART0->LCRH |= (UART_LCRH_FEN | UART_LCRH_WLEN_8);
@@ -79,8 +79,8 @@ void uart_init(uint8_t uart_channel) {
             // Enable the FIFOs and Rx timeout interrupt
             UART0->IM |= (UART_IM_RXIM | UART_IM_TXIM | UART_IM_RTIM);
 
-            // Set the UART0 interrupt to priority 2
-            NVIC->IP[1] |= (2 << NVIC_PRI1_INT5_S);
+            // Set the UART0 interrupt to priority 0
+            NVIC->IP[1] |= (0 << NVIC_PRI1_INT5_S);
 
             // Enable the UART0 interrupt
             NVIC->ISER[0] |= (1 << UART0_IRQn);
@@ -369,18 +369,20 @@ bool uart_out_byte(uint8_t uart_channel, uint8_t byte)
  * @return true The string was sent
  * @return false The string could not be sent
  */
-bool uart_out_string(uint8_t uart_channel, char* string)
+bool uart_out_string(uint8_t uart_channel, char* string, uint8_t size)
 {
     bool output = true;
     char* val = &string[0];
+    uint8_t counter = 0;
     switch (uart_channel)
     {
         case UART_CHANNEL_0:
             // Put all of the characters onto the software buffer
-            while (*(val) != '\0')
+            while (*(val) != '\0' && counter < size)
             {
                 output &= uart_fifo_push(&uart_0_tx, (uint8_t) *val);
                 val++;
+                counter++;
             }
 
             // If the Tx FIFO is empty copy to hardware
@@ -391,10 +393,11 @@ bool uart_out_string(uint8_t uart_channel, char* string)
         break;
         case UART_CHANNEL_2:
             // Put all of the characters onto the software buffer
-            while (*(val) != '\0')
+            while (*(val) != '\0' && counter < size)
             {
                 output &= uart_fifo_push(&uart_2_tx, (uint8_t) *val);
                 val++;
+                counter++;
             }
 
             // If the Tx FIFO is empty copy to hardware
@@ -405,10 +408,11 @@ bool uart_out_string(uint8_t uart_channel, char* string)
         break;
         case UART_CHANNEL_3:
             // Put all of the characters onto the software buffer
-            while (*(val) != '\0')
+            while (*(val) != '\0' && counter < size)
             {
                 output &= uart_fifo_push(&uart_3_tx, (uint8_t) *val);
                 val++;
+                counter++;
             }
 
             // If the Tx FIFO is empty copy to hardware
@@ -419,10 +423,11 @@ bool uart_out_string(uint8_t uart_channel, char* string)
         break;
         case UART_CHANNEL_6:
             // Put all of the characters onto the software buffer
-            while (*(val) != '\0')
+            while (*(val) != '\0' && counter < size)
             {
                 output &= uart_fifo_push(&uart_6_tx, (uint8_t) *val);
                 val++;
+                counter++;
             }
 
             // If the Tx FIFO is empty copy to hardware

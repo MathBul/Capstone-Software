@@ -5,6 +5,7 @@
 #include "msp.h"
 
 //#define UART_DEBUG
+#define MOTION_PROFILING
 #define COMMAND_QUEUE
 
 // Flag that gets set in the utils module when there is a system fault
@@ -20,8 +21,13 @@ int main(void)
     // System level initialization
     gantry_init();
 
+#ifdef MOTION_PROFILING
+    command_queue_push((command_t*)stepper_build_rel_command(100, 0, 0, 1, 0, 0));
+#else
     // Add commands to the queue
     gantry_start();
+#endif
+
 
     // Main program flow
     while (1)
@@ -56,13 +62,12 @@ int main(void)
 
     #ifdef UART_DEBUG
 
-    clock_sys_init();
-    uart_init(UART_CHANNEL_0);
+    gantry_init();
 
     // Read whatever comes in to the message string.
     while (1)
     {
-        uart_out_string(UART_CHANNEL_0, "Hello world!\n");
+        uart_out_string(UART_CHANNEL_0, "Hello world!\n", 14);
     }
     #endif
 

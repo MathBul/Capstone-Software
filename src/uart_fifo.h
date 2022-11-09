@@ -16,7 +16,7 @@
 #include <stdbool.h>
 
 #define UART_FIFO_TYPE          uint8_t
-#define UART_FIFO_SIZE          (32) // Must be at least 1 and less than 65535
+#define UART_FIFO_SIZE          (64) // Must be at least 1 and less than 65535
 
 // Fifo data structure struct
 typedef struct uart_fifo_t {

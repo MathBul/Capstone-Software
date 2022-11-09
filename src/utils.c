@@ -163,6 +163,7 @@ uint16_t utils_bound(uint16_t value, uint16_t lower_bound, uint16_t upper_bound)
     return value;
 }
 
+
 /**
  * @brief Computes the Fletcher-16 checksum given an array of chars
  *
@@ -369,11 +370,13 @@ chess_move_type utils_byte_to_move_type(uint8_t byte)
 /**
  * @brief Sets the correct ISER bit in the NVIC
  */
-void utils_set_nvic(uint8_t interrupt_num)
+void utils_set_nvic(uint8_t interrupt_num, uint8_t priority)
 {
-    uint8_t interrupt_shift = (interrupt_num % 32);
-    uint8_t iser_position = (interrupt_num - interrupt_shift)/32;
-    NVIC->ISER[iser_position] |= (1 << (interrupt_shift));
+    uint8_t enable_shift = (interrupt_num % 32);
+    uint8_t iser_position = (interrupt_num - enable_shift)/32;
+
+    NVIC->ISER[iser_position] |= (1 << (enable_shift));
+    NVIC->IP[interrupt_num] |= (priority << 5);
 }
 
 /**
