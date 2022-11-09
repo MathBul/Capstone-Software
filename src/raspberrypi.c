@@ -194,6 +194,8 @@ chess_move_t rpi_get_castle_rook_move(chess_move_t *king_move)
     {
         return *king_move;
     }
+
+    return *king_move;
 }
 
 /* End raspberrypi.c */

@@ -63,8 +63,10 @@ void uart_init(uint8_t uart_channel) {
             // Set baud clock source to PIOSC (16MHz)
             // Configure for a 115200 baud rate
             // 16MHz / (16 * 115200) = 8.8056
-            UART0->IBRD |= (8 << UART_IBRD_DIVINT_S); // Integer
-            UART0->FBRD |= (52 << UART_FBRD_DIVFRAC_S); // Fractional
+            // I = 8 and F = 52 for 115200
+            // I = 104 and F = 11 for 9600
+            UART0->IBRD |= (104 << UART_IBRD_DIVINT_S); // Integer
+            UART0->FBRD |= (11 << UART_FBRD_DIVFRAC_S); // Fractional
 
             // Enable FIFOs and set 8 bit word length
             UART0->LCRH |= (UART_LCRH_FEN | UART_LCRH_WLEN_8);
