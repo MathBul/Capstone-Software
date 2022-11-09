@@ -75,7 +75,7 @@
 #define STEPPER_X_DIR_PIN                   (GPIO_PIN_5)
 #define STEPPER_X_ID                        (0)
 #define STEPPER_X_MAX_V                     (3000) // transitions per second
-#define STEPPER_X_MAX_A                     (20000) // transitions per second per second
+#define STEPPER_X_MAX_A                     (10000) // transitions per second per second
 
 // Stepper Y
 #define STEPPER_Y_ENABLE_PORT               (GPIOM)
@@ -92,7 +92,7 @@
 #define STEPPER_Y_DIR_PIN                   (GPIO_PIN_1)
 #define STEPPER_Y_ID                        (1)
 #define STEPPER_Y_MAX_V                     (3000) // transitions per second
-#define STEPPER_Y_MAX_A                     (20000) // transitions per second per second
+#define STEPPER_Y_MAX_A                     (10000) // transitions per second per second
 
 
 // Stepper Z
