@@ -413,7 +413,7 @@ stepper_rel_command_t* stepper_build_home_xy_command()
     stepper_rel_command_t* p_command = (stepper_rel_command_t*) malloc(sizeof(stepper_rel_command_t));
 
     // Functions
-    p_command->command.p_entry   = &stepper_rel_entry;
+    p_command->command.p_entry   = &stepper_home_entry;
     p_command->command.p_action  = &stepper_home_action;
     p_command->command.p_exit    = &stepper_exit;
     p_command->command.p_is_done = &stepper_is_done;
@@ -440,7 +440,7 @@ stepper_rel_command_t* stepper_build_home_z_command()
     stepper_rel_command_t* p_command = (stepper_rel_command_t*) malloc(sizeof(stepper_rel_command_t));
 
     // Functions
-    p_command->command.p_entry   = &stepper_rel_entry;
+    p_command->command.p_entry   = &stepper_home_entry;
     p_command->command.p_action  = &stepper_home_action;
     p_command->command.p_exit    = &stepper_exit;
     p_command->command.p_is_done = &stepper_is_done;
@@ -675,6 +675,146 @@ void stepper_chess_entry(command_t* command)
  *
  * @param command The stepper command being run
  */
+void stepper_home_entry(command_t* command)
+{
+    stepper_rel_command_t* p_stepper_command = (stepper_rel_command_t*) command;
+
+    // X-axis
+    if (p_stepper_command->rel_x != 0)
+    {
+        stepper_enable_motor(stepper_motor_x);
+
+        // Set the directions
+        if (p_stepper_command->rel_x > 0)
+        {
+            stepper_set_direction_counterclockwise(stepper_motor_x);
+        }
+        else
+        {
+            stepper_set_direction_clockwise(stepper_motor_x);
+        }
+    }
+
+    // Y-axis
+    if (p_stepper_command->rel_y != 0)
+    {
+        stepper_enable_motor(stepper_motor_y);
+
+        // Set the direction
+        if (p_stepper_command->rel_y > 0)
+        {
+            stepper_set_direction_counterclockwise(stepper_motor_y);
+        }
+        else
+        {
+            stepper_set_direction_clockwise(stepper_motor_y);
+        }
+    }
+
+    // Z-axis
+    if (p_stepper_command->rel_z != 0)
+    {
+        stepper_enable_motor(stepper_motor_z);
+
+        // Set the direction
+        if (p_stepper_command->rel_z > 0)
+        {
+            stepper_set_direction_counterclockwise(stepper_motor_z);
+        }
+        else
+        {
+            stepper_set_direction_clockwise(stepper_motor_z);
+        }
+    }
+
+    // Determine the distance to go
+    stepper_motor_x->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_x);
+    stepper_motor_y->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_y);
+    stepper_motor_z->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_z);
+
+    // X Determine the points where the speeds need to change
+    if (STEPPER_X_MAX_V * STEPPER_X_MAX_V / STEPPER_X_MAX_A > stepper_motor_x->transitions_to_desired_pos)
+    {
+        // Not a trapezoid
+        stepper_motor_x->x_1 = stepper_motor_x->transitions_to_desired_pos / 2;
+        stepper_motor_x->x_2 = stepper_motor_x->transitions_to_desired_pos / 2;
+    }
+    else
+    {
+        // A trapezoid
+        stepper_motor_x->x_2 = STEPPER_X_MAX_V * STEPPER_X_MAX_V / (2 * STEPPER_X_MAX_A);
+        stepper_motor_x->x_1 = stepper_motor_x->transitions_to_desired_pos - STEPPER_X_MAX_V * STEPPER_X_MAX_V / (2 * STEPPER_X_MAX_A);
+    }
+
+    // Y Determine the points where the speeds need to change
+    if (STEPPER_Y_MAX_V * STEPPER_Y_MAX_V / STEPPER_Y_MAX_A > stepper_motor_y->transitions_to_desired_pos)
+    {
+        // Not a trapezoid
+        stepper_motor_y->x_1 = stepper_motor_y->transitions_to_desired_pos / 2;
+        stepper_motor_y->x_2 = stepper_motor_y->transitions_to_desired_pos / 2;
+    }
+    else
+    {
+        // A trapezoid
+        stepper_motor_y->x_2 = STEPPER_Y_MAX_V * STEPPER_Y_MAX_V / (2 * STEPPER_Y_MAX_A);
+        stepper_motor_y->x_1 = stepper_motor_y->transitions_to_desired_pos - STEPPER_Y_MAX_V * STEPPER_Y_MAX_V / (2 * STEPPER_Y_MAX_A);
+    }
+
+    // Z Determine the points where the speeds need to change
+    if (STEPPER_Z_MAX_V * STEPPER_Z_MAX_V / STEPPER_Z_MAX_A > stepper_motor_z->transitions_to_desired_pos)
+    {
+        // Not a trapezoid
+        stepper_motor_z->x_1 = stepper_motor_z->transitions_to_desired_pos / 2;
+        stepper_motor_z->x_2 = stepper_motor_z->transitions_to_desired_pos / 2;
+    }
+    else
+    {
+        // A trapezoid
+        stepper_motor_z->x_2 = STEPPER_Z_MAX_V * STEPPER_Z_MAX_V / (2 * STEPPER_Z_MAX_A);
+        stepper_motor_z->x_1 = stepper_motor_z->transitions_to_desired_pos - STEPPER_Z_MAX_V * STEPPER_Z_MAX_V / (2 * STEPPER_Z_MAX_A);
+    }
+
+    // TODO: Load velocity values into the clock, add STEPPER_Z
+    if (p_stepper_command->v_x != 0)
+    {
+        uint16_t v_x = utils_bound(p_stepper_command->v_x, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
+        uint32_t stepper_x_period = stepper_velocity_to_timer_period(v_x);
+        // Set the accel
+        stepper_motor_x->max_accel = 0;
+        stepper_motor_x->time_elapsed = 0;
+        // Start the clocks
+        clock_set_timer_period(STEPPER_X_TIMER, stepper_x_period);
+        clock_start_timer(STEPPER_X_TIMER);
+    }
+    if (p_stepper_command->v_y != 0)
+    {
+        uint16_t v_y = utils_bound(p_stepper_command->v_y, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
+        uint32_t stepper_y_period = stepper_velocity_to_timer_period(v_y);
+        // Set the accel
+        stepper_motor_y->max_accel = 0;
+        stepper_motor_y->time_elapsed = 0;
+        // Start the clocks
+        clock_set_timer_period(STEPPER_Y_TIMER, stepper_y_period);
+        clock_start_timer(STEPPER_Y_TIMER);
+    }
+    if (p_stepper_command->v_z != 0)
+    {
+        uint16_t v_z = utils_bound(p_stepper_command->v_z, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
+        uint32_t stepper_z_period = stepper_velocity_to_timer_period(v_z);
+        // Set the accel
+        stepper_motor_z->max_accel = 0; // Makes sure it never changes speed
+        stepper_motor_z->time_elapsed = 0;
+        // Start the clocks
+        clock_set_timer_period(STEPPER_Z_TIMER, stepper_z_period);
+        clock_start_timer(STEPPER_Z_TIMER);
+    }
+}
+
+/**
+ * @brief Make sure no limit switch has been pressed
+ *
+ * @param command The stepper command being run
+ */
 void stepper_home_action(command_t* command)
 {
     // Check the current switch readings
@@ -759,14 +899,20 @@ static void stepper_interrupt_activity(uint8_t stepper_id)
 #endif
         // Update the velocity
         uint64_t accel = 80*(uint64_t)(p_stepper_motor->max_accel * clock_get_timer_period(p_stepper_motor->timer)) / (9*SYSCLOCK_FREQUENCY);
-        if (p_stepper_motor->transitions_to_desired_pos > p_stepper_motor->x_1) // still accelerating
+        if (accel > 0)
         {
-            clock_set_timer_period(p_stepper_motor->timer, clock_get_timer_period(p_stepper_motor->timer) - accel);
+            if (p_stepper_motor->transitions_to_desired_pos > p_stepper_motor->x_1) // still accelerating
+            {
+                clock_set_timer_period(p_stepper_motor->timer, clock_get_timer_period(p_stepper_motor->timer) - accel);
+            }
+            else if (p_stepper_motor->transitions_to_desired_pos < p_stepper_motor->x_2) // deaccelerating
+            {
+                clock_set_timer_period(p_stepper_motor->timer, clock_get_timer_period(p_stepper_motor->timer) + accel);
+            }
+            clock_start_timer(p_stepper_motor->timer);
         }
-        else if (p_stepper_motor->transitions_to_desired_pos < p_stepper_motor->x_2) // deaccelerating
-        {
-            clock_set_timer_period(p_stepper_motor->timer, clock_get_timer_period(p_stepper_motor->timer) + accel);
-        }
+
+
     }
     else
     {
@@ -792,11 +938,11 @@ __interrupt void STEPPER_X_HANDLER(void)
  */
 __interrupt void STEPPER_Y_HANDLER(void)
 {
-    // Clear the interrupt flag
-    clock_clear_interrupt(STEPPER_Y_TIMER);
-
     // Perform the stepper interrupt activity
     stepper_interrupt_activity(STEPPER_Y_ID);
+
+    // Clear the interrupt flag
+    clock_clear_interrupt(STEPPER_Y_TIMER);
 }
 
 /**

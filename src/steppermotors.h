@@ -33,7 +33,7 @@
 #include <math.h>
 
 // For debugging the profiling
-#define PROFILING
+//#define PROFILING
 
 #ifdef PROFILING
 #include <stdio.h>
@@ -171,6 +171,7 @@ stepper_rel_command_t* stepper_build_home_xy_command();
 stepper_rel_command_t* stepper_build_home_z_command();
 void stepper_rel_entry(command_t* command);
 void stepper_chess_entry(command_t* command);
+void stepper_home_entry(command_t* command);
 void stepper_home_action(command_t* command);
 void stepper_exit(command_t* command);
 bool stepper_is_done(command_t* command);

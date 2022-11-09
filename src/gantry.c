@@ -436,6 +436,8 @@ void gantry_robot_exit(command_t* command)
 {
     gantry_command_t* p_gantry_command = (gantry_command_t*) command;
     
+    chess_move_t rook_move;
+
     // We should have the necessary data from the action function
 
     // TODO: Fill this in to load the next commands. Very rough pseudocode follows!
@@ -590,7 +592,7 @@ void gantry_robot_exit(command_t* command)
               {
                   break;
               }
-              chess_move_t rook_move = rpi_get_castle_rook_move(&p_gantry_command->move);
+              rook_move = rpi_get_castle_rook_move(&p_gantry_command->move);
               // Move to the piece to move
               // the enums are the absolute positions of those ranks/file. current_pos is also absolute
               command_queue_push
