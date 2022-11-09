@@ -519,7 +519,7 @@ void stepper_rel_entry(command_t* command)
     stepper_motor_y->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_y);
     stepper_motor_z->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_z);
 
-    // Determine the points where the speeds need to change
+    // X Determine the points where the speeds need to change
     if (STEPPER_X_MAX_V * STEPPER_X_MAX_V / STEPPER_X_MAX_A > stepper_motor_x->transitions_to_desired_pos)
     {
         // Not a trapezoid
@@ -533,13 +533,41 @@ void stepper_rel_entry(command_t* command)
         stepper_motor_x->x_1 = stepper_motor_x->transitions_to_desired_pos - STEPPER_X_MAX_V * STEPPER_X_MAX_V / (2 * STEPPER_X_MAX_A);
     }
 
+    // Y Determine the points where the speeds need to change
+    if (STEPPER_Y_MAX_V * STEPPER_Y_MAX_V / STEPPER_Y_MAX_A > stepper_motor_y->transitions_to_desired_pos)
+    {
+        // Not a trapezoid
+        stepper_motor_y->x_1 = stepper_motor_y->transitions_to_desired_pos / 2;
+        stepper_motor_y->x_2 = stepper_motor_y->transitions_to_desired_pos / 2;
+    }
+    else
+    {
+        // A trapezoid
+        stepper_motor_y->x_2 = STEPPER_Y_MAX_V * STEPPER_Y_MAX_V / (2 * STEPPER_Y_MAX_A);
+        stepper_motor_y->x_1 = stepper_motor_y->transitions_to_desired_pos - STEPPER_Y_MAX_V * STEPPER_Y_MAX_V / (2 * STEPPER_Y_MAX_A);
+    }
+
+    // Z Determine the points where the speeds need to change
+    if (STEPPER_Z_MAX_V * STEPPER_Z_MAX_V / STEPPER_Z_MAX_A > stepper_motor_z->transitions_to_desired_pos)
+    {
+        // Not a trapezoid
+        stepper_motor_z->x_1 = stepper_motor_z->transitions_to_desired_pos / 2;
+        stepper_motor_z->x_2 = stepper_motor_z->transitions_to_desired_pos / 2;
+    }
+    else
+    {
+        // A trapezoid
+        stepper_motor_z->x_2 = STEPPER_Z_MAX_V * STEPPER_Z_MAX_V / (2 * STEPPER_Z_MAX_A);
+        stepper_motor_z->x_1 = stepper_motor_z->transitions_to_desired_pos - STEPPER_Z_MAX_V * STEPPER_Z_MAX_V / (2 * STEPPER_Z_MAX_A);
+    }
+
     // TODO: Load velocity values into the clock, add STEPPER_Z
     if (p_stepper_command->v_x != 0)
     {
         uint16_t v_x = utils_bound(p_stepper_command->v_x, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
         uint32_t stepper_x_period = stepper_velocity_to_timer_period(v_x);
         // Set the accel
-        stepper_motor_x->accel = (stepper_x_period - (SYSCLOCK_FREQUENCY / STEPPER_X_MAX_V)) / stepper_motor_x->x_2;
+        stepper_motor_x->max_accel = STEPPER_X_MAX_A;
         stepper_motor_x->time_elapsed = 0;
         // Start the clocks
         clock_set_timer_period(STEPPER_X_TIMER, stepper_x_period);
@@ -549,6 +577,10 @@ void stepper_rel_entry(command_t* command)
     {
         uint16_t v_y = utils_bound(p_stepper_command->v_y, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
         uint32_t stepper_y_period = stepper_velocity_to_timer_period(v_y);
+        // Set the accel
+        stepper_motor_y->max_accel = STEPPER_Y_MAX_A;
+        stepper_motor_y->time_elapsed = 0;
+        // Start the clocks
         clock_set_timer_period(STEPPER_Y_TIMER, stepper_y_period);
         clock_start_timer(STEPPER_Y_TIMER);
     }
@@ -556,6 +588,10 @@ void stepper_rel_entry(command_t* command)
     {
         uint16_t v_z = utils_bound(p_stepper_command->v_z, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
         uint32_t stepper_z_period = stepper_velocity_to_timer_period(v_z);
+        // Set the accel
+        stepper_motor_z->max_accel = STEPPER_Z_MAX_A;
+        stepper_motor_z->time_elapsed = 0;
+        // Start the clocks
         clock_set_timer_period(STEPPER_Z_TIMER, stepper_z_period);
         clock_start_timer(STEPPER_Z_TIMER);
     }
@@ -720,9 +756,9 @@ static void stepper_interrupt_activity(uint8_t stepper_id)
         char data[32];
         sprintf(data, "(%d,%d,%d)", stepper_get_current_pos(stepper_id), clock_get_timer_period(p_stepper_motor->timer), p_stepper_motor->time_elapsed); // current_pos, the number in the register, time_elapsed
         uart_out_string(PROFILING_CHANNEL, data, 64);
-
+#endif
         // Update the velocity
-        uint64_t accel = 80*(uint64_t)(STEPPER_X_MAX_A * clock_get_timer_period(p_stepper_motor->timer)) / (9*SYSCLOCK_FREQUENCY);
+        uint64_t accel = 80*(uint64_t)(p_stepper_motor->max_accel * clock_get_timer_period(p_stepper_motor->timer)) / (9*SYSCLOCK_FREQUENCY);
         if (p_stepper_motor->transitions_to_desired_pos > p_stepper_motor->x_1) // still accelerating
         {
             clock_set_timer_period(p_stepper_motor->timer, clock_get_timer_period(p_stepper_motor->timer) - accel);
@@ -731,7 +767,6 @@ static void stepper_interrupt_activity(uint8_t stepper_id)
         {
             clock_set_timer_period(p_stepper_motor->timer, clock_get_timer_period(p_stepper_motor->timer) + accel);
         }
-#endif
     }
     else
     {

@@ -22,7 +22,7 @@ int main(void)
     gantry_init();
 
 #ifdef MOTION_PROFILING
-    command_queue_push((command_t*)stepper_build_rel_command(100, 0, 0, 1, 0, 0));
+    command_queue_push((command_t*)stepper_build_rel_command(0, 100, 0, 0, 1, 0));
 #else
     // Add commands to the queue
     gantry_start();

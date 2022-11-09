@@ -91,6 +91,9 @@
 #define STEPPER_Y_DIR_PORT                  (GPIOM)
 #define STEPPER_Y_DIR_PIN                   (GPIO_PIN_1)
 #define STEPPER_Y_ID                        (1)
+#define STEPPER_Y_MAX_V                     (5000) // transitions per second
+#define STEPPER_Y_MAX_A                     (20000) // transitions per second per second
+
 
 // Stepper Z
 #define STEPPER_Z_ENABLE_PORT               (GPIOF)
@@ -106,6 +109,9 @@
 #define STEPPER_Z_DIR_PORT                  (GPIOL)
 #define STEPPER_Z_DIR_PIN                   (GPIO_PIN_5)
 #define STEPPER_Z_ID                        (2)
+#define STEPPER_Z_MAX_V                     (500) // transitions per second
+#define STEPPER_Z_MAX_A                     (2000) // transitions per second per second
+
 
 // Speeds
 #define STEPPER_MAX_SPEED                   (250)      // mm/s
@@ -127,7 +133,7 @@ typedef struct {
     uint16_t               current_vel;                // Velocity (in register values) at the present moment
     int16_t                x_1;                        // Point where the speed plateaus
     int16_t                x_2;                        // Point where the speed starts decreasing
-    uint16_t               accel;                      // value to adjust the clock period to accel/deccel
+    uint16_t               max_accel;                  // value to adjust the clock period to accel/deccel
     uint32_t               time_elapsed;
 } stepper_motors_t;
 
