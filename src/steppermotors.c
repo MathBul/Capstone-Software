@@ -396,7 +396,6 @@ stepper_chess_command_t* stepper_build_chess_command(chess_file_t file, chess_ra
     p_command->piece = piece;
     p_command->v_x   = v_x;
     p_command->v_y   = v_y;
-    p_command->v_z   = v_z;
 
     return p_command;
 
@@ -653,11 +652,45 @@ void stepper_chess_entry(command_t* command)
     stepper_motor_x->transitions_to_desired_pos = stepper_distance_to_transitions(rel_move_x);
     stepper_motor_y->transitions_to_desired_pos = stepper_distance_to_transitions(rel_move_y);
 
+    // X Determine the points where the speeds need to change
+    if (STEPPER_X_MAX_V * STEPPER_X_MAX_V / STEPPER_X_MAX_A > stepper_motor_x->transitions_to_desired_pos)
+    {
+        // Not a trapezoid
+        stepper_motor_x->x_1 = stepper_motor_x->transitions_to_desired_pos / 2;
+        stepper_motor_x->x_2 = stepper_motor_x->transitions_to_desired_pos / 2;
+    }
+    else
+    {
+        // A trapezoid
+        stepper_motor_x->x_2 = STEPPER_X_MAX_V * STEPPER_X_MAX_V / (2 * STEPPER_X_MAX_A);
+        stepper_motor_x->x_1 = stepper_motor_x->transitions_to_desired_pos - STEPPER_X_MAX_V * STEPPER_X_MAX_V / (2 * STEPPER_X_MAX_A);
+    }
+
+    // Y Determine the points where the speeds need to change
+    if (STEPPER_Y_MAX_V * STEPPER_Y_MAX_V / STEPPER_Y_MAX_A > stepper_motor_y->transitions_to_desired_pos)
+    {
+        // Not a trapezoid
+        stepper_motor_y->x_1 = stepper_motor_y->transitions_to_desired_pos / 2;
+        stepper_motor_y->x_2 = stepper_motor_y->transitions_to_desired_pos / 2;
+    }
+    else
+    {
+        // A trapezoid
+        stepper_motor_y->x_2 = STEPPER_Y_MAX_V * STEPPER_Y_MAX_V / (2 * STEPPER_Y_MAX_A);
+        stepper_motor_y->x_1 = stepper_motor_y->transitions_to_desired_pos - STEPPER_Y_MAX_V * STEPPER_Y_MAX_V / (2 * STEPPER_Y_MAX_A);
+    }
+
+
+
     // TODO: Load velocity values into the clock, add STEPPER_Z
     if (p_stepper_command->v_x != 0)
     {
         uint16_t v_x = utils_bound(p_stepper_command->v_x, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
         uint32_t stepper_x_period = stepper_velocity_to_timer_period(v_x);
+        // Set the accel
+        stepper_motor_x->max_accel = STEPPER_X_MAX_A;
+        stepper_motor_x->time_elapsed = 0;
+        // Start the clocks
         clock_set_timer_period(STEPPER_X_TIMER, stepper_x_period);
         clock_start_timer(STEPPER_X_TIMER);
     }
@@ -665,6 +698,10 @@ void stepper_chess_entry(command_t* command)
     {
         uint16_t v_y = utils_bound(p_stepper_command->v_y, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
         uint32_t stepper_y_period = stepper_velocity_to_timer_period(v_y);
+        // Set the accel
+        stepper_motor_y->max_accel = STEPPER_Y_MAX_A;
+        stepper_motor_y->time_elapsed = 0;
+        // Start the clocks
         clock_set_timer_period(STEPPER_Y_TIMER, stepper_y_period);
         clock_start_timer(STEPPER_Y_TIMER);
     }

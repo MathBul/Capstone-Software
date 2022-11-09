@@ -74,7 +74,7 @@
 #define STEPPER_X_DIR_PORT                  (GPION)
 #define STEPPER_X_DIR_PIN                   (GPIO_PIN_5)
 #define STEPPER_X_ID                        (0)
-#define STEPPER_X_MAX_V                     (5000) // transitions per second
+#define STEPPER_X_MAX_V                     (3000) // transitions per second
 #define STEPPER_X_MAX_A                     (20000) // transitions per second per second
 
 // Stepper Y
@@ -91,7 +91,7 @@
 #define STEPPER_Y_DIR_PORT                  (GPIOM)
 #define STEPPER_Y_DIR_PIN                   (GPIO_PIN_1)
 #define STEPPER_Y_ID                        (1)
-#define STEPPER_Y_MAX_V                     (5000) // transitions per second
+#define STEPPER_Y_MAX_V                     (3000) // transitions per second
 #define STEPPER_Y_MAX_A                     (20000) // transitions per second per second
 
 
@@ -155,7 +155,6 @@ typedef struct stepper_chess_command_t {
     chess_piece_t piece;                                // Distance to move in z (relative to current position) mm
     uint16_t v_x;                                       // Speed in x (direction determined by sign of the distance to move) mm/s
     uint16_t v_y;                                       // Speed in y (direction determined by sign of the distance to move) mm/s
-    uint16_t v_z;                                       // Speed in z (direction determined by sign of the distance to move) mm/s
 } stepper_chess_command_t;
 
 // Public functions
