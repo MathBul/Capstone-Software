@@ -276,6 +276,8 @@ bool gantry_human_is_done(command_t* command)
     return (switch_data & BUTTON_END_TURN);
 #elif defined(THREE_PARTY_MODE)
     return human_is_done;
+#else
+    return true;
 #endif
 }
 

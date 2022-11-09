@@ -61,6 +61,7 @@ void stepper_init_motors()
     gpio_set_as_output(STEPPER_X_STEP_PORT, STEPPER_X_STEP_PIN);
 
     // Configure the stepper struct
+    stepper_motor_x->timer                      = STEPPER_X_TIMER;
     stepper_motor_x->dir_port                   = STEPPER_X_DIR_PORT;
     stepper_motor_x->dir_pin                    = STEPPER_X_DIR_PIN;
     stepper_motor_x->step_port                  = STEPPER_X_STEP_PORT;
@@ -99,6 +100,7 @@ void stepper_init_motors()
     gpio_set_as_output(STEPPER_Y_STEP_PORT, STEPPER_Y_STEP_PIN);
 
     // Configure the stepper struct
+    stepper_motor_y->timer                      = STEPPER_Y_TIMER;
     stepper_motor_y->dir_port                   = STEPPER_Y_DIR_PORT;
     stepper_motor_y->dir_pin                    = STEPPER_Y_DIR_PIN;
     stepper_motor_y->step_port                  = STEPPER_Y_STEP_PORT;
@@ -137,6 +139,7 @@ void stepper_init_motors()
     gpio_set_as_output(STEPPER_Z_STEP_PORT, STEPPER_Z_STEP_PIN);
 
     // Configure the stepper struct
+    stepper_motor_z->timer                      = STEPPER_Z_TIMER;
     stepper_motor_z->dir_port                   = STEPPER_Z_DIR_PORT;
     stepper_motor_z->dir_pin                    = STEPPER_Z_DIR_PIN;
     stepper_motor_z->step_port                  = STEPPER_Z_STEP_PORT;
@@ -148,6 +151,10 @@ void stepper_init_motors()
     stepper_motor_z->dir                        = 1;
     stepper_motor_z->current_pos                = 0;
     stepper_motor_z->current_vel                = 0;
+
+#ifdef PROFILING
+    uart_init(PROFILING_CHANNEL);
+#endif
 }
 
 /**
@@ -512,11 +519,29 @@ void stepper_rel_entry(command_t* command)
     stepper_motor_y->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_y);
     stepper_motor_z->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_z);
 
+    // Determine the points where the speeds need to change
+    if (STEPPER_X_MAX_V * STEPPER_X_MAX_V / STEPPER_X_MAX_A > stepper_motor_x->transitions_to_desired_pos)
+    {
+        // Not a trapezoid
+        stepper_motor_x->x_1 = stepper_motor_x->transitions_to_desired_pos / 2;
+        stepper_motor_x->x_2 = stepper_motor_x->transitions_to_desired_pos / 2;
+    }
+    else
+    {
+        // A trapezoid
+        stepper_motor_x->x_2 = STEPPER_X_MAX_V * STEPPER_X_MAX_V / (2 * STEPPER_X_MAX_A);
+        stepper_motor_x->x_1 = stepper_motor_x->transitions_to_desired_pos - STEPPER_X_MAX_V * STEPPER_X_MAX_V / (2 * STEPPER_X_MAX_A);
+    }
+
     // TODO: Load velocity values into the clock, add STEPPER_Z
     if (p_stepper_command->v_x != 0)
     {
         uint16_t v_x = utils_bound(p_stepper_command->v_x, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
         uint32_t stepper_x_period = stepper_velocity_to_timer_period(v_x);
+        // Set the accel
+        stepper_motor_x->accel = (stepper_x_period - (SYSCLOCK_FREQUENCY / STEPPER_X_MAX_V)) / stepper_motor_x->x_2;
+        stepper_motor_x->time_elapsed = 0;
+        // Start the clocks
         clock_set_timer_period(STEPPER_X_TIMER, stepper_x_period);
         clock_start_timer(STEPPER_X_TIMER);
     }
@@ -673,24 +698,45 @@ bool stepper_is_done(command_t* command)
  */
 static void stepper_interrupt_activity(uint8_t stepper_id)
 {
-    stepper_motors_t* stepper_motor = &stepper_motors[stepper_id];
+    stepper_motors_t* p_stepper_motor = &stepper_motors[stepper_id];
 
     // Move each stepper until it reaches its destination, then disable
-    if (stepper_motor->transitions_to_desired_pos > 0)
+    if (p_stepper_motor->transitions_to_desired_pos > 0)
     {
+
         // Move the motor
-        stepper_edge_transition(stepper_motor);
+        stepper_edge_transition(p_stepper_motor);
 
         // Update our counter
-        stepper_motor->transitions_to_desired_pos -= 1;
+        p_stepper_motor->transitions_to_desired_pos -= 1;
 
         // Update the position
-        stepper_motor->current_pos += stepper_motor->dir;
+        p_stepper_motor->current_pos += p_stepper_motor->dir;
+        p_stepper_motor->time_elapsed += clock_get_timer_period(p_stepper_motor->timer);
+
+
+#ifdef PROFILING
+        // Send the data to the laptop
+        char data[32];
+        sprintf(data, "(%d,%d,%d)", stepper_get_current_pos(stepper_id), clock_get_timer_period(p_stepper_motor->timer), p_stepper_motor->time_elapsed); // current_pos, the number in the register, time_elapsed
+        uart_out_string(PROFILING_CHANNEL, data, 64);
+
+        // Update the velocity
+        uint64_t accel = 80*(uint64_t)(STEPPER_X_MAX_A * clock_get_timer_period(p_stepper_motor->timer)) / (9*SYSCLOCK_FREQUENCY);
+        if (p_stepper_motor->transitions_to_desired_pos > p_stepper_motor->x_1) // still accelerating
+        {
+            clock_set_timer_period(p_stepper_motor->timer, clock_get_timer_period(p_stepper_motor->timer) - accel);
+        }
+        else if (p_stepper_motor->transitions_to_desired_pos < p_stepper_motor->x_2) // deaccelerating
+        {
+            clock_set_timer_period(p_stepper_motor->timer, clock_get_timer_period(p_stepper_motor->timer) + accel);
+        }
+#endif
     }
     else
     {
         // Disable the motor
-        stepper_disable_motor(stepper_motor);
+        stepper_disable_motor(p_stepper_motor);
     }
 }
 

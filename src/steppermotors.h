@@ -30,6 +30,16 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <math.h>
+
+// For debugging the profiling
+#define PROFILING
+
+#ifdef PROFILING
+#include <stdio.h>
+#include "uart.h"
+#define PROFILING_CHANNEL                   (UART_CHANNEL_0)
+#endif
 
 // General stepper defines
 #define NUMBER_OF_STEPPER_MOTORS            (3)
@@ -64,6 +74,8 @@
 #define STEPPER_X_DIR_PORT                  (GPION)
 #define STEPPER_X_DIR_PIN                   (GPIO_PIN_5)
 #define STEPPER_X_ID                        (0)
+#define STEPPER_X_MAX_V                     (5000) // transitions per second
+#define STEPPER_X_MAX_A                     (20000) // transitions per second per second
 
 // Stepper Y
 #define STEPPER_Y_ENABLE_PORT               (GPIOM)
@@ -101,6 +113,7 @@
 
 // Stepper motor structure
 typedef struct {
+    TIMER0_Type*           timer;                      // Timer used for the velocity
     GPIO_Type*             dir_port;                   // Port used to set the direction
     uint8_t                dir_pin;                    // Pin used to set the direction
     GPIO_Type*             step_port;                  // Port used to step the motor
@@ -112,6 +125,10 @@ typedef struct {
     int8_t                 dir;                        // +/- 1 based on direction
     int32_t                current_pos;                // Distance (in transitions) along the axis. Measured from home position
     uint16_t               current_vel;                // Velocity (in register values) at the present moment
+    int16_t                x_1;                        // Point where the speed plateaus
+    int16_t                x_2;                        // Point where the speed starts decreasing
+    uint16_t               accel;                      // value to adjust the clock period to accel/deccel
+    uint32_t               time_elapsed;
 } stepper_motors_t;
 
 // Stepper motor command structs

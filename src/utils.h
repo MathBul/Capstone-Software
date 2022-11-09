@@ -198,13 +198,14 @@ bool utils_validate_transmission(uint8_t *data, int count, char check_bytes[2]);
 // Math utilities
 uint16_t utils_bound(uint16_t value, uint16_t lower_bound, uint16_t upper_bound);
 
+
 // Chess utilities
 chess_file_t utils_byte_to_file(uint8_t byte);
 chess_rank_t utils_byte_to_rank(uint8_t byte);
 chess_move_type utils_byte_to_move_type(uint8_t byte);
 
 // Interrupt utils
-void utils_set_nvic(uint8_t interrupt_num);
+void utils_set_nvic(uint8_t interrupt_num, uint8_t priority);
 
 // Command queue utils
 void utils_empty_function();
