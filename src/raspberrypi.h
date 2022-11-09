@@ -22,7 +22,7 @@
 // Mode switch (define one at a time)
 //#define USER_MODE // (user, through UART0 terminal, sends moves to MSP directly)
 #define THREE_PARTY_MODE // (user sends moves to MSP, which sends moves to RPi, which sends moves back)
-#define PROFILING
+//#define PROFILING
 //#define FINAL_IMPLEMENTATION_MODE // (ideally, final implementation w/board reading)
 
 // General Raspberry Pi defines
@@ -100,5 +100,6 @@ void rpi_reset_uart();
 void rpi_transmit_reset(void);
 void rpi_transmit_start(char color);
 void rpi_transmit_human_move(char *move);
+chess_move_t rpi_get_castle_rook_move(chess_move_t *king_move);
 
 #endif /* RASPBERRYPI_H_ */
