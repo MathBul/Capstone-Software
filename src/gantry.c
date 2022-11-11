@@ -14,9 +14,9 @@
 
 // Private functions
 void gantry_limit_stop(uint8_t limit_readings);
-void gantry_home();
-void gantry_reset();
-void gantry_kill();
+void gantry_home(void);
+void gantry_reset(void);
+void gantry_kill(void);
 void gantry_clear_command(gantry_command_t* gantry_command);
 
 // Previous and current chess boards
@@ -33,7 +33,7 @@ extern bool utils_sys_fault;
 /**
  * @brief Initializes all modules
  */
-void gantry_init()
+void gantry_init(void)
 {
     // System clock and timer initializations
     clock_sys_init();
@@ -63,7 +63,7 @@ void gantry_init()
 /**
  * @brief Homes the system then adds a robot command to the queue
  */
-void gantry_start()
+void gantry_start(void)
 {
     gantry_home();
 #if defined(FINAL_IMPLEMENTATION_MODE) || defined(THREE_PARTY_MODE)
@@ -91,7 +91,7 @@ void gantry_limit_stop(uint8_t limit_readings)
 /**
  * @brief Resets the entire system (motors, stored chess boards, UART, etc.)
  */
-void gantry_reset()
+void gantry_reset(void)
 {
     // Clear the command queue
     command_queue_clear();
@@ -122,7 +122,7 @@ void gantry_reset()
 /**
  * @brief Hard stops the gantry system. Kills (but does not home) motors, sets sys_fault flag
  */
-void gantry_kill()
+void gantry_kill(void)
 {
     // Disable all motors
     stepper_x_stop();
@@ -143,7 +143,7 @@ void gantry_kill()
  *
  * @returns Pointer to the dynamically-allocated command
  */
-gantry_command_t* gantry_human_build_command()
+gantry_command_t* gantry_human_build_command(void)
 {
     // The thing to return
     gantry_command_t* p_command = (gantry_command_t*) malloc(sizeof(gantry_command_t));
@@ -286,7 +286,7 @@ bool gantry_human_is_done(command_t* command)
  *
  * @returns Pointer to the dynamically-allocated command
  */
-gantry_command_t* gantry_robot_build_command()
+gantry_command_t* gantry_robot_build_command(void)
 {
     // The thing to return
     gantry_command_t* p_command = (gantry_command_t*)malloc(sizeof(gantry_command_t));
@@ -714,7 +714,7 @@ bool gantry_robot_is_done(command_t* command)
  *
  * @returns Pointer to the dynamically-allocated command
  */
-gantry_command_t* gantry_home_build_command()
+gantry_command_t* gantry_home_build_command(void)
 {
     // The thing to return
     gantry_command_t* p_command = (gantry_command_t*)malloc(sizeof(gantry_command_t));

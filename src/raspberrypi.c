@@ -11,9 +11,9 @@
 #include "raspberrypi.h"
 
 /**
- * @brief Initialize the Raspberry Pi UART tx and rx lines
+ * @brief Initialize the Raspberry Pi UART Tx and Rx lines
  */
-void rpi_init()
+void rpi_init(void)
 {
     uart_init(RPI_UART_CHANNEL);
 }
@@ -72,21 +72,34 @@ bool rpi_receive(char *data, uint8_t num_chars)
 
 /**
  * @brief Send a RESET instruction from the MSP432 to the Raspberry Pi
+ *
+ * @return true if the transmission was successful, false otherwise
  */
-void rpi_transmit_reset(void)
+bool rpi_transmit_reset(void)
 {
-    uart_out_byte(RPI_UART_CHANNEL, (uint8_t) START_BYTE);
-    uart_out_byte(RPI_UART_CHANNEL, (uint8_t) RESET_INSTR_AND_LEN);
+    char message[4];
+    char check_bytes[2];
+
+    message[0] = START_BYTE;
+    message[1] = RESET_INSTR_AND_LEN;
+    utils_fl16_data_to_cbytes((uint8_t *) message, 2, check_bytes);
+    message[2] = check_bytes[0];
+    message[3] = check_bytes[1];
+
+    return rpi_transmit(message, 4);
 }
 
 /**
  * @brief Send a START_W or START_B instruction from the MSP432 to the Raspberry Pi
  * @param color A char representing the color the human player is playing as
+ *
+ * @return true if the transmission was successful, false otherwise
  */
-void rpi_transmit_start(char color)
+bool rpi_transmit_start(char color)
 {
     char message[4];
     char check_bytes[2];
+
     message[0] = START_BYTE;
     if (color == 'W')
     {
@@ -103,34 +116,51 @@ void rpi_transmit_start(char color)
     utils_fl16_data_to_cbytes((uint8_t *) message, 2, check_bytes);
     message[2] = check_bytes[0];
     message[3] = check_bytes[1];
-    rpi_transmit(message, 4);
+
+    return rpi_transmit(message, 4);
 }
 
 /**
  * @brief Send a HUMAN_MOVE instruction from the MSP432 to the Raspberry Pi
- * @param move A null-terminated C-string representing the move the player
- *             wishes to make in UCI notation
+ * @param move A 5-character array containing the human's move in UCI notation
+ *             (4 - 5 characters). If the UCI move is not 5 characters, the
+ *             fifth character should be filled with '_'.
+ *
+ * @return true if the transmission was successful, false otherwise
  */
-void rpi_transmit_human_move(char *move)
+bool rpi_transmit_human_move(char move[5])
 {
-    uart_out_byte(RPI_UART_CHANNEL, (uint8_t) START_BYTE);
-    uart_out_byte(RPI_UART_CHANNEL, (uint8_t) HUMAN_MOVE_INSTR_AND_LEN);
-    char *t;
-    for (t = move; *t != '\0'; t++)
-    {
-        uart_out_byte(RPI_UART_CHANNEL, (uint8_t) *t);
-        utils_delay(50000);
-    }
+    char message[9];
+    char check_bytes[2];
+
+    message[0] = START_BYTE;
+    message[1] = HUMAN_MOVE_INSTR_AND_LEN;
+    message[2] = move[0];
+    message[3] = move[1];
+    message[4] = move[2];
+    message[5] = move[3];
+    message[6] = move[4];
+    utils_fl16_data_to_cbytes((uint8_t *) message, 7, check_bytes);
+    message[7] = check_bytes[0];
+    message[8] = check_bytes[1];
+    return rpi_transmit(message, 9);
 }
 
 /**
- * @brief Clears the tx and rx fifos for RPi communication
+ * @brief Clears the Tx and Rx fifos for RPi communication
  */
-void rpi_reset_uart()
+void rpi_reset_uart(void)
 {
     uart_reset(RPI_UART_CHANNEL);
 }
 
+/**
+ * @brief Given one of four possible castle moves, returns the corresponding move
+ *        the rook will make.
+ *
+ * @param king_move The castle move, which describes how the king moves
+ * @return The corresponding rook move to go with whatever king move was passed in
+ */
 chess_move_t rpi_get_castle_rook_move(chess_move_t *king_move)
 {
     chess_rank_t d_r = king_move->dest_rank;

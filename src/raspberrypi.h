@@ -41,7 +41,7 @@
  *   - 1 byte containing the instruction ID (4 bits)
  *     and the operand length in bytes (4 bits)
  *   - 0 - 5 bytes containing the operand
- *   - 2 bytes containing the checksum for the instruction
+ *   - 2 bytes containing the check bytes for the instruction
  */
 
 // Start byte
@@ -87,15 +87,15 @@ typedef struct chess_move_t {
 } chess_move_t;
 
 // Public Raspberry Pi functions
-void rpi_init();
+void rpi_init(void);
 bool rpi_transmit(char* data, uint8_t num_chars);
 bool rpi_receive(char *data, uint8_t num_chars);
-void rpi_reset_uart();
+void rpi_reset_uart(void);
 
 // Raspberry Pi Instruction functions
-void rpi_transmit_reset(void);
-void rpi_transmit_start(char color);
-void rpi_transmit_human_move(char *move);
+bool rpi_transmit_reset(void);
+bool rpi_transmit_start(char color);
+bool rpi_transmit_human_move(char *move);
 chess_move_t rpi_get_castle_rook_move(chess_move_t *king_move);
 
 #endif /* RASPBERRYPI_H_ */

@@ -16,6 +16,7 @@ static chess_board_t current_board;
 
 /**
  * @brief Initialize chess_board_t presence and piece boards with default values
+ *
  * @param chess_board_t *board A pointer to the chess_board_t to be initialized
  */
 void chessboard_init(chess_board_t *board)
@@ -61,6 +62,7 @@ void chessboard_init(chess_board_t *board)
 
 /**
  * @brief Convert a chess square to its index (0 - 63)
+ *
  * @param char file The char for the square's file
  * @param char rank The char for the square's rank
  * @return The integer representation of the square passed in
@@ -131,6 +133,7 @@ uint8_t chessboard_square_to_index(char file, char rank)
 
 /**
  * @brief Convert an index (0 - 63) to its chess square
+ *
  * @param uint8_t index The index to be converted
  * @param char square[2] A buffer for this method to write the square into
  * @return A char array containing the square
@@ -150,9 +153,11 @@ char* chessboard_index_to_square(uint8_t index, char square[2])
     return square;
 }
 
+// TODO: This may need to be adapted since it assumes there will be exactly two changes in presence
 /**
  * @brief Determine the move the human made (in UCI notation) by comparing
  *        the previous board to the current board.
+ *
  * @param chess_board_t* previous The previous state of the board
  * @param chess_board_t* current The new/current state of the board
  * @param move[5] A buffer for this method to write the move into

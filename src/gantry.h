@@ -36,25 +36,25 @@ typedef struct gantry_command_t {
 } gantry_command_t;
 
 // Public functions
-void gantry_init();
-void gantry_start();
+void gantry_init(void);
+void gantry_start(void);
 
 // Command Functions (reading user input)
-gantry_command_t* gantry_human_build_command();
+gantry_command_t* gantry_human_build_command(void);
 void gantry_human_entry(command_t* command);
 void gantry_human_action(command_t* command);
 void gantry_human_exit(command_t* command);
 bool gantry_human_is_done(command_t* command);
 
 // Command Functions (preparing/performing moves)
-gantry_command_t* gantry_robot_build_command();
+gantry_command_t* gantry_robot_build_command(void);
 void gantry_robot_entry(command_t* command);
 void gantry_robot_action(command_t* command);
 void gantry_robot_exit(command_t* command);
 bool gantry_robot_is_done(command_t* command);
 
 // Command Functions (homing the system)
-gantry_command_t* gantry_home_build_command();
+gantry_command_t* gantry_home_build_command(void);
 void gantry_home_entry(command_t* command);
 void gantry_home_action(command_t* command);
 void gantry_home_exit(command_t* command);
