@@ -33,6 +33,7 @@
 typedef struct gantry_command_t {
     command_t command;
     chess_move_t move;              // All the info about a chess move
+    game_status_t game_status;      // The current state of the game, as reported by the Pi (ongoing, ended)
 } gantry_command_t;
 
 // Public functions

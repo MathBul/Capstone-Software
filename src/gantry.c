@@ -28,6 +28,7 @@ static bool gantry_homing = false;
 static bool robot_is_done = false;
 static bool human_is_done = false;
 static bool comm_error = false;
+static bool game_over = false;
 extern bool utils_sys_fault;
 
 /**
@@ -161,6 +162,9 @@ gantry_command_t* gantry_human_build_command(void)
     p_command->move.dest_rank   = RANK_ERROR;
     p_command->move.move_type   = IDLE;
 
+    // Game Status
+    p_command->game_status = ONGOING;
+
     return p_command;
 }
 
@@ -178,23 +182,11 @@ void gantry_human_action(command_t* command)
     // Interpret the board state
     chessboard_get_move(&previous_board, &current_board, move);
 
-    // This will always be a HUMAN_MOVE instruction
-    message[0] = START_BYTE;
-    message[1] = HUMAN_MOVE_INSTR_AND_LEN;
-    message[2] = move[0];
-    message[3] = move[1];
-    message[4] = move[2];
-    message[5] = move[3];
-    message[6] = move[4];
-    utils_fl16_data_to_cbytes((uint8_t *) message, 7, check_bytes);
-    message[7] = check_bytes[0];
-    message[8] = check_bytes[1];
-
     // Place the gantry_move command on the queue
     command_queue_push((command_t*)gantry_human_build_command());
 
     // Transmit the move to the RPi (9 bytes long)
-    rpi_transmit(message, 9);
+    rpi_transmit_human_move(move, 9);
 #endif
 
 #ifdef THREE_PARTY_MODE
@@ -204,7 +196,6 @@ void gantry_human_action(command_t* command)
     char check_bytes[2];
     char pi_message[9];
     uint8_t instr;
-    uint8_t op_len;
 
     // First, read the first two bytes of the entire message from terminal
     if (uart_receive(USER_CHANNEL, &first_byte, 1))
@@ -214,7 +205,6 @@ void gantry_human_action(command_t* command)
             if (uart_receive(USER_CHANNEL, &instr_op_len, 1))
             {
                 instr = instr_op_len >> 4;
-                op_len = instr_op_len & (~0xF0);
                 if (instr == HUMAN_MOVE_INSTR)
                 {
                     if (uart_receive(USER_CHANNEL, move, 5))
@@ -304,6 +294,9 @@ gantry_command_t* gantry_robot_build_command(void)
     p_command->move.dest_rank   = RANK_ERROR;
     p_command->move.move_type   = IDLE;
 
+    // Game Status
+    p_command->game_status = ONGOING;
+
     return p_command;
 }
 
@@ -370,10 +363,12 @@ void gantry_robot_action(command_t* command)
     char first_byte = 0;
     char instr_op_len = 0;
     char move[5];
+    char game_status = 0;
     char check_bytes[2];
-    char message[7];
+    char message[8];
     uint8_t instr;
-    uint8_t op_len;
+    uint8_t status_after_human;
+    uint8_t status_after_robot;
 
     // First, read the first two bytes of the entire message
     if (rpi_receive(&first_byte, 1))
@@ -383,28 +378,69 @@ void gantry_robot_action(command_t* command)
             if (rpi_receive(&instr_op_len, 1))
             {
                 instr = instr_op_len >> 4;
-                op_len = instr_op_len & (~0xF0);
                 if (instr == ROBOT_MOVE_INSTR)
                 {
                     if (rpi_receive(move, 5))
                     {
-                        p_gantry_command->move.source_file = utils_byte_to_file(move[0]);
-                        p_gantry_command->move.source_rank = utils_byte_to_rank(move[1]);
-                        p_gantry_command->move.dest_file = utils_byte_to_file(move[2]);
-                        p_gantry_command->move.dest_rank = utils_byte_to_rank(move[3]);
-                        p_gantry_command->move.move_type = utils_byte_to_move_type(move[4]);
-                        message[0] = first_byte;
-                        message[1] = instr_op_len;
-                        message[2] = move[0];
-                        message[3] = move[1];
-                        message[4] = move[2];
-                        message[5] = move[3];
-                        message[6] = move[4];
-                        rpi_receive(check_bytes, 2);
-                        if (utils_validate_transmission((uint8_t *) message, 7, check_bytes))
+                        if (rpi_receive(&game_status, 1))
                         {
-                            // Checksum error; corrupted data
-                            robot_is_done = true;
+                            message[0] = first_byte;
+                            message[1] = instr_op_len;
+                            message[2] = move[0];
+                            message[3] = move[1];
+                            message[4] = move[2];
+                            message[5] = move[3];
+                            message[6] = move[4];
+                            message[7] = game_status;
+                            rpi_receive(check_bytes, 2);
+                            if (utils_validate_transmission((uint8_t *) message, 8, check_bytes))
+                            {
+                                status_after_human = game_status >> 4;
+                                status_after_robot = game_status & (~0xF0);
+                                if (status_after_human == GAME_CHECKMATE)
+                                {
+                                    // If the human ended the game, don't let the robot move
+                                    p_gantry_command->game_status = HUMAN_WIN;
+                                    p_gantry_command->move.move_type = IDLE;
+                                }
+                                else if (status_after_robot == GAME_CHECKMATE)
+                                {
+                                    p_gantry_command->game_status = ROBOT_WIN;
+                                    // Let the robot make its final move
+                                    p_gantry_command->move.source_file = utils_byte_to_file(move[0]);
+                                    p_gantry_command->move.source_rank = utils_byte_to_rank(move[1]);
+                                    p_gantry_command->move.dest_file = utils_byte_to_file(move[2]);
+                                    p_gantry_command->move.dest_rank = utils_byte_to_rank(move[3]);
+                                    p_gantry_command->move.move_type = utils_byte_to_move_type(move[4]);
+                                }
+                                else if (status_after_human == GAME_STALEMATE)
+                                {
+                                    // If the human ended the game, don't let the robot move
+                                    p_gantry_command->game_status = STALEMATE;
+                                    p_gantry_command->move.move_type = IDLE;
+                                }
+                                else if (status_after_robot == GAME_STALEMATE)
+                                {
+                                    p_gantry_command->game_status = STALEMATE;
+                                    // Let the robot make its final move
+                                    p_gantry_command->move.source_file = utils_byte_to_file(move[0]);
+                                    p_gantry_command->move.source_rank = utils_byte_to_rank(move[1]);
+                                    p_gantry_command->move.dest_file = utils_byte_to_file(move[2]);
+                                    p_gantry_command->move.dest_rank = utils_byte_to_rank(move[3]);
+                                    p_gantry_command->move.move_type = utils_byte_to_move_type(move[4]);
+                                }
+                                else
+                                {
+                                    // When both moves continue the game, proceed as usual
+                                    p_gantry_command->game_status = ONGOING;
+                                    p_gantry_command->move.source_file = utils_byte_to_file(move[0]);
+                                    p_gantry_command->move.source_rank = utils_byte_to_rank(move[1]);
+                                    p_gantry_command->move.dest_file = utils_byte_to_file(move[2]);
+                                    p_gantry_command->move.dest_rank = utils_byte_to_rank(move[3]);
+                                    p_gantry_command->move.move_type = utils_byte_to_move_type(move[4]);
+                                }
+                                robot_is_done = true;
+                            }
                         }
                     }
                 }
@@ -695,7 +731,10 @@ void gantry_robot_exit(command_t* command)
     // snc = sensor_network_build_command()
     // command_queue_push(snc)
      // Do it again !
-     command_queue_push((command_t*)gantry_human_build_command());
+     if (p_gantry_command->game_status == ONGOING)
+     {
+         command_queue_push((command_t*)gantry_human_build_command());
+     }
 }
 
 /**
