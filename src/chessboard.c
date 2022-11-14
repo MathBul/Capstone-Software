@@ -197,7 +197,6 @@ char* chessboard_get_move(chess_board_t* previous, chess_board_t* current, char 
             else
             {
                 index2 = i;
-                break;
             }
         }
     }

@@ -395,6 +395,7 @@ void gantry_robot_action(command_t* command)
                             rpi_receive(check_bytes, 2);
                             if (utils_validate_transmission((uint8_t *) message, 8, check_bytes))
                             {
+                                rpi_transmit_ack();
                                 status_after_human = game_status >> 4;
                                 status_after_robot = game_status & (~0xF0);
                                 if (status_after_human == GAME_CHECKMATE)
@@ -452,6 +453,7 @@ void gantry_robot_action(command_t* command)
                     rpi_receive(check_bytes, 2);
                     if (utils_validate_transmission((uint8_t *) message, 2, check_bytes))
                     {
+                        rpi_transmit_ack();
                         p_gantry_command->move.move_type = IDLE;
                         robot_is_done = true;
                     }

@@ -147,6 +147,16 @@ bool rpi_transmit_human_move(char move[5])
 }
 
 /**
+ * @brief Send an ACK signal to the Raspberry Pi
+ *
+ * @return true if the transmission was successful, false otherwise
+ */
+bool rpi_transmit_ack(void)
+{
+    return uart_out_byte(RPI_UART_CHANNEL, (uint8_t) ACK_BYTE);
+}
+
+/**
  * @brief Clears the Tx and Rx fifos for RPi communication
  */
 void rpi_reset_uart(void)

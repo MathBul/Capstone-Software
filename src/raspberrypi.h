@@ -44,8 +44,9 @@
  *   - 2 bytes containing the check bytes for the instruction
  */
 
-// Start byte
+// Start byte + ACK signal
 #define START_BYTE                          (0x0A)
+#define ACK_BYTE                            (0x0F)
 
 // Individual instruction IDs
 #define RESET_INSTR                         (0x00)
@@ -103,6 +104,7 @@ void rpi_reset_uart(void);
 bool rpi_transmit_reset(void);
 bool rpi_transmit_start(char color);
 bool rpi_transmit_human_move(char *move);
+bool rpi_transmit_ack(void);
 chess_move_t rpi_get_castle_rook_move(chess_move_t *king_move);
 
 #endif /* RASPBERRYPI_H_ */
