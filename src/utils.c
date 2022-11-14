@@ -367,6 +367,38 @@ chess_move_type utils_byte_to_move_type(uint8_t byte)
     return type;
 }
 
+void utils_get_board_changes(uint64_t changes_in_presence, board_changes_t *board_changes)
+{
+    int i;
+    // Find set bits (1s) in changes_in_presence
+    for (i = 0; i < 64; i++)
+    {
+        // If a set bit is found in some bit position i, store its index
+        if ((changes_in_presence >> i) & 0x01)
+        {
+            board_changes->num_changes += 1;
+            // On the first set bit seen, store in index1
+            if (board_changes->num_changes == 1)
+            {
+                board_changes->index1 = i;
+            }
+            // On the second set bit seen, store in index2
+            else if (board_changes->num_changes == 2)
+            {
+                board_changes->index2 = i;
+            }
+            else if (board_changes->num_changes == 3)
+            {
+                board_changes->index3 = i;
+            }
+            else if (board_changes->num_changes == 4)
+            {
+                board_changes->index4 = i;
+            }
+        }
+    }
+}
+
 /**
  * @brief Sets the correct ISER bit in the NVIC
  */

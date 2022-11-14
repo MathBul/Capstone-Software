@@ -181,6 +181,15 @@ typedef union utils_vport64_t {
     utils_bits64_t bitfield;
 } utils_vport64_t;
 
+// A struct for storing indices of board state changes
+typedef struct board_changes_t {
+    uint8_t num_changes;
+    uint8_t index1;
+    uint8_t index2;
+    uint8_t index3;
+    uint8_t index4;
+} board_changes_t;
+
 // GPIO utility functions
 void utils_gpio_clock_enable(GPIO_Type* port);
 void utils_delay(uint32_t ticks);
@@ -203,6 +212,7 @@ uint16_t utils_bound(uint16_t value, uint16_t lower_bound, uint16_t upper_bound)
 chess_file_t utils_byte_to_file(uint8_t byte);
 chess_rank_t utils_byte_to_rank(uint8_t byte);
 chess_move_type utils_byte_to_move_type(uint8_t byte);
+void utils_get_board_changes(uint64_t changes_in_presence, board_changes_t *board_changes);
 
 // Interrupt utils
 void utils_set_nvic(uint8_t interrupt_num, uint8_t priority);

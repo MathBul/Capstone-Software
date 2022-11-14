@@ -15,6 +15,21 @@
 #define CHESSBOARD_H_
 
 #include <stdint.h>
+#include <stdbool.h>
+#include "utils.h"
+
+/* Changes in board presence that correspond to particular castling moves */
+// 00000000 00000000 00000000 00000000 00000000 00000000 00000000 11110000 (e1g1)
+#define CASTLE_WHITE_K (0xF0)
+
+// 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00011101 (e1c1)
+#define CASTLE_WHITE_Q (0x1D)
+
+// 11110000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 (e8g8)
+#define CASTLE_BLACK_K (0xF000000000000000)
+
+// 00011101 00000000 00000000 00000000 00000000 00000000 00000000 00000000 (e8c8)
+#define CASTLE_BLACK_Q (0x1D00000000000000)
 
 typedef struct {
     uint64_t board_presence;
@@ -24,7 +39,7 @@ typedef struct {
 void chessboard_init(chess_board_t *board);
 uint8_t chessboard_square_to_index(char file, char rank);
 char* chessboard_index_to_square(uint8_t index, char square[2]);
-char* chessboard_get_move(chess_board_t* previous, chess_board_t* current, char move[5]);
+bool chessboard_get_move(chess_board_t* previous, chess_board_t* current, char move[5]);
 void chessboard_reset(void);
 
 #endif /* CHESSBOARD_H_ */

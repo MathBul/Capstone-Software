@@ -161,8 +161,10 @@ char* chessboard_index_to_square(uint8_t index, char square[2])
  * @param chess_board_t* previous The previous state of the board
  * @param chess_board_t* current The new/current state of the board
  * @param move[5] A buffer for this method to write the move into
+ *
+ * @return false if move is definitely illegal, true otherwise
  */
-char* chessboard_get_move(chess_board_t* previous, chess_board_t* current, char move[5])
+bool chessboard_get_move(chess_board_t* previous, chess_board_t* current, char move[5])
 {
     // Get presence boards
     uint64_t previous_presence = previous->board_presence;
@@ -170,57 +172,99 @@ char* chessboard_get_move(chess_board_t* previous, chess_board_t* current, char 
 
     // Find the changes in presence
     uint64_t changes_in_presence = previous_presence ^ current_presence;
-    uint8_t num_changes_in_presence = 0;
+    board_changes_t board_changes;
+    board_changes.num_changes = 0;
+    board_changes.index1 = 0xFF;
+    board_changes.index2 = 0xFF;
+    board_changes.index3 = 0xFF;
+    board_changes.index4 = 0xFF;
 
-    int i = 0;
-    // Indices of changes (initialized to impossible values for indices)
-    uint8_t index1 = 0xFF;
-    uint8_t index2 = 0xFF;
+    // Store the indices of changes in presence in board_changes struct
+    utils_get_board_changes(changes_in_presence, &board_changes);
+    uint8_t num_changes = board_changes.num_changes;
 
-    // Where to temporarily store the initial and final squares
-    char square_initial[2];
-    char square_final[2];
-
-    // Find set bits (1s) in changes_in_presence
-    for (i = 0; i < 64; i++)
+    // Likely a non-special move
+    if (num_changes == 2)
     {
-        // If a set bit is found in some bit position i, store its index
-        if ((changes_in_presence >> i) & 0x01)
+        // Where to temporarily store the initial and final squares
+        char square_initial[2];
+        char square_final[2];
+
+        // Indices of changed sqaures
+        uint8_t index1 = board_changes.index1;
+        uint8_t index2 = board_changes.index2;
+
+        /* If index1 was a 1 on the previous board, a piece was there, meaning it was
+           the initial square */
+        if((previous_presence >> index1) & 0x01)
         {
-            num_changes_in_presence += 1;
-            // On the first set bit seen, store in index1
-            if (index1 == 0xFF)
-            {
-                index1 = i;
-            }
-            // On the second set bit seen, store in index2
-            else
-            {
-                index2 = i;
-            }
+            chessboard_index_to_square(index1, square_initial);
+            chessboard_index_to_square(index2, square_final);
+        }
+        /* Otherwise, index1 was a 0, meaning no piece was there, meaning it was the
+           final square */
+        else
+        {
+            chessboard_index_to_square(index1, square_final);
+            chessboard_index_to_square(index2, square_initial);
+        }
+        move[0] = square_initial[0];
+        move[1] = square_initial[1];
+        move[2] = square_final[0];
+        move[3] = square_final[1];
+        move[4] = '_';
+        return true;
+    }
+    // Likely a castling move
+    else if (num_changes == 4)
+    {
+        if (changes_in_presence == CASTLE_WHITE_K)
+        {
+            move[0] = 'e';
+            move[1] = '1';
+            move[2] = 'g';
+            move[3] = '1';
+            move[4] = '_';
+            return true;
+        }
+        else if (changes_in_presence == CASTLE_WHITE_Q)
+        {
+            move[0] = 'e';
+            move[1] = '1';
+            move[2] = 'c';
+            move[3] = '1';
+            move[4] = '_';
+            return true;
+        }
+        else if (changes_in_presence == CASTLE_BLACK_K)
+        {
+            move[0] = 'e';
+            move[1] = '8';
+            move[2] = 'g';
+            move[3] = '8';
+            move[4] = '_';
+            return true;
+        }
+        else if (changes_in_presence == CASTLE_BLACK_Q)
+        {
+            move[0] = 'e';
+            move[1] = '8';
+            move[2] = 'c';
+            move[3] = '8';
+            move[4] = '_';
+            return true;
+        }
+        else
+        {
+            // Must be an illegal move
+            return false;
         }
     }
-
-    /* If index1 was a 1 on the previous board, a piece was there, meaning it was
-       the initial square */
-    if ((previous_presence >> index1) & 0x01)
-    {
-        chessboard_index_to_square(index1, square_initial);
-        chessboard_index_to_square(index2, square_final);
-    }
-    /* Otherwise, index1 was a 0, meaning no piece was there, meaning it was the
-       final square */
     else
     {
-        chessboard_index_to_square(index2, square_initial);
-        chessboard_index_to_square(index1, square_final);
+        // Must be an illegal move
+        return false;
     }
-    move[0] = square_initial[0];
-    move[1] = square_initial[1];
-    move[2] = square_final[0];
-    move[3] = square_final[1];
-    move[4] = '_';
-    return move;
 }
 
 /**
