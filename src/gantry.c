@@ -27,6 +27,7 @@ static chess_board_t current_board;
 static bool gantry_homing = false;
 static bool robot_is_done = false;
 static bool human_is_done = false;
+static bool msp_illegal_move = false;
 static bool comm_error = false;
 static bool game_over = false;
 extern bool utils_sys_fault;
@@ -173,20 +174,28 @@ void gantry_human_action(command_t* command)
 #ifdef FINAL_IMPLEMENTATION_MODE
     // Read the current board state
     uint64_t board_reading = sensor_get_reading();
+    current_board.board_presence = board_reading;
 
-    // Set up char arrays
+    // Set up a move array
     char move[5];
-    char check_bytes[2];
-    char message[9];
 
-    // Interpret the board state
-    chessboard_get_move(&previous_board, &current_board, move);
+    // Interpret the board state, store the interpreted move into move var
+    if (chessboard_get_move(&previous_board, &current_board, move))
+    {
+        // Got a move that may or may not be legal, Pi will determine
+        ;
+    }
+    else
+    {
+        // Definitely illegal move
+        msp_illegal_move = true;
+    }
 
     // Place the gantry_move command on the queue
     command_queue_push((command_t*)gantry_human_build_command());
 
     // Transmit the move to the RPi (9 bytes long)
-    rpi_transmit_human_move(move, 9);
+    rpi_transmit_human_move(move);
 #endif
 
 #ifdef THREE_PARTY_MODE
@@ -245,11 +254,21 @@ void gantry_human_action(command_t* command)
  */
 void gantry_human_exit(command_t* command)
 {
+#ifdef FINAL_IMPLEMENTATION_MODE
+    // TODO: Should we transmit here?
     // Place the gantry_move command on the queue
     command_queue_push((command_t*)gantry_robot_build_command());
 
     // Reset flag
     human_is_done = false;
+#endif
+#ifdef THREE_PARTY_MODE
+    // Place the gantry_move command on the queue
+    command_queue_push((command_t*)gantry_robot_build_command());
+
+    // Reset flag
+    human_is_done = false;
+#endif
 }
 
 /**
@@ -358,7 +377,7 @@ void gantry_robot_action(command_t* command)
     }
 #endif /* USER_MODE */
 
-#if defined(KEENAN_TEST) || defined(THREE_PARTY_MODE)
+#if defined(FINAL_IMPLEMENTATION_MODE) || defined(THREE_PARTY_MODE)
     gantry_command_t* p_gantry_command = (gantry_command_t*) command;
     char first_byte = 0;
     char instr_op_len = 0;
@@ -461,7 +480,7 @@ void gantry_robot_action(command_t* command)
             }
         }
     }
-#endif /* KEENAN_TEST || THREE_PARTY_MODE */
+#endif /* THREE_PARTY_MODE */
 }
 
 /**
@@ -531,8 +550,80 @@ void gantry_robot_exit(command_t* command)
 
              gantry_home();
          break;
+
          case PROMOTION:
              // TODO
+             // Error checking
+              if (p_gantry_command->move.source_file == FILE_ERROR || p_gantry_command->move.source_rank == RANK_ERROR)
+              {
+                  break;
+              }
+
+              // Go to the promoted pawn's tile
+              command_queue_push
+              (
+                  (command_t*)stepper_build_chess_command
+                  (
+                      p_gantry_command->move.source_file, // file
+                      p_gantry_command->move.source_rank, // rank
+                      EMPTY,                            // piece
+                      1,                                // v_x
+                      1,                                // v_y
+                      0                                 // v_z
+                  )
+              );
+              // wait
+              command_queue_push((command_t*)delay_build_command(1000));
+
+              // Take the pawn being promoted off the board
+              command_queue_push
+              (
+                  (command_t*)stepper_build_chess_command
+                  (
+                      CAPTURE_FILE, // file
+                      CAPTURE_RANK, // rank
+                      EMPTY,                            // piece
+                      1,                                // v_x
+                      1,                                // v_y
+                      0                                 // v_z
+                  )
+              );
+              // wait
+              command_queue_push((command_t*)delay_build_command(1000));
+
+              // Go to the magical **queen tile**
+              command_queue_push
+              (
+                  (command_t*)stepper_build_chess_command
+                  (
+                      CAPTURE_FILE, // file // TODO
+                      CAPTURE_RANK, // rank // TODO
+                      EMPTY,                            // piece
+                      1,                                // v_x
+                      1,                                // v_y
+                      0                                 // v_z
+                  )
+              );
+              // wait
+              command_queue_push((command_t*)delay_build_command(1000));
+
+              // Move the queen to the destination tile
+              command_queue_push
+              (
+                  (command_t*)stepper_build_chess_command
+                  (
+                      p_gantry_command->move.dest_file, // file
+                      p_gantry_command->move.dest_rank, // rank
+                      EMPTY,                            // piece
+                      1,                                // v_x
+                      1,                                // v_y
+                      0                                 // v_z
+                  )
+              );
+              // wait
+              command_queue_push((command_t*)delay_build_command(1000));
+
+              gantry_home();
          break;
         
          case CAPTURE:
@@ -715,7 +806,78 @@ void gantry_robot_exit(command_t* command)
          break;
 
          case EN_PASSENT:
-             // TODO
+             // Error checking
+              if (p_gantry_command->move.source_file == FILE_ERROR || p_gantry_command->move.source_rank == RANK_ERROR)
+              {
+                  break;
+              }
+              /* With an en passant capture, the captured pawn will have
+               * the moving pawn's *source rank* and *destination file*. */
+
+              // Capture the pawn being en passant'd
+              command_queue_push
+              (
+                  (command_t*)stepper_build_chess_command
+                  (
+                      p_gantry_command->move.dest_file, // file
+                      p_gantry_command->move.source_rank, // rank
+                      EMPTY,                            // piece
+                      1,                                // v_x
+                      1,                                // v_y
+                      0                                 // v_z
+                  )
+              );
+              // wait
+              command_queue_push((command_t*)delay_build_command(1000));
+
+              // Move the en passant'd pawn to the capture rank and file
+              command_queue_push
+              (
+                  (command_t*)stepper_build_chess_command
+                  (
+                      CAPTURE_FILE, // file
+                      CAPTURE_RANK, // rank
+                      EMPTY,                            // piece
+                      1,                                // v_x
+                      1,                                // v_y
+                      0                                 // v_z
+                  )
+              );
+              // wait
+              command_queue_push((command_t*)delay_build_command(1000));
+
+              // Go to moving pawn's initial position
+              command_queue_push
+              (
+                  (command_t*)stepper_build_chess_command
+                  (
+                      p_gantry_command->move.source_file, // file
+                      p_gantry_command->move.source_rank, // rank
+                      EMPTY,                            // piece
+                      1,                                // v_x
+                      1,                                // v_y
+                      0                                 // v_z
+                  )
+              );
+              // wait
+              command_queue_push((command_t*)delay_build_command(1000));
+
+              // Take the moving pawn to its final position
+              command_queue_push
+              (
+                  (command_t*)stepper_build_chess_command
+                  (
+                      p_gantry_command->move.dest_file, // file
+                      p_gantry_command->move.dest_rank, // rank
+                      EMPTY,                            // piece
+                      1,                                // v_x
+                      1,                                // v_y
+                      0                                 // v_z
+                  )
+              );
+
+              gantry_home();
+
          break;
 
          case IDLE:
@@ -796,7 +958,6 @@ bool gantry_home_is_done(command_t* command)
 {
     return true;
 }
-
 
 /**
  * @brief Homes the gantry system (motors all the way up, right, back -- from point-of-view of the robot)
