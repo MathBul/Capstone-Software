@@ -254,7 +254,7 @@ bool chessboard_get_move(chess_board_t* previous, chess_board_t* current, char m
         uint8_t sq_initial_file_ind = chessboard_ind_to_file_ind(sq_initial_index);
         uint8_t sq_initial_rank_ind = chessboard_ind_to_rank_ind(sq_initial_index);
         if (chessboard_is_promotion(square_initial[1], square_final[1],
-                                    current->board_pieces[sq_initial_rank_ind][sq_initial_rank_ind]))
+                                    current->board_pieces[sq_initial_rank_ind][sq_initial_file_ind]))
         {
             move[4] = 'Q';
         }
