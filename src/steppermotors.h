@@ -47,19 +47,6 @@
 #define STEPPER_HOME_DISTANCE               (999)
 #define STEPPER_HOME_VELOCITY               (1)
 
-#define STEPPER_X_TIMER                     (TIMER0)
-#define STEPPER_X_HANDLER                   (TIMER0A_IRQHandler)
-#define STEPPER_X_INITIAL_PERIOD            (23999)
-
-#define STEPPER_Y_TIMER                     (TIMER1)
-#define STEPPER_Y_HANDLER                   (TIMER1A_IRQHandler)
-#define STEPPER_Y_INITIAL_PERIOD            (23999)
-
-#define STEPPER_Z_TIMER                     (TIMER2)
-#define STEPPER_Z_HANDLER                   (TIMER2A_IRQHandler)
-#define STEPPER_Z_INITIAL_PERIOD            (23999)
-
-
 // Stepper X
 #define STEPPER_X_ENABLE_PORT               (GPIOD)
 #define STEPPER_X_ENABLE_PIN                (GPIO_PIN_2)
@@ -74,8 +61,11 @@
 #define STEPPER_X_DIR_PORT                  (GPION)
 #define STEPPER_X_DIR_PIN                   (GPIO_PIN_5)
 #define STEPPER_X_ID                        (0)
-#define STEPPER_X_MAX_V                     (3000) // transitions per second
-#define STEPPER_X_MAX_A                     (10000) // transitions per second per second
+#define STEPPER_X_MAX_V                     (3000)      // transitions per second
+#define STEPPER_X_MAX_A                     (10000)     // transitions per second per second
+#define STEPPER_X_TIMER                     (TIMER0)
+#define STEPPER_X_HANDLER                   (TIMER0A_IRQHandler)
+#define STEPPER_X_INITIAL_PERIOD            (23999)
 
 // Stepper Y
 #define STEPPER_Y_ENABLE_PORT               (GPIOM)
@@ -91,9 +81,11 @@
 #define STEPPER_Y_DIR_PORT                  (GPIOM)
 #define STEPPER_Y_DIR_PIN                   (GPIO_PIN_1)
 #define STEPPER_Y_ID                        (1)
-#define STEPPER_Y_MAX_V                     (3000) // transitions per second
-#define STEPPER_Y_MAX_A                     (10000) // transitions per second per second
-
+#define STEPPER_Y_MAX_V                     (3000)      // transitions per second
+#define STEPPER_Y_MAX_A                     (10000)     // transitions per second per second
+#define STEPPER_Y_TIMER                     (TIMER1)
+#define STEPPER_Y_HANDLER                   (TIMER1A_IRQHandler)
+#define STEPPER_Y_INITIAL_PERIOD            (23999)
 
 // Stepper Z
 #define STEPPER_Z_ENABLE_PORT               (GPIOF)
@@ -109,9 +101,11 @@
 #define STEPPER_Z_DIR_PORT                  (GPIOL)
 #define STEPPER_Z_DIR_PIN                   (GPIO_PIN_5)
 #define STEPPER_Z_ID                        (2)
-#define STEPPER_Z_MAX_V                     (500) // transitions per second
-#define STEPPER_Z_MAX_A                     (2000) // transitions per second per second
-
+#define STEPPER_Z_MAX_V                     (500)       // transitions per second
+#define STEPPER_Z_MAX_A                     (2000)      // transitions per second per second
+#define STEPPER_Z_TIMER                     (TIMER2)
+#define STEPPER_Z_HANDLER                   (TIMER2A_IRQHandler)
+#define STEPPER_Z_INITIAL_PERIOD            (23999)
 
 // Speeds
 #define STEPPER_MAX_SPEED                   (250)      // mm/s
@@ -134,7 +128,7 @@ typedef struct {
     int16_t                x_1;                        // Point where the speed plateaus
     int16_t                x_2;                        // Point where the speed starts decreasing
     uint16_t               max_accel;                  // value to adjust the clock period to accel/deccel
-    uint32_t               time_elapsed;
+    uint32_t               time_elapsed;               // TODO: Remove once motion profiling is done
 } stepper_motors_t;
 
 // Stepper motor command structs

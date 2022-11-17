@@ -115,5 +115,4 @@ bool electromagnet_is_done(command_t* command)
     return true;
 }
 
-
 /* End electromagnet.c */

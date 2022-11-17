@@ -81,49 +81,49 @@ void sensors_init()
 void sensors_select_tile(chess_file_t file, chess_rank_t rank)
 {
     // Set the row select lines
-    if (file == A) // Select == 000
+    if (file == A)          // Select == 000
     {
         gpio_set_output_low(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
         gpio_set_output_low(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
         gpio_set_output_low(sensor_row_select_1->line_port, sensor_row_select_1->line_pin);
     } 
-    else if (file == B) // Select == 001
+    else if (file == B)     // Select == 001
     {
         gpio_set_output_low(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
         gpio_set_output_low(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
         gpio_set_output_high(sensor_row_select_1->line_port, sensor_row_select_1->line_pin);
     } 
-    else if (file == C) // Select == 010
+    else if (file == C)     // Select == 010
     {
         gpio_set_output_low(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
         gpio_set_output_high(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
         gpio_set_output_low(sensor_row_select_1->line_port, sensor_row_select_1->line_pin);
     } 
-    else if (file == D) // Select == 011
+    else if (file == D)     // Select == 011
     {
         gpio_set_output_low(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
         gpio_set_output_high(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
         gpio_set_output_high(sensor_row_select_1->line_port, sensor_row_select_1->line_pin);
     } 
-    else if (file == E) // Select == 100
+    else if (file == E)     // Select == 100
     {
         gpio_set_output_high(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
         gpio_set_output_low(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
         gpio_set_output_low(sensor_row_select_1->line_port, sensor_row_select_1->line_pin);
     } 
-    else if (file == F) // Select == 101
+    else if (file == F)     // Select == 101
     {
         gpio_set_output_high(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
         gpio_set_output_low(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
         gpio_set_output_high(sensor_row_select_1->line_port, sensor_row_select_1->line_pin);
     } 
-    else if (file == G) // Select == 110
+    else if (file == G)     // Select == 110
     {
         gpio_set_output_high(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
         gpio_set_output_high(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
         gpio_set_output_low(sensor_row_select_1->line_port, sensor_row_select_1->line_pin);
     } 
-    else if (file == H) // Select == 111
+    else if (file == H)     // Select == 111
     {
         gpio_set_output_high(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
         gpio_set_output_high(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
@@ -131,7 +131,7 @@ void sensors_select_tile(chess_file_t file, chess_rank_t rank)
     }
 
     // Set the column select lines
-    if (rank == FIRST) // Select == 000
+    if (rank == FIRST)      // Select == 000
     {
         gpio_set_output_low(sensor_col_select_3->line_port, sensor_col_select_3->line_pin);
         gpio_set_output_low(sensor_col_select_2->line_port, sensor_col_select_2->line_pin);

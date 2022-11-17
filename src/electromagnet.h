@@ -45,5 +45,4 @@ electromagnet_command_t* electromagnet_build_command(peripheral_state_t desired_
 void electromagnet_entry(command_t* command);
 bool electromagnet_is_done(command_t* command);
 
-
 #endif /* ELECTROMAGNET_H_ */

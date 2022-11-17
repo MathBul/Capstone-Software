@@ -27,11 +27,15 @@
 // General utility macros
 #define BITS8_MASK(shift)                   ((uint8_t) (1 << shift))
 #define BITS64_MASK(shift)                  ((uint64_t) (1ULL << shift))
+
+// Chess-specific macros
 #define SQUARE_CENTER_TO_CENTER             (48)    // mm
 #define SQUARE_X_INITIAL                    (-115)  // mm
 #define SQUARE_Y_INITIAL                    (30)    // mm
 #define CAPTURE_X                           (-20)
 #define CAPTURE_Y                           (SQUARE_Y_INITIAL + 5*SQUARE_CENTER_TO_CENTER)
+
+// Motor-specific macros
 #define HOMING_X_BACKOFF                    (-6)    // mm
 #define HOMING_Y_BACKOFF                    (6)     // mm
 #define HOMING_Z_BACKOFF                    (0)     // mm
@@ -40,7 +44,7 @@
 #define HOMING_Z_VELOCITY                   (0)     // mm
 #define HOMING_DELAY_MS                     (100)   // ms
 
-// Bitfield for peripheral imaging (accessing RAM)
+// Bitfield for peripheral imaging (accessing 8-bit volatile memory)
 typedef struct {
     volatile unsigned bit_0 : 1;
     volatile unsigned bit_1 : 1;
@@ -52,7 +56,7 @@ typedef struct {
     volatile unsigned bit_7 : 1;
 } utils_bits8_t;
 
-// Bitfield for peripheral imaging (accessing RAM)
+// Bitfield for peripheral imaging (accessing 64-bit volatile memory)
 typedef struct {
     volatile unsigned bit_0  : 1;
     volatile unsigned bit_1  : 1;
@@ -206,7 +210,6 @@ bool utils_validate_transmission(uint8_t *data, int count, char check_bytes[2]);
 
 // Math utilities
 uint16_t utils_bound(uint16_t value, uint16_t lower_bound, uint16_t upper_bound);
-
 
 // Chess utilities
 chess_file_t utils_byte_to_file(uint8_t byte);

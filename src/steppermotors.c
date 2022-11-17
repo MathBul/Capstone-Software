@@ -24,6 +24,7 @@ static uint32_t stepper_distance_to_transitions(int32_t distance);
 static uint32_t stepper_velocity_to_timer_period(uint16_t velocity);
 static void stepper_interrupt_activity(uint8_t stepper_id);
 static int16_t stepper_get_current_pos(uint8_t stepper_id);
+static void stepper_update_velocities(uint16_t v_x, uint16_t v_y, uint16_t v_z, uint16_t maz_a_x, uint16_t maz_a_y, uint16_t maz_a_z);
 
 // Declare the stepper motors
 stepper_motors_t stepper_motors[NUMBER_OF_STEPPER_MOTORS];
@@ -266,7 +267,7 @@ static void stepper_enable_all_motors()
 }
 
 /**
- * @brief Disables the STEPPER_X motor
+ * @brief Disables the STEPPER_X motor and clears the transitions left
  * 
  */
 void stepper_x_stop()
@@ -277,7 +278,7 @@ void stepper_x_stop()
 }
 
 /**
- * @brief Disables the STEPPER_Y motor
+ * @brief Disables the STEPPER_Y motor and clears the transitions left
  * 
  */
 void stepper_y_stop()
@@ -288,7 +289,7 @@ void stepper_y_stop()
 }
 
 /**
- * @brief Disables the STEPPER_Z motor
+ * @brief Disables the STEPPER_Z motor and clears the transitions left
  * 
  */
 void stepper_z_stop()
@@ -398,7 +399,6 @@ stepper_chess_command_t* stepper_build_chess_command(chess_file_t file, chess_ra
     p_command->v_y   = v_y;
 
     return p_command;
-
 }
 
 /**
@@ -455,6 +455,102 @@ stepper_rel_command_t* stepper_build_home_z_command()
     return p_command;
 }
 
+/**
+ * @brief Determines the velocity values needed for smooth motion profiling across all motors
+ * 
+ * @param v_x Desired x-axis velocity
+ * @param v_y Desired y-axis velocity
+ * @param v_z Desired z-axis velocity
+ */
+static void stepper_update_velocities(uint16_t v_x, uint16_t v_y, uint16_t v_z, uint16_t maz_a_x, uint16_t maz_a_y, uint16_t maz_a_z)
+{
+    // X-axis determine the points where the speeds need to change
+    if (STEPPER_X_MAX_V * STEPPER_X_MAX_V / STEPPER_X_MAX_A > stepper_motor_x->transitions_to_desired_pos)
+    {
+        // Non-trapezoidal motion profile (change halfway)
+        stepper_motor_x->x_1 = stepper_motor_x->transitions_to_desired_pos / 2;
+        stepper_motor_x->x_2 = stepper_motor_x->transitions_to_desired_pos / 2;
+    }
+    else
+    {
+        // Trapezoidal motion profile
+        stepper_motor_x->x_2 = STEPPER_X_MAX_V * STEPPER_X_MAX_V / (2 * STEPPER_X_MAX_A);
+        stepper_motor_x->x_1 = stepper_motor_x->transitions_to_desired_pos - STEPPER_X_MAX_V * STEPPER_X_MAX_V / (2 * STEPPER_X_MAX_A);
+    }
+
+    // Y-axis determine the points where the speeds need to change
+    if (STEPPER_Y_MAX_V * STEPPER_Y_MAX_V / STEPPER_Y_MAX_A > stepper_motor_y->transitions_to_desired_pos)
+    {
+        // Non-trapezoidal motion profile (change halfway)
+        stepper_motor_y->x_1 = stepper_motor_y->transitions_to_desired_pos / 2;
+        stepper_motor_y->x_2 = stepper_motor_y->transitions_to_desired_pos / 2;
+    }
+    else
+    {
+        // Trapezoidal motion profile
+        stepper_motor_y->x_2 = STEPPER_Y_MAX_V * STEPPER_Y_MAX_V / (2 * STEPPER_Y_MAX_A);
+        stepper_motor_y->x_1 = stepper_motor_y->transitions_to_desired_pos - STEPPER_Y_MAX_V * STEPPER_Y_MAX_V / (2 * STEPPER_Y_MAX_A);
+    }
+
+    // Z-axis determine the points where the speeds need to change
+    if (STEPPER_Z_MAX_V * STEPPER_Z_MAX_V / STEPPER_Z_MAX_A > stepper_motor_z->transitions_to_desired_pos)
+    {
+        // Non-trapezoidal motion profile (change halfway)
+        stepper_motor_z->x_1 = stepper_motor_z->transitions_to_desired_pos / 2;
+        stepper_motor_z->x_2 = stepper_motor_z->transitions_to_desired_pos / 2;
+    }
+    else
+    {
+        // Trapezoidal motion profile
+        stepper_motor_z->x_2 = STEPPER_Z_MAX_V * STEPPER_Z_MAX_V / (2 * STEPPER_Z_MAX_A);
+        stepper_motor_z->x_1 = stepper_motor_z->transitions_to_desired_pos - STEPPER_Z_MAX_V * STEPPER_Z_MAX_V / (2 * STEPPER_Z_MAX_A);
+    }
+
+    // X-axis load velocities values into its timer
+    if (v_x != 0)
+    {
+        uint16_t v_x_bounded = utils_bound(v_x, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
+        uint32_t stepper_x_period = stepper_velocity_to_timer_period(v_x_bounded);
+        
+        // Set the acceleration
+        stepper_motor_x->max_accel = maz_a_x;
+        stepper_motor_x->time_elapsed = 0;
+        
+        // Start the timer
+        clock_set_timer_period(STEPPER_X_TIMER, stepper_x_period);
+        clock_start_timer(STEPPER_X_TIMER);
+    }
+
+    // Y-axis load velocities values into its timer
+    if (v_y != 0)
+    {
+        uint16_t v_y_bounded = utils_bound(v_y, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
+        uint32_t stepper_y_period = stepper_velocity_to_timer_period(v_y_bounded);
+        
+        // Set the acceleration
+        stepper_motor_y->max_accel = maz_a_y;
+        stepper_motor_y->time_elapsed = 0;
+        
+        // Start the timer
+        clock_set_timer_period(STEPPER_Y_TIMER, stepper_y_period);
+        clock_start_timer(STEPPER_Y_TIMER);
+    }
+
+    // Z-axis load velocities values into its timer
+    if (v_z != 0)
+    {
+        uint16_t v_z_bounded = utils_bound(v_z, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
+        uint32_t stepper_z_period = stepper_velocity_to_timer_period(v_z_bounded);
+        
+        // Set the acceleration
+        stepper_motor_z->max_accel = maz_a_z;
+        stepper_motor_z->time_elapsed = 0;
+        
+        // Start the timer
+        clock_set_timer_period(STEPPER_Z_TIMER, stepper_z_period);
+        clock_start_timer(STEPPER_Z_TIMER);
+    }
+}
 
 /**
  * @brief Prepares the steppers for this command
@@ -513,87 +609,13 @@ void stepper_rel_entry(command_t* command)
         }
     }
 
-    // Determine the distance to go
+    // Determine the distances to go
     stepper_motor_x->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_x);
     stepper_motor_y->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_y);
     stepper_motor_z->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_z);
 
-    // X Determine the points where the speeds need to change
-    if (STEPPER_X_MAX_V * STEPPER_X_MAX_V / STEPPER_X_MAX_A > stepper_motor_x->transitions_to_desired_pos)
-    {
-        // Not a trapezoid
-        stepper_motor_x->x_1 = stepper_motor_x->transitions_to_desired_pos / 2;
-        stepper_motor_x->x_2 = stepper_motor_x->transitions_to_desired_pos / 2;
-    }
-    else
-    {
-        // A trapezoid
-        stepper_motor_x->x_2 = STEPPER_X_MAX_V * STEPPER_X_MAX_V / (2 * STEPPER_X_MAX_A);
-        stepper_motor_x->x_1 = stepper_motor_x->transitions_to_desired_pos - STEPPER_X_MAX_V * STEPPER_X_MAX_V / (2 * STEPPER_X_MAX_A);
-    }
-
-    // Y Determine the points where the speeds need to change
-    if (STEPPER_Y_MAX_V * STEPPER_Y_MAX_V / STEPPER_Y_MAX_A > stepper_motor_y->transitions_to_desired_pos)
-    {
-        // Not a trapezoid
-        stepper_motor_y->x_1 = stepper_motor_y->transitions_to_desired_pos / 2;
-        stepper_motor_y->x_2 = stepper_motor_y->transitions_to_desired_pos / 2;
-    }
-    else
-    {
-        // A trapezoid
-        stepper_motor_y->x_2 = STEPPER_Y_MAX_V * STEPPER_Y_MAX_V / (2 * STEPPER_Y_MAX_A);
-        stepper_motor_y->x_1 = stepper_motor_y->transitions_to_desired_pos - STEPPER_Y_MAX_V * STEPPER_Y_MAX_V / (2 * STEPPER_Y_MAX_A);
-    }
-
-    // Z Determine the points where the speeds need to change
-    if (STEPPER_Z_MAX_V * STEPPER_Z_MAX_V / STEPPER_Z_MAX_A > stepper_motor_z->transitions_to_desired_pos)
-    {
-        // Not a trapezoid
-        stepper_motor_z->x_1 = stepper_motor_z->transitions_to_desired_pos / 2;
-        stepper_motor_z->x_2 = stepper_motor_z->transitions_to_desired_pos / 2;
-    }
-    else
-    {
-        // A trapezoid
-        stepper_motor_z->x_2 = STEPPER_Z_MAX_V * STEPPER_Z_MAX_V / (2 * STEPPER_Z_MAX_A);
-        stepper_motor_z->x_1 = stepper_motor_z->transitions_to_desired_pos - STEPPER_Z_MAX_V * STEPPER_Z_MAX_V / (2 * STEPPER_Z_MAX_A);
-    }
-
-    // TODO: Load velocity values into the clock, add STEPPER_Z
-    if (p_stepper_command->v_x != 0)
-    {
-        uint16_t v_x = utils_bound(p_stepper_command->v_x, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
-        uint32_t stepper_x_period = stepper_velocity_to_timer_period(v_x);
-        // Set the accel
-        stepper_motor_x->max_accel = STEPPER_X_MAX_A;
-        stepper_motor_x->time_elapsed = 0;
-        // Start the clocks
-        clock_set_timer_period(STEPPER_X_TIMER, stepper_x_period);
-        clock_start_timer(STEPPER_X_TIMER);
-    }
-    if (p_stepper_command->v_y != 0)
-    {
-        uint16_t v_y = utils_bound(p_stepper_command->v_y, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
-        uint32_t stepper_y_period = stepper_velocity_to_timer_period(v_y);
-        // Set the accel
-        stepper_motor_y->max_accel = STEPPER_Y_MAX_A;
-        stepper_motor_y->time_elapsed = 0;
-        // Start the clocks
-        clock_set_timer_period(STEPPER_Y_TIMER, stepper_y_period);
-        clock_start_timer(STEPPER_Y_TIMER);
-    }
-    if (p_stepper_command->v_z != 0)
-    {
-        uint16_t v_z = utils_bound(p_stepper_command->v_z, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
-        uint32_t stepper_z_period = stepper_velocity_to_timer_period(v_z);
-        // Set the accel
-        stepper_motor_z->max_accel = STEPPER_Z_MAX_A;
-        stepper_motor_z->time_elapsed = 0;
-        // Start the clocks
-        clock_set_timer_period(STEPPER_Z_TIMER, stepper_z_period);
-        clock_start_timer(STEPPER_Z_TIMER);
-    }
+    // Update the velocities
+    stepper_update_velocities(p_stepper_command->v_x, p_stepper_command->v_y, p_stepper_command->v_z, STEPPER_X_MAX_A, STEPPER_Y_MAX_A, STEPPER_Z_MAX_A);
 }
 
 /**
@@ -648,63 +670,12 @@ void stepper_chess_entry(command_t* command)
         }
     }
 
-    // Determine the distance to go
+    // Determine the distances to go
     stepper_motor_x->transitions_to_desired_pos = stepper_distance_to_transitions(rel_move_x);
     stepper_motor_y->transitions_to_desired_pos = stepper_distance_to_transitions(rel_move_y);
 
-    // X Determine the points where the speeds need to change
-    if (STEPPER_X_MAX_V * STEPPER_X_MAX_V / STEPPER_X_MAX_A > stepper_motor_x->transitions_to_desired_pos)
-    {
-        // Not a trapezoid
-        stepper_motor_x->x_1 = stepper_motor_x->transitions_to_desired_pos / 2;
-        stepper_motor_x->x_2 = stepper_motor_x->transitions_to_desired_pos / 2;
-    }
-    else
-    {
-        // A trapezoid
-        stepper_motor_x->x_2 = STEPPER_X_MAX_V * STEPPER_X_MAX_V / (2 * STEPPER_X_MAX_A);
-        stepper_motor_x->x_1 = stepper_motor_x->transitions_to_desired_pos - STEPPER_X_MAX_V * STEPPER_X_MAX_V / (2 * STEPPER_X_MAX_A);
-    }
-
-    // Y Determine the points where the speeds need to change
-    if (STEPPER_Y_MAX_V * STEPPER_Y_MAX_V / STEPPER_Y_MAX_A > stepper_motor_y->transitions_to_desired_pos)
-    {
-        // Not a trapezoid
-        stepper_motor_y->x_1 = stepper_motor_y->transitions_to_desired_pos / 2;
-        stepper_motor_y->x_2 = stepper_motor_y->transitions_to_desired_pos / 2;
-    }
-    else
-    {
-        // A trapezoid
-        stepper_motor_y->x_2 = STEPPER_Y_MAX_V * STEPPER_Y_MAX_V / (2 * STEPPER_Y_MAX_A);
-        stepper_motor_y->x_1 = stepper_motor_y->transitions_to_desired_pos - STEPPER_Y_MAX_V * STEPPER_Y_MAX_V / (2 * STEPPER_Y_MAX_A);
-    }
-
-
-
-    // TODO: Load velocity values into the clock, add STEPPER_Z
-    if (p_stepper_command->v_x != 0)
-    {
-        uint16_t v_x = utils_bound(p_stepper_command->v_x, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
-        uint32_t stepper_x_period = stepper_velocity_to_timer_period(v_x);
-        // Set the accel
-        stepper_motor_x->max_accel = STEPPER_X_MAX_A;
-        stepper_motor_x->time_elapsed = 0;
-        // Start the clocks
-        clock_set_timer_period(STEPPER_X_TIMER, stepper_x_period);
-        clock_start_timer(STEPPER_X_TIMER);
-    }
-    if (p_stepper_command->v_y != 0)
-    {
-        uint16_t v_y = utils_bound(p_stepper_command->v_y, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
-        uint32_t stepper_y_period = stepper_velocity_to_timer_period(v_y);
-        // Set the accel
-        stepper_motor_y->max_accel = STEPPER_Y_MAX_A;
-        stepper_motor_y->time_elapsed = 0;
-        // Start the clocks
-        clock_set_timer_period(STEPPER_Y_TIMER, stepper_y_period);
-        clock_start_timer(STEPPER_Y_TIMER);
-    }
+    // Update the velocities
+    stepper_update_velocities(p_stepper_command->v_x, p_stepper_command->v_y, p_stepper_command->v_z, STEPPER_X_MAX_A, STEPPER_Y_MAX_A, STEPPER_Z_MAX_A);
 }
 
 /**
@@ -764,87 +735,13 @@ void stepper_home_entry(command_t* command)
         }
     }
 
-    // Determine the distance to go
+    // Determine the distances to go
     stepper_motor_x->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_x);
     stepper_motor_y->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_y);
     stepper_motor_z->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_z);
 
-    // X Determine the points where the speeds need to change
-    if (STEPPER_X_MAX_V * STEPPER_X_MAX_V / STEPPER_X_MAX_A > stepper_motor_x->transitions_to_desired_pos)
-    {
-        // Not a trapezoid
-        stepper_motor_x->x_1 = stepper_motor_x->transitions_to_desired_pos / 2;
-        stepper_motor_x->x_2 = stepper_motor_x->transitions_to_desired_pos / 2;
-    }
-    else
-    {
-        // A trapezoid
-        stepper_motor_x->x_2 = STEPPER_X_MAX_V * STEPPER_X_MAX_V / (2 * STEPPER_X_MAX_A);
-        stepper_motor_x->x_1 = stepper_motor_x->transitions_to_desired_pos - STEPPER_X_MAX_V * STEPPER_X_MAX_V / (2 * STEPPER_X_MAX_A);
-    }
-
-    // Y Determine the points where the speeds need to change
-    if (STEPPER_Y_MAX_V * STEPPER_Y_MAX_V / STEPPER_Y_MAX_A > stepper_motor_y->transitions_to_desired_pos)
-    {
-        // Not a trapezoid
-        stepper_motor_y->x_1 = stepper_motor_y->transitions_to_desired_pos / 2;
-        stepper_motor_y->x_2 = stepper_motor_y->transitions_to_desired_pos / 2;
-    }
-    else
-    {
-        // A trapezoid
-        stepper_motor_y->x_2 = STEPPER_Y_MAX_V * STEPPER_Y_MAX_V / (2 * STEPPER_Y_MAX_A);
-        stepper_motor_y->x_1 = stepper_motor_y->transitions_to_desired_pos - STEPPER_Y_MAX_V * STEPPER_Y_MAX_V / (2 * STEPPER_Y_MAX_A);
-    }
-
-    // Z Determine the points where the speeds need to change
-    if (STEPPER_Z_MAX_V * STEPPER_Z_MAX_V / STEPPER_Z_MAX_A > stepper_motor_z->transitions_to_desired_pos)
-    {
-        // Not a trapezoid
-        stepper_motor_z->x_1 = stepper_motor_z->transitions_to_desired_pos / 2;
-        stepper_motor_z->x_2 = stepper_motor_z->transitions_to_desired_pos / 2;
-    }
-    else
-    {
-        // A trapezoid
-        stepper_motor_z->x_2 = STEPPER_Z_MAX_V * STEPPER_Z_MAX_V / (2 * STEPPER_Z_MAX_A);
-        stepper_motor_z->x_1 = stepper_motor_z->transitions_to_desired_pos - STEPPER_Z_MAX_V * STEPPER_Z_MAX_V / (2 * STEPPER_Z_MAX_A);
-    }
-
-    // TODO: Load velocity values into the clock, add STEPPER_Z
-    if (p_stepper_command->v_x != 0)
-    {
-        uint16_t v_x = utils_bound(p_stepper_command->v_x, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
-        uint32_t stepper_x_period = stepper_velocity_to_timer_period(v_x);
-        // Set the accel
-        stepper_motor_x->max_accel = 0;
-        stepper_motor_x->time_elapsed = 0;
-        // Start the clocks
-        clock_set_timer_period(STEPPER_X_TIMER, stepper_x_period);
-        clock_start_timer(STEPPER_X_TIMER);
-    }
-    if (p_stepper_command->v_y != 0)
-    {
-        uint16_t v_y = utils_bound(p_stepper_command->v_y, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
-        uint32_t stepper_y_period = stepper_velocity_to_timer_period(v_y);
-        // Set the accel
-        stepper_motor_y->max_accel = 0;
-        stepper_motor_y->time_elapsed = 0;
-        // Start the clocks
-        clock_set_timer_period(STEPPER_Y_TIMER, stepper_y_period);
-        clock_start_timer(STEPPER_Y_TIMER);
-    }
-    if (p_stepper_command->v_z != 0)
-    {
-        uint16_t v_z = utils_bound(p_stepper_command->v_z, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
-        uint32_t stepper_z_period = stepper_velocity_to_timer_period(v_z);
-        // Set the accel
-        stepper_motor_z->max_accel = 0; // Makes sure it never changes speed
-        stepper_motor_z->time_elapsed = 0;
-        // Start the clocks
-        clock_set_timer_period(STEPPER_Z_TIMER, stepper_z_period);
-        clock_start_timer(STEPPER_Z_TIMER);
-    }
+    // Update the velocities (max acceleration of zero prevents the speed from changing)
+    stepper_update_velocities(p_stepper_command->v_x, p_stepper_command->v_y, p_stepper_command->v_z, 0, 0, 0);
 }
 
 /**
@@ -916,7 +813,6 @@ static void stepper_interrupt_activity(uint8_t stepper_id)
     // Move each stepper until it reaches its destination, then disable
     if (p_stepper_motor->transitions_to_desired_pos > 0)
     {
-
         // Move the motor
         stepper_edge_transition(p_stepper_motor);
 
@@ -924,9 +820,8 @@ static void stepper_interrupt_activity(uint8_t stepper_id)
         p_stepper_motor->transitions_to_desired_pos -= 1;
 
         // Update the position
-        p_stepper_motor->current_pos += p_stepper_motor->dir;
+        p_stepper_motor->current_pos  += p_stepper_motor->dir;
         p_stepper_motor->time_elapsed += clock_get_timer_period(p_stepper_motor->timer);
-
 
 #ifdef PROFILING
         // Send the data to the laptop
@@ -934,22 +829,23 @@ static void stepper_interrupt_activity(uint8_t stepper_id)
         sprintf(data, "(%d,%d,%d)", stepper_get_current_pos(stepper_id), clock_get_timer_period(p_stepper_motor->timer), p_stepper_motor->time_elapsed); // current_pos, the number in the register, time_elapsed
         uart_out_string(PROFILING_CHANNEL, data, 64);
 #endif
+
         // Update the velocity
+        //  TODO: Fix magic numbers?
         uint64_t accel = 80*(uint64_t)(p_stepper_motor->max_accel * clock_get_timer_period(p_stepper_motor->timer)) / (9*SYSCLOCK_FREQUENCY);
+
         if (accel > 0)
         {
-            if (p_stepper_motor->transitions_to_desired_pos > p_stepper_motor->x_1) // still accelerating
+            if (p_stepper_motor->transitions_to_desired_pos > p_stepper_motor->x_1)         // still accelerating
             {
                 clock_set_timer_period(p_stepper_motor->timer, clock_get_timer_period(p_stepper_motor->timer) - accel);
             }
-            else if (p_stepper_motor->transitions_to_desired_pos < p_stepper_motor->x_2) // deaccelerating
+            else if (p_stepper_motor->transitions_to_desired_pos < p_stepper_motor->x_2)    // deaccelerating
             {
                 clock_set_timer_period(p_stepper_motor->timer, clock_get_timer_period(p_stepper_motor->timer) + accel);
             }
             clock_start_timer(p_stepper_motor->timer);
         }
-
-
     }
     else
     {

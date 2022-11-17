@@ -163,7 +163,6 @@ uint16_t utils_bound(uint16_t value, uint16_t lower_bound, uint16_t upper_bound)
     return value;
 }
 
-
 /**
  * @brief Computes the Fletcher-16 checksum given an array of chars
  *
@@ -260,7 +259,34 @@ void utils_delay(uint32_t ticks)
     for (i = 0; i < ticks; i++) {}
 }
 
-// Chess
+/**
+ * @brief Sets the correct ISER bit in the NVIC
+ */
+void utils_set_nvic(uint8_t interrupt_num, uint8_t priority)
+{
+    uint8_t enable_shift = (interrupt_num % 32);
+    uint8_t iser_position = (interrupt_num - enable_shift)/32;
+
+    NVIC->ISER[iser_position] |= (1 << (enable_shift));
+    NVIC->IP[interrupt_num] |= (priority << 5);
+}
+
+/**
+ * @brief A general purpose empty function for command {entry, action, exit} that do nothing
+ */
+void utils_empty_function()
+{
+    return;
+}
+
+/* Chess Related */
+
+/**
+ * @brief Converts a given byte to a chess file
+ * 
+ * @param byte Represents the file
+ * @return chess_file_t Enum of possible files
+ */
 chess_file_t utils_byte_to_file(uint8_t byte)
 {
     chess_file_t file = FILE_ERROR;
@@ -297,6 +323,13 @@ chess_file_t utils_byte_to_file(uint8_t byte)
 
     return file;
 }
+
+/**
+ * @brief Converts a given byte to a chess rank
+ * 
+ * @param byte Represents the rank
+ * @return chess_rank_t Enum of possible rank
+ */
 chess_rank_t utils_byte_to_rank(uint8_t byte)
 {
     chess_rank_t rank = RANK_ERROR;
@@ -334,6 +367,12 @@ chess_rank_t utils_byte_to_rank(uint8_t byte)
     return rank;
 }
 
+/**
+ * @brief Converts a given byte to a chess move
+ * 
+ * @param byte Represents the move
+ * @return chess_move_type Enum of possible rank
+ */
 chess_move_type utils_byte_to_move_type(uint8_t byte)
 {
     chess_move_type type = IDLE;
@@ -367,22 +406,30 @@ chess_move_type utils_byte_to_move_type(uint8_t byte)
     return type;
 }
 
+/**
+ * @brief Get the difference in board state between two bit boards
+ * 
+ * @param changes_in_presence The XOR of two bit boards
+ * @param board_changes_t Represents the move
+ * @return chess_move_type Struct storing the changes in board states
+ */
 void utils_get_board_changes(uint64_t changes_in_presence, board_changes_t *board_changes)
 {
-    int i;
-    // Find set bits (1s) in changes_in_presence
+    uint8_t i = 0;
+
+    // Find set bits (1's) in changes_in_presence
     for (i = 0; i < 64; i++)
     {
         // If a set bit is found in some bit position i, store its index
         if ((changes_in_presence >> i) & 0x01)
         {
             board_changes->num_changes += 1;
+
             // On the first set bit seen, store in index1
             if (board_changes->num_changes == 1)
             {
                 board_changes->index1 = i;
             }
-            // On the second set bit seen, store in index2
             else if (board_changes->num_changes == 2)
             {
                 board_changes->index2 = i;
@@ -397,26 +444,6 @@ void utils_get_board_changes(uint64_t changes_in_presence, board_changes_t *boar
             }
         }
     }
-}
-
-/**
- * @brief Sets the correct ISER bit in the NVIC
- */
-void utils_set_nvic(uint8_t interrupt_num, uint8_t priority)
-{
-    uint8_t enable_shift = (interrupt_num % 32);
-    uint8_t iser_position = (interrupt_num - enable_shift)/32;
-
-    NVIC->ISER[iser_position] |= (1 << (enable_shift));
-    NVIC->IP[interrupt_num] |= (priority << 5);
-}
-
-/**
- * @brief A general purpose empty function for command {entry, action, exit} that do nothing
- */
-void utils_empty_function()
-{
-    return;
 }
 
 /* End utils.c */
