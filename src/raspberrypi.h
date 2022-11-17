@@ -26,12 +26,12 @@
 
 // General Raspberry Pi defines
 #ifdef USER_MODE
-#define RPI_UART_CHANNEL               (UART_CHANNEL_0)
+#   define RPI_UART_CHANNEL               (UART_CHANNEL_0)
 #elif defined(THREE_PARTY_MODE)
-#define RPI_UART_CHANNEL               (UART_CHANNEL_3)
-#define USER_CHANNEL                   (UART_CHANNEL_0)
+#   define RPI_UART_CHANNEL               (UART_CHANNEL_3)
+#   define USER_CHANNEL                   (UART_CHANNEL_0)
 #else
-#define RPI_UART_CHANNEL               (UART_CHANNEL_3)
+#   define RPI_UART_CHANNEL               (UART_CHANNEL_3)
 #endif
 
 /*

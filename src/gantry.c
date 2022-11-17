@@ -26,9 +26,10 @@ static chess_board_t current_board;
 // Flags
 static bool gantry_homing = false;
 static bool robot_is_done = false;
+static bool comm_is_done = false;
 static bool human_is_done = false;
 static bool msp_illegal_move = false;
-static bool comm_error = false;
+static bool send_msg = false;
 static bool game_over = false;
 extern bool utils_sys_fault;
 
@@ -68,11 +69,20 @@ void gantry_init(void)
 void gantry_start(void)
 {
     gantry_home();
-#if defined(FINAL_IMPLEMENTATION_MODE) || defined(THREE_PARTY_MODE)
+#ifdef FINAL_IMPLEMENTATION_MODE
+    // Start a new game
+    char user_color = 'W';
+    uint8_t switch_data = switch_get_reading();
+    if (switch_data & ROCKER_COLOR)
+    {
+        user_color = 'B';
+    }
+    rpi_transmit_start(user_color);
+#elif defined(THREE_PARTY_MODE)
     rpi_transmit_start('W');
     command_queue_push((command_t*)gantry_human_build_command());
 #else
-    command_queue_push((command_t*) gantry_robot_build_command());
+    command_queue_push((command_t*)gantry_robot_build_command());
 #endif
 }
 
@@ -167,36 +177,41 @@ gantry_command_t* gantry_human_build_command(void)
     // Game Status
     p_command->game_status = ONGOING;
 
+    // The move to be sent (not used for this type of command)
+    p_command->move_to_send[0] = '?';
+    p_command->move_to_send[1] = '?';
+    p_command->move_to_send[2] = '?';
+    p_command->move_to_send[3] = '?';
+    p_command->move_to_send[4] = '?';
+
     return p_command;
 }
 
+/*
+ * @brief Continuously determines the move the human has made. Ends
+ *        when the human hits the "end turn" button.
+ *
+ * @param command The gantry command being run
+ */
 void gantry_human_action(command_t* command)
 {
 #ifdef FINAL_IMPLEMENTATION_MODE
+    gantry_command_t* p_gantry_command = (gantry_command_t*) command;
+
     // Read the current board state
     uint64_t board_reading = sensor_get_reading();
     current_board.board_presence = board_reading;
 
-    // Set up a move array
-    char move[5];
-
     // Interpret the board state, store the interpreted move into move var
-    if (chessboard_get_move(&previous_board, &current_board, move))
-    {
-        // Got a move that may or may not be legal, Pi will determine
-        ;
-    }
-    else
+    if (!chessboard_get_move(&previous_board, &current_board, p_gantry_command->move_to_send))
     {
         // Definitely illegal move
         msp_illegal_move = true;
     }
-
-    // Place the gantry_move command on the queue
-    command_queue_push((command_t*)gantry_human_build_command());
-
-    // Transmit the move to the RPi (9 bytes long)
-    rpi_transmit_human_move(move);
+    else
+    {
+        msp_illegal_move = false;
+    }
 #endif
 
 #ifdef THREE_PARTY_MODE
@@ -248,17 +263,27 @@ void gantry_human_action(command_t* command)
 }
 
 /**
- * @brief Interprets the RPi's move, and adds the appropriate commands to the queue
- *  TODO: Incomplete
+ * @brief Places a human or comm command on the queue depending on if the MSP
+ *        could verify the human's move was not certainly illegal.
  *
  * @param command The gantry command being run
  */
 void gantry_human_exit(command_t* command)
 {
 #ifdef FINAL_IMPLEMENTATION_MODE
-    // TODO: Should we transmit here?
-    // Place the gantry_move command on the queue
-    command_queue_push((command_t*)gantry_robot_build_command());
+    gantry_command_t* p_gantry_command = (gantry_command_t*) command;
+
+    if (msp_illegal_move)
+    {
+        // Place the gantry_move command on the queue
+        command_queue_push((command_t*)gantry_human_build_command());
+    }
+    else
+    {
+        // Place the gantry_move command on the queue
+        command_queue_push((command_t*)gantry_comm_build_command(p_gantry_command->move_to_send));
+        send_msg = true;
+    }
 
     // Reset flag
     human_is_done = false;
@@ -274,10 +299,9 @@ void gantry_human_exit(command_t* command)
 
 /**
  * @brief Moves to the next command once the END_TURN button has been pressed
- *  TODO: Incomplete
  * 
  * @param command The gantry command being run
- * @return true If the END_TURN button has been pressed
+ * @return true If the END_TURN button has been pressed, false otherwise
  */
 bool gantry_human_is_done(command_t* command)
 {
@@ -289,6 +313,88 @@ bool gantry_human_is_done(command_t* command)
 #else
     return true;
 #endif
+}
+
+/**
+ * @brief Build a gantry_comm command
+ *
+ * @param move The move, in UCI notation, to send to the RPi
+ *
+ * @returns Pointer to the dynamically-allocated command
+ */
+gantry_command_t* gantry_comm_build_command(char move[5])
+{
+    // The thing to return
+    gantry_command_t* p_command = (gantry_command_t*) malloc(sizeof(gantry_command_t));
+
+    // Functions
+    p_command->command.p_entry   = &utils_empty_function;
+    p_command->command.p_action  = &gantry_comm_action;
+    p_command->command.p_exit    = &gantry_comm_exit;
+    p_command->command.p_is_done = &gantry_comm_is_done;
+
+    // Data
+    p_command->move.source_file = FILE_ERROR;
+    p_command->move.source_rank = RANK_ERROR;
+    p_command->move.dest_file   = FILE_ERROR;
+    p_command->move.dest_rank   = RANK_ERROR;
+    p_command->move.move_type   = IDLE;
+
+    // Game Status
+    p_command->game_status = ONGOING;
+
+    // The move to be sent
+    p_command->move_to_send[0] = move[0];
+    p_command->move_to_send[1] = move[1];
+    p_command->move_to_send[2] = move[2];
+    p_command->move_to_send[3] = move[3];
+    p_command->move_to_send[4] = move[4];
+
+    return p_command;
+}
+
+/*
+ * @brief Sends the move passed in through the command, then uses a timer to
+ *        wait and resend the move if no ACK is received from the RPi
+ *
+ * @param command The gantry command being run
+ */
+void gantry_comm_action(command_t* command)
+{
+    gantry_command_t* p_gantry_command = (gantry_command_t*) command;
+
+    char ack_byte;
+    // TODO: Timer magic
+    if (send_msg)
+    {
+        rpi_transmit_human_move(p_gantry_command->move_to_send);
+        send_msg = false;
+    }
+    else
+    {
+        if (rpi_receive(&ack_byte, 1))
+        {
+            if (ack_byte == ACK_BYTE)
+            {
+                // ACK byte received!
+                comm_is_done = true;
+            }
+        }
+    }
+}
+
+void gantry_comm_exit(command_t* command)
+{
+    // Verified comm, so push a robot command onto the queue
+    command_queue_push((command_t*)gantry_robot_build_command());
+
+    // Reset the flag
+    comm_is_done = false;
+}
+
+bool gantry_comm_is_done(command_t* command)
+{
+    return comm_is_done;
 }
 
 /**
@@ -317,11 +423,18 @@ gantry_command_t* gantry_robot_build_command(void)
     // Game Status
     p_command->game_status = ONGOING;
 
+    // The move to be sent (not used for this type of command)
+    p_command->move_to_send[0] = '?';
+    p_command->move_to_send[1] = '?';
+    p_command->move_to_send[2] = '?';
+    p_command->move_to_send[3] = '?';
+    p_command->move_to_send[4] = '?';
+
     return p_command;
 }
 
 /**
- * @brief Prepares the gantry for a move command. Nothing is done in this case
+ * @brief Prepares the gantry for a move command. Nothing is done in this case.
  * 
  * @param command The gantry command being run
  */

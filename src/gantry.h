@@ -32,8 +32,9 @@
 // Gantry command struct
 typedef struct gantry_command_t {
     command_t command;
-    chess_move_t move;              // All the info about a chess move
+    chess_move_t move;              // All the info about the move the robot will make
     game_status_t game_status;      // The current state of the game, as reported by the Pi (ongoing, ended)
+    char move_to_send[5];           // The human's move in UCI notation
 } gantry_command_t;
 
 // Public functions
@@ -46,6 +47,13 @@ void gantry_human_entry(command_t* command);
 void gantry_human_action(command_t* command);
 void gantry_human_exit(command_t* command);
 bool gantry_human_is_done(command_t* command);
+
+// Command Functions (sending the user's move, verifying transmission)
+gantry_command_t* gantry_comm_build_command(char move[5]);
+void gantry_comm_entry(command_t* command);
+void gantry_comm_action(command_t* command);
+void gantry_comm_exit(command_t* command);
+bool gantry_comm_is_done(command_t* command);
 
 // Command Functions (preparing/performing moves)
 gantry_command_t* gantry_robot_build_command(void);
