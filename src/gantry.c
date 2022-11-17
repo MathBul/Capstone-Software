@@ -102,7 +102,8 @@ void gantry_reset(void)
     gantry_home();
 
     // Reset the chess board
-    chessboard_reset();
+    chessboard_reset(&previous_board);
+    chessboard_reset(&current_board);
 
     // Reset the rpi
     rpi_reset_uart();

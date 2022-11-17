@@ -64,6 +64,6 @@ bool chessboard_get_move(chess_board_t* previous, chess_board_t* current, char m
 void chessboard_update_pieces(chess_board_t *board, char move[5]);
 bool chessboard_update_pcs_castling(chess_board_t *board, uint64_t castling_signature);
 bool chessboard_is_promotion(char initial_rank, char final_rank, char moving_piece);
-void chessboard_reset(void);
+void chessboard_reset(chess_board_t *board);
 
 #endif /* CHESSBOARD_H_ */

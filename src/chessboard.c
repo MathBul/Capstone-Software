@@ -11,9 +11,6 @@
 
 #include "chessboard.h"
 
-static chess_board_t previous_board;
-static chess_board_t current_board;
-
 /**
  * @brief Initialize chess_board_t presence and piece boards with default values
  *
@@ -450,10 +447,9 @@ bool chessboard_is_promotion(char initial_rank, char final_rank, char moving_pie
 /**
  * @brief Reset both chess boards to their default states
  */
-void chessboard_reset(void)
+void chessboard_reset(chess_board_t *board)
 {
-    chessboard_init(&previous_board);
-    chessboard_init(&current_board);
+    chessboard_init(board);
 }
 
 /* End chessboard.c */
