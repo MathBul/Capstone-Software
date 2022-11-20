@@ -47,10 +47,15 @@
 #define TIMER_5A_RELOAD_VALUE                   (TIMER_5A_PERIOD << NVIC_ST_RELOAD_S)
 #define TIMER_5A_INTERRUPT_SHIFT                TIMER5A_IRQn
 
-// Timer 5 defines
+// Timer 6 defines
 #define TIMER_6A_PERIOD                         23999       // TODO: Calculate
 #define TIMER_6A_RELOAD_VALUE                   (TIMER_6A_PERIOD << NVIC_ST_RELOAD_S)
 #define TIMER_6A_INTERRUPT_SHIFT                TIMER6A_IRQn
+
+// Timer 7 defines
+#define TIMER_7A_PERIOD                         59999       // Period: 0.5 ms @ 120 MHz
+#define TIMER_7A_RELOAD_VALUE                   (TIMER_7A_PERIOD << NVIC_ST_RELOAD_S)
+#define TIMER_7A_INTERRUPT_SHIFT                TIMER7A_IRQn
 
 // Function definitions
 void clock_sys_init();
@@ -61,6 +66,7 @@ void clock_timer3a_init();                           // Switches
 void clock_timer4a_init();                           // Gantry
 void clock_timer5a_init();                           // Delay
 void clock_timer6a_init();                           // Sensor Network
+void clock_timer7a_init();                          // Communication Delaying
 
 void clock_clear_interrupt(TIMER0_Type* timer);
 void clock_stop_timer(TIMER0_Type* timer);

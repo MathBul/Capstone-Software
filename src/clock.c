@@ -179,7 +179,7 @@ void clock_timer5a_init()
 }
 
 /**
- * @brief Configure timer 5A
+ * @brief Configure timer 6A
  */
 void clock_timer6a_init()
 {
@@ -198,6 +198,28 @@ void clock_timer6a_init()
 
     // Configure the interrupt in the NVIC
     utils_set_nvic(TIMER_6A_INTERRUPT_SHIFT, 1);
+}
+
+/**
+ * @brief Configure timer 7A
+ */
+void clock_timer7a_init()
+{
+    // Enable the timer and wait for it to be ready
+    SYSCTL->RCGCTIMER |= SYSCTL_RCGCTIMER_R7;
+    while (!(SYSCTL->PRTIMER & SYSCTL_RCGCTIMER_R7))
+    {
+    }
+
+    // Configure Timer 0A for interrupts
+    TIMER7->CTL  &= ~(TIMER_CTL_TAEN);                      // Disable the timer
+    TIMER7->CFG   =  (0);                                   // Clear the configuration
+    TIMER7->TAMR  =  (TIMER_TAMR_TAMR_PERIOD);              // Configure for periodic interrupts
+    TIMER7->TAILR =  (TIMER_7A_RELOAD_VALUE);               // Set the interval value
+    TIMER7->IMR  |=  (TIMER_IMR_TATOIM);                    // Set the interrupt mask
+
+    // Configure the interrupt in the NVIC
+    utils_set_nvic(TIMER_7A_INTERRUPT_SHIFT, 1);
 }
 
 /**

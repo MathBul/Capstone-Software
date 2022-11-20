@@ -675,7 +675,8 @@ void stepper_chess_entry(command_t* command)
     stepper_motor_y->transitions_to_desired_pos = stepper_distance_to_transitions(rel_move_y);
 
     // Update the velocities
-    stepper_update_velocities(p_stepper_command->v_x, p_stepper_command->v_y, p_stepper_command->v_z, STEPPER_X_MAX_A, STEPPER_Y_MAX_A, STEPPER_Z_MAX_A);
+    // TODO: Update to v_z instead of 0 when appropriate
+    stepper_update_velocities(p_stepper_command->v_x, p_stepper_command->v_y, 0, STEPPER_X_MAX_A, STEPPER_Y_MAX_A, 0);
 }
 
 /**

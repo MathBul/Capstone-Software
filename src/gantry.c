@@ -21,7 +21,11 @@ void gantry_clear_command(gantry_command_t* gantry_command);
 
 // Previous and current chess boards
 static chess_board_t previous_board;
+static chess_board_t intermediate_board;
 static chess_board_t current_board;
+
+// Communications timer count
+uint16_t comm_timer_count = 10000;
 
 // Flags
 static bool gantry_homing = false;
@@ -58,6 +62,9 @@ void gantry_init(void)
     switch_init();
     stepper_init_motors();
     rpi_init();
+    chessboard_init(&previous_board);
+    chessboard_init(&intermediate_board);
+    chessboard_init(&current_board);
 #ifdef THREE_PARTY_MODE
     uart_init(UART_CHANNEL_0);
 #endif
@@ -198,7 +205,7 @@ void gantry_human_action(command_t* command)
 #ifdef FINAL_IMPLEMENTATION_MODE
     gantry_command_t* p_gantry_command = (gantry_command_t*) command;
 
-    // Read the current board state
+    // Read the current board state, store it in current_board's board_presence
     uint64_t board_reading = sensor_get_reading();
     current_board.board_presence = board_reading;
 
@@ -275,12 +282,12 @@ void gantry_human_exit(command_t* command)
 
     if (msp_illegal_move)
     {
-        // Place the gantry_move command on the queue
+        // Place the gantry_human command on the queue until a legal move is given
         command_queue_push((command_t*)gantry_human_build_command());
     }
     else
     {
-        // Place the gantry_move command on the queue
+        // Place the gantry_comm command on the queue to send the message
         command_queue_push((command_t*)gantry_comm_build_command(p_gantry_command->move_to_send));
         send_msg = true;
     }
@@ -364,11 +371,20 @@ void gantry_comm_action(command_t* command)
     gantry_command_t* p_gantry_command = (gantry_command_t*) command;
 
     char ack_byte;
-    // TODO: Timer magic
+
     if (send_msg)
     {
+        // Send the human move
         rpi_transmit_human_move(p_gantry_command->move_to_send);
+
+        // Don't resend the message unless interrupt sets send_msg
         send_msg = false;
+
+        // 10000 * 0.5 ms = 5 s
+        comm_timer_count = 10000;
+
+        // Start the timer
+        clock_start_timer(COMM_TIMER);
     }
     else
     {
@@ -378,6 +394,9 @@ void gantry_comm_action(command_t* command)
             {
                 // ACK byte received!
                 comm_is_done = true;
+
+                // Stop the timer
+                clock_stop_timer(COMM_TIMER);
             }
         }
     }
@@ -1130,6 +1149,24 @@ __interrupt void GANTRY_HANDLER(void)
     if (switch_data & BUTTON_HOME)
     {
 //        gantry_home();
+    }
+}
+
+/**
+ * @brief Interrupt handler for 5-second communication timer; called every 0.5 ms
+ */
+__interrupt void COMM_HANDLER(void)
+{
+    // Clear the interrupt flag
+    clock_clear_interrupt(COMM_TIMER);
+
+    // Decrement the counter
+    comm_timer_count--;
+
+    // If the counter has hit 0, raise the flag that will make comm_action resend
+    if (comm_timer_count == 0)
+    {
+        send_msg = true;
     }
 }
 
