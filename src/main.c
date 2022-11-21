@@ -25,7 +25,7 @@ int main(void)
     command_queue_push((command_t*)stepper_build_rel_command(100, 100, 0, 1, 1, 0));
 #else
     // Add commands to the queue
-    gantry_start();
+    gantry_reset();
 #endif
 
 

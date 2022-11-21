@@ -71,29 +71,6 @@ void gantry_init(void)
 }
 
 /**
- * @brief Homes the system then adds a robot command to the queue
- */
-void gantry_start(void)
-{
-    gantry_home();
-#ifdef FINAL_IMPLEMENTATION_MODE
-    // Start a new game
-    char user_color = 'W';
-    uint8_t switch_data = switch_get_reading();
-    if (switch_data & ROCKER_COLOR)
-    {
-        user_color = 'B';
-    }
-    rpi_transmit_start(user_color);
-#elif defined(THREE_PARTY_MODE)
-    rpi_transmit_start('W');
-    command_queue_push((command_t*)gantry_human_build_command());
-#else
-    command_queue_push((command_t*)gantry_robot_build_command());
-#endif
-}
-
-/**
  * @brief Stops stepper motors based on the current limit switch readings
  *  TODO: Change functionality beyond kill
  * 
