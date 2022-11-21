@@ -1,3 +1,14 @@
+/**
+ * @file main.c
+ * @author Eli Jelesko (ebj5hec@virginia.edu), Nick Cooney (npc4crc@virginia.edu),
+ *         Keenan Alchaar (ka5nt@virginia.edu)
+ * @brief Main method using command queue approach
+ * @version 1.0
+ * @date 2022-11-21
+ *
+ * @copyright Copyright (c) 2022
+ */
+
 // Project-specific source code
 #include "gantry.h"
 

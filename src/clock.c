@@ -203,7 +203,7 @@ void clock_timer6a_init()
 /**
  * @brief Configure timer 7A
  */
-void clock_timer7a_init()
+void clock_timer7c_init()
 {
     // Enable the timer and wait for it to be ready
     SYSCTL->RCGCTIMER |= SYSCTL_RCGCTIMER_R7;
@@ -213,13 +213,13 @@ void clock_timer7a_init()
 
     // Configure Timer 0A for interrupts
     TIMER7->CTL  &= ~(TIMER_CTL_TAEN);                      // Disable the timer
-    TIMER7->CFG   =  (0);                                   // Clear the configuration
+    TIMER7->CFG   =  (0);
     TIMER7->TAMR  =  (TIMER_TAMR_TAMR_PERIOD);              // Configure for periodic interrupts
-    TIMER7->TAILR =  (TIMER_7A_RELOAD_VALUE);               // Set the interval value
+    TIMER7->TAILR =  (TIMER_7C_RELOAD_VALUE);               // Set the interval value
     TIMER7->IMR  |=  (TIMER_IMR_TATOIM);                    // Set the interrupt mask
 
     // Configure the interrupt in the NVIC
-    utils_set_nvic(TIMER_7A_INTERRUPT_SHIFT, 1);
+    utils_set_nvic(TIMER_7C_INTERRUPT_SHIFT, 1);
 }
 
 /**
@@ -281,6 +281,12 @@ uint16_t clock_get_timer_period(TIMER0_Type* timer)
     timer->CTL |= (TIMER_CTL_TAEN);                         // Enable the timer
 
     return value;
+}
+
+void clock_reset_timer_value(TIMER0_Type* timer, uint32_t value)
+{
+    timer->CTL  &= ~(TIMER_CTL_TAEN);           // Disable the timer
+    timer->TAV = value;                         // The interval value
 }
 
 /* End clock.c */

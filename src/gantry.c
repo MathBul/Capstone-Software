@@ -1,9 +1,10 @@
 /**
  * @file gantry.c
- * @author Nick Cooney (npc4crc@virginia.edu)
+ * @author Nick Cooney (npc4crc@virginia.edu), Eli Jelesko (ebj5hec@virginia.edu),
+ *         Keenan Alchaar (ka5nt@virginia.edu)
  * @brief Code to unite all other modules
- * @version 0.1
- * @date 2022-10-19
+ * @version 1.0
+ * @date 2022-11-21
  * 
  * @copyright Copyright (c) 2022
  */
@@ -11,6 +12,7 @@
 #include "gantry.h"
 
 //#define PERIPHERALS_ENABLED
+//#define CLOCK_TEST
 
 // Private functions
 void gantry_limit_stop(uint8_t limit_readings);
@@ -24,9 +26,6 @@ static chess_board_t previous_board;
 static chess_board_t intermediate_board;
 static chess_board_t current_board;
 
-// Communications timer count
-uint16_t comm_timer_count = 10000;
-
 // Flags
 static bool gantry_homing = false;
 static bool robot_is_done = false;
@@ -34,7 +33,6 @@ static bool comm_is_done = false;
 static bool human_is_done = false;
 static bool msp_illegal_move = false;
 static bool send_msg = false;
-static bool game_over = false;
 extern bool utils_sys_fault;
 
 /**
@@ -50,6 +48,12 @@ void gantry_init(void)
     clock_timer3a_init();               // Switches
     clock_timer4a_init();               // Gantry
     clock_timer5a_init();               // Delay
+    clock_timer7c_init();               // Comm delay
+#ifdef CLOCK_TEST
+    gpio_set_as_output(GPION, GPIO_PIN_0);
+    gpio_set_output_low(GPION, GPIO_PIN_0);
+    clock_start_timer(COMM_TIMER);
+#endif
     clock_start_timer(GANTRY_TIMER);
 
     // System level initialization of all other modules
@@ -357,9 +361,6 @@ void gantry_comm_action(command_t* command)
         // Don't resend the message unless interrupt sets send_msg
         send_msg = false;
 
-        // 10000 * 0.5 ms = 5 s
-        comm_timer_count = 10000;
-
         // Start the timer
         clock_start_timer(COMM_TIMER);
     }
@@ -374,6 +375,9 @@ void gantry_comm_action(command_t* command)
 
                 // Stop the timer
                 clock_stop_timer(COMM_TIMER);
+
+                // Reset the value
+                clock_reset_timer_value(COMM_TIMER, COMM_TIMEOUT);
             }
         }
     }
@@ -1134,17 +1138,16 @@ __interrupt void GANTRY_HANDLER(void)
  */
 __interrupt void COMM_HANDLER(void)
 {
+#ifdef CLOCK_TEST
+    clock_clear_interrupt(COMM_TIMER);
+    gpio_set_output_toggle(GPION, GPIO_PIN_0);
+#else
     // Clear the interrupt flag
     clock_clear_interrupt(COMM_TIMER);
 
-    // Decrement the counter
-    comm_timer_count--;
-
-    // If the counter has hit 0, raise the flag that will make comm_action resend
-    if (comm_timer_count == 0)
-    {
-        send_msg = true;
-    }
+    // 5s has elapsed, so raise the flag that will make comm_action resend
+    send_msg = true;
+#endif
 }
 
 /* End gantry.c */

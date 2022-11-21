@@ -30,6 +30,7 @@
 #define GANTRY_HANDLER                      (TIMER4A_IRQHandler)
 #define COMM_TIMER                          (TIMER7)
 #define COMM_HANDLER                        (TIMER7A_IRQHandler)
+#define COMM_TIMEOUT                        (600000000)
 
 // Gantry command struct
 typedef struct gantry_command_t {
