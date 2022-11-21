@@ -225,7 +225,7 @@ void clock_timer7c_init()
 /**
  * @brief Clears the interrupt flag associated with time-out raw on the given timer (on the a subsubmodule)
  * 
- * @param timer One of TIMERX for X=0,...,5
+ * @param timer One of TIMERX for X=0,...,7
  * @param type One of timer_a or timer_b
  */
 void clock_clear_interrupt(TIMER0_Type* timer)
@@ -236,7 +236,7 @@ void clock_clear_interrupt(TIMER0_Type* timer)
 /**
  * @brief Pauses the specified timer (on the a subsubmodule)
  * 
- * @param timer One of TIMERX for X=0,...,5
+ * @param timer One of TIMERX for X=0,...,7
  * @param type One of timer_a or timer_b
  */
 void clock_stop_timer(TIMER0_Type* timer)
@@ -247,7 +247,7 @@ void clock_stop_timer(TIMER0_Type* timer)
 /**
  * @brief Resumes the specified timer (on the a subsubmodule)
  * 
- * @param timer One of TIMERX for X=0,...,5
+ * @param timer One of TIMERX for X=0,...,7
  * @param type One of timer_a or timer_b
  */
 void clock_start_timer(TIMER0_Type* timer)
@@ -258,7 +258,7 @@ void clock_start_timer(TIMER0_Type* timer)
 /**
  * @brief Sets the period of the specified timer
  * 
- * @param timer One of TIMERX for X=0,...,5
+ * @param timer One of TIMERX for X=0,...,7
  * @param value The period
  */
 void clock_set_timer_period(TIMER0_Type* timer, uint16_t value)
@@ -270,7 +270,7 @@ void clock_set_timer_period(TIMER0_Type* timer, uint16_t value)
 /**
  * @brief Gets the period of the specified timer
  *
- * @param timer One of TIMERX for X=0,...,5
+ * @param timer One of TIMERX for X=0,...,7
  * @return value The period
  */
 uint16_t clock_get_timer_period(TIMER0_Type* timer)
@@ -283,6 +283,12 @@ uint16_t clock_get_timer_period(TIMER0_Type* timer)
     return value;
 }
 
+/**
+ * @brief Gets the period of the specified timer
+ *
+ * @param timer One of TIMERX for X=0,...,7
+ * @param value The value to reset the timer's counter to
+ */
 void clock_reset_timer_value(TIMER0_Type* timer, uint32_t value)
 {
     timer->CTL  &= ~(TIMER_CTL_TAEN);           // Disable the timer
