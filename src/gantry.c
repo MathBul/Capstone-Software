@@ -421,6 +421,13 @@ gantry_command_t* gantry_robot_build_command(void)
     // Game Status
     p_command->game_status = ONGOING;
 
+    // The robot's move in uci notation
+    p_command->robot_move_uci[0] = '?';
+    p_command->robot_move_uci[1] = '?';
+    p_command->robot_move_uci[2] = '?';
+    p_command->robot_move_uci[3] = '?';
+    p_command->robot_move_uci[4] = '?';
+
     // The move to be sent (not used for this type of command)
     p_command->move_to_send[0] = '?';
     p_command->move_to_send[1] = '?';
@@ -534,6 +541,12 @@ void gantry_robot_action(command_t* command)
                                 // Split up the game statuses
                                 status_after_human = game_status >> 4;
                                 status_after_robot = game_status & (~0xF0);
+                                // Write the UCI move to update the board later
+                                p_gantry_command->robot_move_uci[0] = move[0];
+                                p_gantry_command->robot_move_uci[1] = move[1];
+                                p_gantry_command->robot_move_uci[2] = move[2];
+                                p_gantry_command->robot_move_uci[3] = move[3];
+                                p_gantry_command->robot_move_uci[4] = move[4];
                                 if (status_after_human == GAME_CHECKMATE)
                                 {
                                     // If the human ended the game, don't let the robot move
@@ -1016,9 +1029,9 @@ void gantry_robot_exit(command_t* command)
      {
          command_queue_push((command_t*)gantry_human_build_command());
      }
-      // TODO: Finally, update previous_board with the robot's move
-      // chessboard_update_presence(chess_board_t *board, char move[5]);
-      // chessboard_update_pieces(chess_board_t *board, char move[5]);
+      // Finally, update previous_board with the robot's move
+     chessboard_update_presence(&previous_board, p_gantry_command->robot_move_uci);
+     chessboard_update_pieces(&previous_board, p_gantry_command->robot_move_uci);
 }
 
 /**

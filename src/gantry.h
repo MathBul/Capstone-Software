@@ -36,6 +36,7 @@
 typedef struct gantry_command_t {
     command_t command;
     chess_move_t move;              // All the info about the move the robot will make
+    char robot_move_uci[5];         // The move the robot will make in UCI notation
     game_status_t game_status;      // The current state of the game, as reported by the Pi (ongoing, ended)
     char move_to_send[5];           // The human's move in UCI notation
 } gantry_command_t;

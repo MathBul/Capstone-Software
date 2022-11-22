@@ -329,7 +329,7 @@ bool chessboard_get_move(chess_board_t* previous, chess_board_t* current, char m
 void chessboard_update_presence(chess_board_t *board, char move[5])
 {
     // Check for castling move to update the board w/rook's move as well
-    if (move[5] == 'c')
+    if (move[4] == 'c')
     {
         // Write the corresponding rook's move into rook_move
         char rook_move[5];
@@ -363,6 +363,37 @@ void chessboard_update_presence(chess_board_t *board, char move[5])
  */
 void chessboard_update_pieces(chess_board_t *board, char move[5])
 {
+    // Castling case: Apply the rook's move, then the king's move after this block
+    if (move[4] == 'c')
+    {
+        char rook_move[5];
+        chessboard_rook_mv_from_king(move, rook_move);
+
+        // Separate the initial and final squares into rank and file pairs
+        char r_square_initial[2];
+        char r_square_final[2];
+
+        // Assign the squares values from the move passed in
+        r_square_initial[0] = rook_move[0];
+        r_square_initial[1] = rook_move[1];
+        r_square_final[0] = rook_move[2];
+        r_square_final[1] = rook_move[3];
+
+        // Get indices for the squares [0, 63]
+        uint8_t r_sq_initial_index = chessboard_square_to_index(r_square_initial[0], r_square_initial[1]);
+        uint8_t r_sq_final_index = chessboard_square_to_index(r_square_final[0], r_square_final[1]);
+
+        // Convert these indices to indices in the board_pieces 2D array
+        uint8_t r_sq_initial_file_index = chessboard_ind_to_file_ind(r_sq_initial_index);
+        uint8_t r_sq_initial_rank_index = chessboard_ind_to_rank_ind(r_sq_initial_index);
+        uint8_t r_sq_final_file_index = chessboard_ind_to_file_ind(r_sq_final_index);
+        uint8_t r_sq_final_rank_index = chessboard_ind_to_rank_ind(r_sq_final_index);
+
+        char r_moving_piece = board->board_pieces[r_sq_initial_file_index][r_sq_initial_rank_index];
+
+        board->board_pieces[r_sq_final_rank_index][r_sq_final_file_index] = r_moving_piece;
+        board->board_pieces[r_sq_initial_rank_index][r_sq_initial_file_index] = '\0';
+    }
     // Separate the initial and final squares into rank and file pairs
     char square_initial[2];
     char square_final[2];
