@@ -446,4 +446,23 @@ void utils_get_board_changes(uint64_t changes_in_presence, board_changes_t *boar
     }
 }
 
+/**
+ * @brief Sets arr1 equal to arr2 (used with 8x8 board_pieces arrays)
+ *
+ * @param arr1 The board to modify
+ * @param arr2 The board to be copied
+ */
+void utils_set_pieces_equal(char arr1[8][8], char arr2[8][8])
+{
+    int i;
+    int j;
+    for (i = 0; i < 8; i++)
+    {
+        for (j = 0; j < 8; j++)
+        {
+            arr1[i][j] = arr2[i][j];
+        }
+    }
+}
+
 /* End utils.c */

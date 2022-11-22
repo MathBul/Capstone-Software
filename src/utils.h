@@ -216,6 +216,7 @@ chess_file_t utils_byte_to_file(uint8_t byte);
 chess_rank_t utils_byte_to_rank(uint8_t byte);
 chess_move_type utils_byte_to_move_type(uint8_t byte);
 void utils_get_board_changes(uint64_t changes_in_presence, board_changes_t *board_changes);
+void utils_set_pieces_equal(char arr1[8][8], char arr2[8][8]);
 
 // Interrupt utils
 void utils_set_nvic(uint8_t interrupt_num, uint8_t priority);

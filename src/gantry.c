@@ -272,13 +272,11 @@ void gantry_human_exit(command_t* command)
         command_queue_push((command_t*)gantry_comm_build_command(p_gantry_command->move_to_send));
         send_msg = true;
     }
-
-    // Reset flag
-    human_is_done = false;
 #endif
 #ifdef THREE_PARTY_MODE
-    // Place the gantry_move command on the queue
-    command_queue_push((command_t*)gantry_robot_build_command());
+    // Place the gantry_comm command on the queue to send the message
+    command_queue_push((command_t*)gantry_comm_build_command(p_gantry_command->move_to_send));
+    send_msg = true;
 
     // Reset flag
     human_is_done = false;
@@ -528,7 +526,12 @@ void gantry_robot_action(command_t* command)
                             rpi_receive(check_bytes, 2);
                             if (utils_validate_transmission((uint8_t *) message, 8, check_bytes))
                             {
+                                // Send ack
                                 rpi_transmit_ack();
+                                // Human's move wasn't illegal, so update previous_board to current_board
+                                previous_board.board_presence = current_board.board_presence;
+                                utils_set_pieces_equal(previous_board.board_pieces, current_board.board_pieces);
+                                // Split up the game statuses
                                 status_after_human = game_status >> 4;
                                 status_after_robot = game_status & (~0xF0);
                                 if (status_after_human == GAME_CHECKMATE)
@@ -1013,6 +1016,9 @@ void gantry_robot_exit(command_t* command)
      {
          command_queue_push((command_t*)gantry_human_build_command());
      }
+      // TODO: Finally, update previous_board with the robot's move
+      // chessboard_update_presence(chess_board_t *board, char move[5]);
+      // chessboard_update_pieces(chess_board_t *board, char move[5]);
 }
 
 /**

@@ -61,9 +61,11 @@ char* chessboard_index_to_square(uint8_t index, char square[2]);
 uint8_t chessboard_ind_to_file_ind(uint8_t index);
 uint8_t chessboard_ind_to_rank_ind(uint8_t index);
 bool chessboard_get_move(chess_board_t* previous, chess_board_t* current, char move[5]);
+void chessboard_update_presence(chess_board_t *board, char move[5]);
 void chessboard_update_pieces(chess_board_t *board, char move[5]);
 bool chessboard_update_pcs_castling(chess_board_t *board, uint64_t castling_signature);
 bool chessboard_is_promotion(char initial_rank, char final_rank, char moving_piece);
+void chessboard_rook_mv_from_king(char move[5], char rook_move[5]);
 void chessboard_reset(chess_board_t *board);
 
 #endif /* CHESSBOARD_H_ */

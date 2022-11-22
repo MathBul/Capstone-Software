@@ -320,6 +320,41 @@ bool chessboard_get_move(chess_board_t* previous, chess_board_t* current, char m
 }
 
 /**
+ * @brief Updates a chess_board_t's board_presence field by applying a
+ *        given move to it.
+ *
+ * @param chess_board_t* board The board to apply the move to
+ * @param move[5] The move in UCI notation (4-5 characters)
+ */
+void chessboard_update_presence(chess_board_t *board, char move[5])
+{
+    // Check for castling move to update the board w/rook's move as well
+    if (move[5] == 'c')
+    {
+        // Write the corresponding rook's move into rook_move
+        char rook_move[5];
+        chessboard_rook_mv_from_king(move, rook_move);
+
+        // Get the initial and final indices for the rook's move
+        uint8_t rook_index_initial = chessboard_square_to_index(rook_move[0], rook_move[1]);
+        uint8_t rook_index_final = chessboard_square_to_index(rook_move[2], rook_move[3]);
+
+        // The initial square becomes 0 since the piece has moved away from there
+        board->board_presence &= ~(0x01) << rook_index_initial;
+        // The final square becomes 1 since the piece has moved there
+        board->board_presence |= (0x01) << rook_index_final;
+    }
+    // Get the initial and final indices for this move
+    uint8_t index_initial = chessboard_square_to_index(move[0], move[1]);
+    uint8_t index_final = chessboard_square_to_index(move[2], move[3]);
+
+    // The initial square becomes 0 since the piece has moved away from there
+    board->board_presence &= ~(0x01) << index_initial;
+    // The final square becomes 1 since the piece has moved there
+    board->board_presence |= (0x01) << index_final;
+}
+
+/**
  * @brief Updates a chess_board_t's board_pieces field by applying a
  *        given move to it.
  *
@@ -443,6 +478,61 @@ bool chessboard_is_promotion(char initial_rank, char final_rank, char moving_pie
     return false;
 }
 
+/**
+ * @brief Takes a king's castling move and writes the corresponding rook's
+ *        move into a buffer.
+ *
+ * @param move The king's castling move
+ * @param rook_move The buffer to write the corresponding rook's move into
+ */
+void chessboard_rook_mv_from_king(char move[5], char rook_move[5])
+{
+    rook_move[4] = '_';
+    // White king-side castle
+    // King's move: e1g1 | Rook's move: h1f1
+    if ((move[0] == 'e') && (move[1] == '1') && (move[2] == 'g') && (move[3] == '1'))
+    {
+        rook_move[0] = 'h';
+        rook_move[1] = '1';
+        rook_move[2] = 'f';
+        rook_move[3] = '1';
+    }
+    // White queen-side castle
+    // King's move: e1c1 | Rook's move: a1d1
+    else if ((move[0] == 'e') && (move[1] == '1') && (move[2] == 'c') && (move[3] == '1'))
+    {
+        rook_move[0] = 'a';
+        rook_move[1] = '1';
+        rook_move[2] = 'd';
+        rook_move[3] = '1';
+    }
+    // Black king-side castle
+    // King's move: e8g8 | Rook's move: h8f8
+    else if ((move[0] == 'e') && (move[1] == '8') && (move[2] == 'g') && (move[3] == '8'))
+    {
+        rook_move[0] = 'h';
+        rook_move[1] = '8';
+        rook_move[2] = 'f';
+        rook_move[3] = '8';
+    }
+    // Black queen-side castle
+    // King's move: e8c8 | Rook's move: a8d8
+    else if ((move[0] == 'e') && (move[1] == '8') && (move[2] == 'c') && (move[3] == '8'))
+    {
+        rook_move[0] = 'a';
+        rook_move[1] = '8';
+        rook_move[2] = 'd';
+        rook_move[3] = '8';
+    }
+    // Should never get here; for debugging purposes
+    else
+    {
+        rook_move[0] = '?';
+        rook_move[1] = '?';
+        rook_move[2] = '?';
+        rook_move[3] = '?';
+    }
+}
 
 /**
  * @brief Reset both chess boards to their default states
