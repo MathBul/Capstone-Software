@@ -13,10 +13,10 @@
 /* GPIO Output Functions */
 
 /**
- * @brief Sets the specified GPIO port/pin as an output, then resets the output value
+ * @brief Sets the specified GPIO port/pin as an output, then clears the output value
  * 
  * @param port GPIO_Type for the port being used
- * @param pin Pin being used, should be one of GPIO_PIN_X
+ * @param pin Pin being used, GPIO_PIN_X for X={0,...,7}
  */
 void gpio_set_as_output(GPIO_Type* port, uint8_t pin)
 {
@@ -30,7 +30,7 @@ void gpio_set_as_output(GPIO_Type* port, uint8_t pin)
  * @brief Sets the output of the specified GPIO port/pin as high
  * 
  * @param port GPIO_Type for the port being used
- * @param pin Pin being used, should be one of GPIO_PIN_X
+ * @param pin Pin being used, GPIO_PIN_X for X={0,...,7}
  */
 void gpio_set_output_high(GPIO_Type* port, uint8_t pin)
 {
@@ -41,7 +41,7 @@ void gpio_set_output_high(GPIO_Type* port, uint8_t pin)
  * @brief Sets the output of the specified GPIO port/pin as low
  * 
  * @param port GPIO_Type for the port being used
- * @param pin Pin being used, should be one of GPIO_PIN_X
+ * @param pin Pin being used, GPIO_PIN_X for X={0,...,7}
  */
 void gpio_set_output_low(GPIO_Type* port, uint8_t pin)
 {
@@ -52,7 +52,7 @@ void gpio_set_output_low(GPIO_Type* port, uint8_t pin)
  * @brief Toggles the output of the specified GPIO port/pin
  * 
  * @param port GPIO_Type for the port being used
- * @param pin Pin being used, should be one of GPIO_PIN_X
+ * @param pin Pin being used, GPIO_PIN_X for X={0,...,7}
  */
 void gpio_set_output_toggle(GPIO_Type* port, uint8_t pin)
 {
@@ -65,7 +65,7 @@ void gpio_set_output_toggle(GPIO_Type* port, uint8_t pin)
  * @brief Sets the specified GPIO port/pin as an input
  * 
  * @param port GPIO_Type for the port being used
- * @param pin Pin being used, should be one of GPIO_PIN_X
+ * @param pin Pin being used, GPIO_PIN_X for X={0,...,7}
  */
 void gpio_set_as_input(GPIO_Type* port, uint8_t pin)
 {
@@ -78,7 +78,7 @@ void gpio_set_as_input(GPIO_Type* port, uint8_t pin)
  * @brief Reads the specified GPIO port/pin. Returns either a 0 or a 1
  * 
  * @param port GPIO_Type for the port being used
- * @param pin Pin being used, should be one of GPIO_PIN_X
+ * @param pin Pin being used, GPIO_PIN_X for X={0,...,7}
  */
 uint8_t gpio_read_input(GPIO_Type* port, uint8_t pin)
 {
@@ -87,19 +87,17 @@ uint8_t gpio_read_input(GPIO_Type* port, uint8_t pin)
 }
 
 /**
- * @brief Selects the alternate pin functionality. Modfies the GPIO alternate select and port control 
- * registers
+ * @brief Selects an alternate pin functionality. Modfies GPIO alternate function select and port control registers
  * 
  * @param port GPIO_Type for the port being used
- * @param pin Pin being used, should be one of GPIO_PIN_X
- * @param multiplex_val The select to multiplexer
+ * @param pin Pin being used, GPIO_PIN_X for X={0,...,7}
+ * @param multiplex_val The select for the alternate function multiplexer
  */
-void gpio_select_alternate(GPIO_Type* port, uint8_t pin, uint8_t multiplex_val)
+void gpio_select_alternate_function(GPIO_Type* port, uint8_t pin, uint8_t multiplex_val)
 {
     port->AFSEL |= pin;
-    uint8_t lcb = utils_bits8_mask_to_shift(pin);
-    port->PCTL |= (multiplex_val << (lcb << 2));
+    uint8_t lsb_shift = utils_bits8_get_lsb_shift(pin);
+    port->PCTL  |= (multiplex_val << (lsb_shift << 2));
 }
-
 
 /* End gpio.c */

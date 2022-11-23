@@ -1,6 +1,6 @@
 /**
  * @file gantry.h
- * @author Nick Cooney (npc4crc@virginia.edu)
+ * @author Nick Cooney (npc4crc@virginia.edu), Eli Jelesko (ebj5hec@virginia.edu), Keenan Alchaar (ka5nt@virginia.edu)
  * @brief Code to unite all other modules and provide simple interface for chess gameplay
  * @version 0.1
  * @date 2022-10-19
@@ -17,7 +17,7 @@
 #include "delay.h"
 #include "electromagnet.h"
 #include "gpio.h"
-#include "leds.h"
+#include "led.h"
 #include "raspberrypi.h"
 #include "sensornetwork.h"
 #include "steppermotors.h"
@@ -25,12 +25,12 @@
 #include "uart.h"
 #include "utils.h"
 
+// Flags for main
+extern bool sys_fault;
+
 // General gantry defines
 #define GANTRY_TIMER                        (TIMER4)
 #define GANTRY_HANDLER                      (TIMER4A_IRQHandler)
-#define COMM_TIMER                          (TIMER7)
-#define COMM_HANDLER                        (TIMER7A_IRQHandler)
-#define COMM_TIMEOUT                        (600000000)
 
 // Gantry command struct
 typedef struct gantry_command_t {

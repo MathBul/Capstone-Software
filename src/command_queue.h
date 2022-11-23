@@ -6,7 +6,6 @@
  * @date 2022-10-22
  * 
  * @copyright Copyright (c) 2022
- * 
  */
 
 #ifndef COMMAND_QUEUE_H_

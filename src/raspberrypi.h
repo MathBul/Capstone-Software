@@ -1,6 +1,6 @@
 /**
  * @file raspberrypi.h
- * @author Nick Cooney (npc4crc@virginia.edu) and Keenan Alchaar (ka5nt@virginia.edu)
+ * @author Keenan Alchaar (ka5nt@virginia.edu) and Nick Cooney (npc4crc@virginia.edu)
  * @brief Provides functions for interacting with a Raspberry Pi
  * @version 0.1
  * @date 2022-10-09
@@ -12,6 +12,7 @@
 #define RASPBERRYPI_H_
 
 #include "msp.h"
+#include "clock.h"
 #include "command_queue.h"
 #include "gpio.h"
 #include "uart.h"
@@ -19,30 +20,28 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-// Mode switch (define one at a time)
-//#define USER_MODE // (user, through UART0 terminal, sends moves to MSP directly)
-//#define THREE_PARTY_MODE // (user sends moves to MSP, which sends moves to RPi, which sends moves back)
-#define FINAL_IMPLEMENTATION_MODE // (ideally, final implementation w/board reading)
+// Flags
+extern bool send_msg;
 
 // General Raspberry Pi defines
+#define COMM_TIMER                          (TIMER7)
+#define COMM_HANDLER                        (TIMER7A_IRQHandler)
+#define COMM_TIMEOUT                        (600000000)
+
 #ifdef USER_MODE
-#   define RPI_UART_CHANNEL               (UART_CHANNEL_0)
+#   define RPI_UART_CHANNEL                 (UART_CHANNEL_0)
 #elif defined(THREE_PARTY_MODE)
-#   define RPI_UART_CHANNEL               (UART_CHANNEL_3)
-#   define USER_CHANNEL                   (UART_CHANNEL_0)
+#   define RPI_UART_CHANNEL                 (UART_CHANNEL_3)
+#   define USER_CHANNEL                     (UART_CHANNEL_0)
 #else
-#   define RPI_UART_CHANNEL               (UART_CHANNEL_3)
+#   define RPI_UART_CHANNEL                 (UART_CHANNEL_3)
 #endif
 
-/*
- * All UART instruction defines
- * UART instructions are defined as:
- *   - 1 start byte (0x0A)
- *   - 1 byte containing the instruction ID (4 bits)
- *     and the operand length in bytes (4 bits)
- *   - 0 - 5 bytes containing the operand
- *   - 2 bytes containing the check bytes for the instruction
- */
+// UART instructions are defined as:
+//  - 1 start byte (0x0A)
+//  - 1 byte containing the instruction ID (4 bits) and the operand length in bytes (4 bits)
+//  - 0 - 5 bytes containing the operand
+//  - 2 bytes containing the check bytes for the instruction
 
 // Start byte + ACK signal
 #define START_BYTE                          (0x0A)
@@ -94,17 +93,17 @@ typedef enum game_status_t {
     STALEMATE
 } game_status_t;
 
-// Public Raspberry Pi functions
+// Public functions
 void rpi_init(void);
-bool rpi_transmit(char* data, uint8_t num_chars);
-bool rpi_receive(char *data, uint8_t num_chars);
+bool rpi_transmit(char* data, uint8_t size);
+bool rpi_receive(char *data, uint8_t size);
 void rpi_reset_uart(void);
 
-// Raspberry Pi Instruction functions
+// Raspberry Pi instruction functions
 bool rpi_transmit_reset(void);
 bool rpi_transmit_start(char color);
 bool rpi_transmit_human_move(char *move);
 bool rpi_transmit_ack(void);
-chess_move_t rpi_get_castle_rook_move(chess_move_t *king_move);
+chess_move_t rpi_castle_get_rook_move(chess_move_t *king_move);
 
 #endif /* RASPBERRYPI_H_ */

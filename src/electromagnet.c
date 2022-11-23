@@ -11,7 +11,8 @@
 #include "electromagnet.h"
 
 // Private functions
-void electromagnet_engage();
+void electromagnet_attract();
+void electromagnet_repel();
 void electromagnet_disengage();
 
 // Declare the electromagnet
@@ -24,36 +25,43 @@ static electromagnet_t* p_electromagnet = &electromagnet;
 void electromagnet_init()
 {
     // Start with magnet off
-    gpio_set_as_output(ELECTROMAGNET_INHIBIT_PORT, ELECTROMAGNET_INHIBIT_PIN);
-    gpio_set_output_high(ELECTROMAGNET_INHIBIT_PORT, ELECTROMAGNET_INHIBIT_PIN);
-
-    // INPUT is used to send a signal to the magnet
-    gpio_set_as_output(ELECTROMAGNET_INPUT_PORT, ELECTROMAGNET_INPUT_PIN);
-    gpio_set_output_low(ELECTROMAGNET_INPUT_PORT, ELECTROMAGNET_INPUT_PIN);
+    gpio_set_as_output(ELECTROMAGNET_IN2_PORT, ELECTROMAGNET_IN2_PIN);
+    gpio_set_as_output(ELECTROMAGNET_IN1_PORT, ELECTROMAGNET_IN1_PIN);
+    gpio_set_output_low(ELECTROMAGNET_IN2_PORT, ELECTROMAGNET_IN2_PIN);
+    gpio_set_output_low(ELECTROMAGNET_IN1_PORT, ELECTROMAGNET_IN1_PIN);
 
     // Configure the magnet struct
-    p_electromagnet->inhibit_port = ELECTROMAGNET_INHIBIT_PORT;
-    p_electromagnet->inhibit_pin  = ELECTROMAGNET_INHIBIT_PIN;
-    p_electromagnet->input_port   = ELECTROMAGNET_INPUT_PORT;
-    p_electromagnet->input_pin    = ELECTROMAGNET_INPUT_PIN;
+    p_electromagnet->in2_port = ELECTROMAGNET_IN2_PORT;
+    p_electromagnet->in2_pin  = ELECTROMAGNET_IN2_PIN;
+    p_electromagnet->in1_port = ELECTROMAGNET_IN1_PORT;
+    p_electromagnet->in1_pin  = ELECTROMAGNET_IN1_PIN;
 }
 
 /**
- * @brief Turn the electromagnet "on"
+ * @brief Turn the electromagnet on with attraction
  */
-void electromagnet_engage()
+void electromagnet_attract()
 {
-    gpio_set_output_low(ELECTROMAGNET_INHIBIT_PORT, ELECTROMAGNET_INHIBIT_PIN);
-    gpio_set_output_high(ELECTROMAGNET_INPUT_PORT, ELECTROMAGNET_INPUT_PIN);
+    gpio_set_output_low(p_electromagnet->in2_port, p_electromagnet->in2_pin);
+    gpio_set_output_high(p_electromagnet->in1_port, p_electromagnet->in1_pin);
 }
 
 /**
- * @brief Turn the electromagnet "off"
+ * @brief Turn the electromagnet on with repulsion
+ */
+void electromagnet_repel()
+{
+    gpio_set_output_high(p_electromagnet->in2_port, p_electromagnet->in2_pin);
+    gpio_set_output_low(p_electromagnet->in1_port, p_electromagnet->in1_pin);
+}
+
+/**
+ * @brief Turn the electromagnet off
  */
 void electromagnet_disengage()
 {
-    gpio_set_output_high(ELECTROMAGNET_INHIBIT_PORT, ELECTROMAGNET_INHIBIT_PIN);
-    gpio_set_output_low(ELECTROMAGNET_INPUT_PORT, ELECTROMAGNET_INPUT_PIN);
+    gpio_set_output_low(p_electromagnet->in2_port, p_electromagnet->in2_pin);
+    gpio_set_output_low(p_electromagnet->in1_port, p_electromagnet->in1_pin);
 }
 
 /* Command Functions */
@@ -90,13 +98,10 @@ void electromagnet_entry(command_t* command)
 {
     electromagnet_command_t* p_command = (electromagnet_command_t*) command;
 
-    // Get the desired settings
-    peripheral_state_t desired_state = p_command->desired_state;
-
     // Enable or disable the electromagnet as desired
-    if (desired_state == enabled)
+    if (p_command->desired_state == enabled)
     {
-        electromagnet_engage();
+        electromagnet_attract();
     }
     else
     {
@@ -108,7 +113,7 @@ void electromagnet_entry(command_t* command)
  * @brief Always returns true since no action is done
  *
  * @param command Pointer to the electromagnet command
- * @return true Always
+ * @return True always
  */
 bool electromagnet_is_done(command_t* command)
 {

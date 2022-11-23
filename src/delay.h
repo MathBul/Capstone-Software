@@ -6,11 +6,10 @@
  * @date 2022-10-30
  * 
  * @copyright Copyright (c) 2022
- * 
  */
 
-#ifndef SRC_DELAY_H_
-#define SRC_DELAY_H_
+#ifndef DELAY_H_
+#define DELAY_H_
 
 #include "msp.h"
 #include "clock.h"
@@ -19,21 +18,21 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-
+// General delay macros
 #define DELAY_TIMER                     (TIMER5)
 #define DELAY_HANDLER                   (TIMER5A_IRQHandler)
-#define DELAY_PERIOD                    (23999)
+#define DELAY_PERIOD                    (119999)
 
+// Delay command struct
 typedef struct delay_command_t {
     command_t command;
     uint32_t time_ms;
 } delay_command_t;
 
+// Command functions
 delay_command_t* delay_build_command(uint16_t time_ms);
 void delay_entry(command_t* command);
-void delay_action(command_t* command);
-void delay_exit(command_t* command);
 bool delay_is_done(command_t* command);
 
 
-#endif /* SRC_DELAY_H_ */
+#endif /* DELAY_H_ */

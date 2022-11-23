@@ -6,7 +6,6 @@
  * @date 2022-10-22
  * 
  * @copyright Copyright (c) 2022
- * 
  */
 
 #include "command_queue.h"
@@ -27,7 +26,8 @@ void command_queue_init(void)
 /**
  * @brief Pushes an element into the queue. If the queue is full, this will do nothing
  * 
- * @param value The value to be put on the queue. 
+ * @param value The value to be put on the queue
+ * @return Whether the push was successful
  */
 bool command_queue_push(command_t* value)
 {
@@ -42,9 +42,7 @@ bool command_queue_push(command_t* value)
         queue[head] = value;
 
         // Advance the head
-        head++;
-
-        // Wrap
+        head += 1;
         if (head >= COMMAND_QUEUE_SIZE)
         {
             head = 0;
@@ -56,10 +54,10 @@ bool command_queue_push(command_t* value)
 }
 
 /**
- * @brief Removes the value at the front of the queue. If there is nothing in the queue,
- *  the storage pointer is evaluated to NULL
+ * @brief Removes the value at the front of the queue. If there is nothing in the queue, the storage pointer is evaluated to NULL
  * 
- * @param p_value A pointer to where the value will be stored
+ * @param p_value Pointer to where the value will be stored
+ * @return Whether the pop was successful
  */
 bool command_queue_pop(command_t** p_value)
 {
@@ -87,10 +85,13 @@ bool command_queue_pop(command_t** p_value)
 
 /**
  * @brief Gives the number of elements currently in the queue
+ * 
+ * @return The size of the queue
  */
 uint16_t command_queue_get_size(void)
 {
-    if (head >= tail) // When they are equal the size is 0
+    // When (head==tail), the size is 0
+    if (head >= tail)
     {
         return head - tail;
     }
@@ -103,8 +104,7 @@ uint16_t command_queue_get_size(void)
 /**
  * @brief Checks if the queue is empty or not
  * 
- * @return true The queue is empty
- * @return false There are elements still in the queue
+ * @return True if the queue is empty, false otherwise
  */
 bool command_queue_is_empty(void)
 {
@@ -114,13 +114,12 @@ bool command_queue_is_empty(void)
 /**
  * @brief Clears the queue
  *
- * @return true
+ * @return True always
  */
 bool command_queue_clear(void)
 {
     head = tail;
     return true;
 }
-
 
 /* End command_queue.c */

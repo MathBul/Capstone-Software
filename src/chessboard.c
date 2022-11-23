@@ -1,22 +1,49 @@
 /**
  * @file chessboard.c
  * @author Keenan Alchaar (ka5nt@virginia.edu)
- * @brief Defines useful methods related to processing data with chess_board_t structs
+ * @brief Provides functions for processing chess-related data
  * @version 0.1
  * @date 2022-10-17
  *
  * @copyright Copyright (c) 2022
- *
  */
 
 #include "chessboard.h"
 
+// Private functions
+static void chessboard_reset_board(chess_board_t *board);
+static uint8_t chessboard_tile_to_index(char file, char rank);
+static char* chessboard_index_to_tile(uint8_t index, char square[2]);
+static uint8_t chessboard_index_to_file_index(uint8_t index);
+static uint8_t chessboard_index_to_rank_index(uint8_t index);
+static bool chessboard_is_promotion(char initial_rank, char final_rank, char moving_piece);
+static void chessboard_update_presence_move(chess_board_t* p_board, char move[5]);
+static void chessboard_update_presence_board(chess_board_t* p_board, char move[5]);
+static void chessboard_update_pieces_move(chess_board_t *board, char move[5]);
+static void chessboard_update_pieces_board(chess_board_t *board, char move[5]);
+static bool chessboard_update_pieces_castling(chess_board_t *board, uint64_t castling_signature);
+static void chessboard_castle_get_rook_move(char move[5], char rook_move[5]);
+
+// Previous, intermediate (case of captures), and current boards
+chess_board_t chessboards[NUMBER_OF_CHESSBOARDS];
+static chess_board_t* p_prev_board = &chessboards[0];
+static chess_board_t* p_capt_board = &chessboards[1];
+static chess_board_t* p_curr_board = &chessboards[2];
+
 /**
- * @brief Initialize chess_board_t presence and piece boards with default values
- *
- * @param chess_board_t *board A pointer to the chess_board_t to be initialized
+ * @brief Inititialzes all chessboards
  */
-void chessboard_init(chess_board_t *board)
+void chessboard_init()
+{
+    chessboard_reset_all();
+}
+
+/**
+ * @brief Resets a chessboard to its default state
+ *
+ * @param chess_board_t Pointer to the chessboard being reset
+ */
+static void chessboard_reset_board(chess_board_t *board)
 {
     // Set default board presence
     board->board_presence = (uint64_t) 0xFFFF00000000FFFF;
@@ -31,11 +58,8 @@ void chessboard_init(chess_board_t *board)
     board->board_pieces[FIRST_RANK][G_FILE] = 'N';
     board->board_pieces[FIRST_RANK][H_FILE] = 'R';
 
-    // Counter variable
-    int i;
-
-    /* Set white's pawns, the empty 4 ranks in the middle of
-       the board, then black's pawns */
+    // Set white's pawns, the empty 4 ranks in the middle of the board, then black's pawns
+    uint8_t i = 0;
     for (i = 0; i < 8; i++)
     {
         board->board_pieces[SECOND_RANK][i]  = 'P';
@@ -58,106 +82,62 @@ void chessboard_init(chess_board_t *board)
 }
 
 /**
- * @brief Convert a chess square to its index (0 - 63)
- *
- * @param char file The char for the square's file
- * @param char rank The char for the square's rank
- * @return The integer representation of the square passed in
+ * @brief Reset all chess boards to their default states
  */
-uint8_t chessboard_square_to_index(char file, char rank)
+void chessboard_reset_all()
 {
-    uint8_t index = 0;
-    switch (rank)
+    uint8_t i = 0;
+    for (i = 0; i < NUMBER_OF_CHESSBOARDS; i++)
     {
-        case '1':
-            index += 0;
-            break;
-        case '2':
-            index += 8;
-            break;
-        case '3':
-            index += 16;
-            break;
-        case '4':
-            index += 24;
-            break;
-        case '5':
-            index += 32;
-            break;
-        case '6':
-            index += 40;
-            break;
-        case '7':
-            index += 48;
-            break;
-        case '8':
-            index += 56;
-            break;
-        default:
-            break;
+        chessboard_reset_board(&chessboards[i]);
     }
-    switch(file)
-    {
-        case 'a':
-            index += 0;
-            break;
-        case 'b':
-            index += 1;
-            break;
-        case 'c':
-            index += 2;
-            break;
-        case 'd':
-            index += 3;
-            break;
-        case 'e':
-            index += 4;
-            break;
-        case 'f':
-            index += 5;
-            break;
-        case 'g':
-            index += 6;
-            break;
-        case 'h':
-            index += 7;
-            break;
-        default:
-            break;
-    }
-    return index;
 }
 
 /**
- * @brief Convert an index (0 - 63) to its chess square
+ * @brief Convert a chess tile to its index (0 - 63)
  *
- * @param uint8_t index The index to be converted
- * @param char square[2] A buffer for this method to write the square into
- * @return A char array containing the square
+ * @param file The char for the tile's file
+ * @param rank The char for the tile's rank
+ * @return The integer representation of the tile passed in
  */
-char* chessboard_index_to_square(uint8_t index, char square[2])
+static uint8_t chessboard_tile_to_index(char file, char rank)
 {
+    return utils_tile_to_index(utils_byte_to_file(file), utils_byte_to_rank(rank));
+}
+
+/**
+ * @brief Convert an index (0 - 63) to its rank and file (stored as a char array)
+ *
+ * @param index The index to be converted
+ * @param tile Buffer for this method to write the tile into (file, rank)
+ * @return A char array containing the tile
+ */
+static char* chessboard_index_to_tile(uint8_t index, char tile[2])
+{
+    // If index exceeds bounds, return error tile
     if (index > 63)
     {
-        square[0] = '?';
-        square[1] = '?';
-        return square;
+        tile[0] = '?';
+        tile[1] = '?';
+        return tile;
     }
+
+    // Compute rank and file
     char file = (index % 8) + 'a';
     char rank = (index / 8) + '1';
-    square[0] = file;
-    square[1] = rank;
-    return square;
+    tile[0] = file;
+    tile[1] = rank;
+
+    return tile;
 }
 
 /**
  * @brief Convert an index (0 - 63) to its file index (0 - 8)
  *
- * @param uint8_t index The index to be converted
- *
- * @return An unsigned integer corresponding to the file of the index passed in
+ * @param index The index to be converted
+ * @return One of {0,...,7} corresponding to the file of the index passed in
  */
-uint8_t chessboard_ind_to_file_ind(uint8_t index)
+static uint8_t chessboard_index_to_file_index(uint8_t index)
 {
     if (index > 63)
     {
@@ -170,11 +150,10 @@ uint8_t chessboard_ind_to_file_ind(uint8_t index)
 /**
  * @brief Convert an index (0 - 63) to its rank index (0 - 8)
  *
- * @param uint8_t index The index to be converted
- *
- * @return An unsigned integer corresponding to the rank of the index passed in
+ * @param index The index to be converted
+ * @return One of {0,...,7} corresponding to the rank of the index passed in
  */
-uint8_t chessboard_ind_to_rank_ind(uint8_t index)
+static uint8_t chessboard_index_to_rank_index(uint8_t index)
 {
     if (index > 63)
     {
@@ -185,321 +164,28 @@ uint8_t chessboard_ind_to_rank_ind(uint8_t index)
 }
 
 /**
- * @brief Determine the move the human made (in UCI notation) by comparing
- *        the previous board to the current board.
- *
- * @param chess_board_t* previous The previous state of the board
- * @param chess_board_t* current The new/current state of the board
- * @param move[5] A buffer for this method to write the move into
- *
- * @return false if move is definitely illegal, true otherwise
- */
-bool chessboard_get_move(chess_board_t* previous, chess_board_t* current, char move[5])
-{
-    // Get presence boards
-    uint64_t previous_presence = previous->board_presence;
-    uint64_t current_presence = current->board_presence;
-
-    // Find the changes in presence
-    uint64_t changes_in_presence = previous_presence ^ current_presence;
-    // Declare board_changes struct and set default values
-    board_changes_t board_changes;
-    board_changes.num_changes = 0;
-    board_changes.index1 = 0xFF;
-    board_changes.index2 = 0xFF;
-    board_changes.index3 = 0xFF;
-    board_changes.index4 = 0xFF;
-
-    // Store the indices of changes in presence in board_changes struct
-    utils_get_board_changes(changes_in_presence, &board_changes);
-    uint8_t num_changes = board_changes.num_changes;
-
-    // Likely a non-special move
-    if (num_changes == 2)
-    {
-        // Where to temporarily store the initial and final squares
-        char square_initial[2];
-        char square_final[2];
-
-        // Indices of changed sqaures
-        uint8_t index1 = board_changes.index1;
-        uint8_t index2 = board_changes.index2;
-
-        /* If index1 was a 1 on the previous board, a piece was there, meaning it was
-           the initial square */
-        uint8_t sq_initial_index;
-        if((previous_presence >> index1) & 0x01)
-        {
-            chessboard_index_to_square(index1, square_initial);
-            chessboard_index_to_square(index2, square_final);
-            sq_initial_index = index1;
-        }
-        /* Otherwise, index1 was a 0, meaning no piece was there, meaning it was the
-           final square */
-        else
-        {
-            chessboard_index_to_square(index1, square_final);
-            chessboard_index_to_square(index2, square_initial);
-            sq_initial_index = index2;
-        }
-        move[0] = square_initial[0];
-        move[1] = square_initial[1];
-        move[2] = square_final[0];
-        move[3] = square_final[1];
-
-        // Determine if this move is a promotion
-        uint8_t sq_initial_file_ind = chessboard_ind_to_file_ind(sq_initial_index);
-        uint8_t sq_initial_rank_ind = chessboard_ind_to_rank_ind(sq_initial_index);
-        if (chessboard_is_promotion(square_initial[1], square_final[1],
-                                    current->board_pieces[sq_initial_rank_ind][sq_initial_file_ind]))
-        {
-            move[4] = 'Q';
-        }
-        else
-        {
-            move[4] = '_';
-        }
-        // Update the pieces
-        chessboard_update_pieces(current, move);
-        return true;
-    }
-    // Likely a castling move, check for different changes in presence "signatures"
-    else if (num_changes == 4)
-    {
-        if (changes_in_presence == CASTLE_WHITE_K)
-        {
-            move[0] = 'e';
-            move[1] = '1';
-            move[2] = 'g';
-            move[3] = '1';
-            move[4] = '_';
-            chessboard_update_pcs_castling(current, CASTLE_WHITE_K);
-            return true;
-        }
-        else if (changes_in_presence == CASTLE_WHITE_Q)
-        {
-            move[0] = 'e';
-            move[1] = '1';
-            move[2] = 'c';
-            move[3] = '1';
-            move[4] = '_';
-            chessboard_update_pcs_castling(current, CASTLE_WHITE_Q);
-            return true;
-        }
-        else if (changes_in_presence == CASTLE_BLACK_K)
-        {
-            move[0] = 'e';
-            move[1] = '8';
-            move[2] = 'g';
-            move[3] = '8';
-            move[4] = '_';
-            chessboard_update_pcs_castling(current, CASTLE_BLACK_K);
-            return true;
-        }
-        else if (changes_in_presence == CASTLE_BLACK_Q)
-        {
-            move[0] = 'e';
-            move[1] = '8';
-            move[2] = 'c';
-            move[3] = '8';
-            move[4] = '_';
-            chessboard_update_pcs_castling(current, CASTLE_BLACK_Q);
-            return true;
-        }
-        else
-        {
-            // Must be an illegal move
-            return false;
-        }
-    }
-    else
-    {
-        // Must be an illegal move
-        return false;
-    }
-}
-
-/**
- * @brief Updates a chess_board_t's board_presence field by applying a
- *        given move to it.
- *
- * @param chess_board_t* board The board to apply the move to
- * @param move[5] The move in UCI notation (4-5 characters)
- */
-void chessboard_update_presence(chess_board_t *board, char move[5])
-{
-    // Check for castling move to update the board w/rook's move as well
-    if (move[4] == 'c')
-    {
-        // Write the corresponding rook's move into rook_move
-        char rook_move[5];
-        chessboard_rook_mv_from_king(move, rook_move);
-
-        // Get the initial and final indices for the rook's move
-        uint8_t rook_index_initial = chessboard_square_to_index(rook_move[0], rook_move[1]);
-        uint8_t rook_index_final = chessboard_square_to_index(rook_move[2], rook_move[3]);
-
-        // The initial square becomes 0 since the piece has moved away from there
-        board->board_presence &= ~(0x01) << rook_index_initial;
-        // The final square becomes 1 since the piece has moved there
-        board->board_presence |= (0x01) << rook_index_final;
-    }
-    // Get the initial and final indices for this move
-    uint8_t index_initial = chessboard_square_to_index(move[0], move[1]);
-    uint8_t index_final = chessboard_square_to_index(move[2], move[3]);
-
-    // The initial square becomes 0 since the piece has moved away from there
-    board->board_presence &= ~(0x01) << index_initial;
-    // The final square becomes 1 since the piece has moved there
-    board->board_presence |= (0x01) << index_final;
-}
-
-/**
- * @brief Updates a chess_board_t's board_pieces field by applying a
- *        given move to it.
- *
- * @param chess_board_t* board The board to apply the move to
- * @param move[5] The move in UCI notation (4-5 characters)
- */
-void chessboard_update_pieces(chess_board_t *board, char move[5])
-{
-    // Castling case: Apply the rook's move, then the king's move after this block
-    if (move[4] == 'c')
-    {
-        char rook_move[5];
-        chessboard_rook_mv_from_king(move, rook_move);
-
-        // Separate the initial and final squares into rank and file pairs
-        char r_square_initial[2];
-        char r_square_final[2];
-
-        // Assign the squares values from the move passed in
-        r_square_initial[0] = rook_move[0];
-        r_square_initial[1] = rook_move[1];
-        r_square_final[0] = rook_move[2];
-        r_square_final[1] = rook_move[3];
-
-        // Get indices for the squares [0, 63]
-        uint8_t r_sq_initial_index = chessboard_square_to_index(r_square_initial[0], r_square_initial[1]);
-        uint8_t r_sq_final_index = chessboard_square_to_index(r_square_final[0], r_square_final[1]);
-
-        // Convert these indices to indices in the board_pieces 2D array
-        uint8_t r_sq_initial_file_index = chessboard_ind_to_file_ind(r_sq_initial_index);
-        uint8_t r_sq_initial_rank_index = chessboard_ind_to_rank_ind(r_sq_initial_index);
-        uint8_t r_sq_final_file_index = chessboard_ind_to_file_ind(r_sq_final_index);
-        uint8_t r_sq_final_rank_index = chessboard_ind_to_rank_ind(r_sq_final_index);
-
-        char r_moving_piece = board->board_pieces[r_sq_initial_file_index][r_sq_initial_rank_index];
-
-        board->board_pieces[r_sq_final_rank_index][r_sq_final_file_index] = r_moving_piece;
-        board->board_pieces[r_sq_initial_rank_index][r_sq_initial_file_index] = '\0';
-    }
-    // Separate the initial and final squares into rank and file pairs
-    char square_initial[2];
-    char square_final[2];
-
-    // Assign the squares values from the move passed in
-    square_initial[0] = move[0];
-    square_initial[1] = move[1];
-    square_final[0] = move[2];
-    square_final[1] = move[3];
-
-    // Get indices for the squares [0, 63]
-    uint8_t square_initial_index = chessboard_square_to_index(square_initial[0], square_initial[1]);
-    uint8_t square_final_index = chessboard_square_to_index(square_final[0], square_final[1]);
-
-    // Convert these indices to indices in the board_pieces 2D array
-    uint8_t sq_initial_file_index = chessboard_ind_to_file_ind(square_initial_index);
-    uint8_t sq_initial_rank_index = chessboard_ind_to_rank_ind(square_initial_index);
-    uint8_t sq_final_file_index = chessboard_ind_to_file_ind(square_final_index);
-    uint8_t sq_final_rank_index = chessboard_ind_to_rank_ind(square_final_index);
-
-    // Update the board
-    char moving_piece = board->board_pieces[sq_initial_file_index][sq_initial_rank_index];
-    // Update the final position, and account for promotion
-    if ((move[4] == 'Q') || (move[4] == 'q'))
-    {
-        // 'p' + 1 = 'q' and 'P' + 1 = 'Q', so this works for both colors
-        board->board_pieces[sq_final_rank_index][sq_final_file_index] = moving_piece + 1;
-    }
-    else
-    {
-        // Otherwise, the moving piece should stay the same
-        board->board_pieces[sq_final_rank_index][sq_final_file_index] = moving_piece;
-    }
-    // The initial square is now empty
-    board->board_pieces[sq_initial_rank_index][sq_initial_file_index] = '\0';
-}
-
-/**
- * @brief Updates a chess_board_t's board_pieces field by applying a given
- *        castling move to it. Uses castling signatures defined in chessboard.h
- *        to determine which pieces to move.
- *
- * @param chess_board_t* board The board to apply the castling move to
- * @param castling_signature One of the four castling signatures defined in chessboard.h
- *
- * @return true if a valid castling signature was given, false otherwise
- */
-bool chessboard_update_pcs_castling(chess_board_t *board, uint64_t castling_signature)
-{
-    switch(castling_signature)
-    {
-        case CASTLE_WHITE_K:
-            board->board_pieces[FIRST_RANK][E_FILE] = '\0';
-            board->board_pieces[FIRST_RANK][F_FILE] = 'R';
-            board->board_pieces[FIRST_RANK][G_FILE] = 'K';
-            board->board_pieces[FIRST_RANK][H_FILE] = '\0';
-            break;
-        case CASTLE_WHITE_Q:
-            board->board_pieces[FIRST_RANK][A_FILE] = '\0';
-            board->board_pieces[FIRST_RANK][C_FILE] = 'K';
-            board->board_pieces[FIRST_RANK][D_FILE] = 'R';
-            board->board_pieces[FIRST_RANK][E_FILE] = '\0';
-            break;
-        case CASTLE_BLACK_K:
-            board->board_pieces[EIGHTH_RANK][E_FILE] = '\0';
-            board->board_pieces[EIGHTH_RANK][F_FILE] = 'r';
-            board->board_pieces[EIGHTH_RANK][G_FILE] = 'k';
-            board->board_pieces[EIGHTH_RANK][H_FILE] = '\0';
-            break;
-        case CASTLE_BLACK_Q:
-            board->board_pieces[EIGHTH_RANK][A_FILE] = '\0';
-            board->board_pieces[EIGHTH_RANK][C_FILE] = 'k';
-            board->board_pieces[EIGHTH_RANK][D_FILE] = 'r';
-            board->board_pieces[EIGHTH_RANK][E_FILE] = '\0';
-            break;
-        default:
-            return false;
-    }
-    return true;
-}
-
-/**
- * @brief Tells if a particular piece moving from an initial rank to a final
- *        rank would be considered a promotion.
+ * @brief Checks if the given move is a promotion
  *
  * @param initial_rank The initial rank, represented as a char
  * @param final_rank The final rank, represented as a char
- * @param moving_piece The piece that is moving from initial_rank to final_rank
- *
- * @return true if the move is a promotion, false if not
+ * @param moving_piece The piece that is moving from initial_rank to final_rank *
+ * @return Whether the move is a promotion
  */
-bool chessboard_is_promotion(char initial_rank, char final_rank, char moving_piece)
+static bool chessboard_is_promotion(char initial_rank, char final_rank, char moving_piece)
 {
-    // Must be a pawn to promote; not a promotion
+    // Only pawns can promote
     if ((moving_piece != 'P') && (moving_piece != 'p'))
     {
         return false;
     }
 
-    // Pawns moving from the second rank to first rank
+    // Pawns can be promoted when moving from the second rank to first rank
     if ((initial_rank == '2') && (final_rank == '1'))
     {
         return true;
     }
 
-    // Pawns moving from the seventh rank to the eighth rank
+    // Pawns can be promoted when moving from the seventh rank to the eighth rank
     if ((initial_rank == '7') && (final_rank == '8'))
     {
         return true;
@@ -510,17 +196,305 @@ bool chessboard_is_promotion(char initial_rank, char final_rank, char moving_pie
 }
 
 /**
- * @brief Takes a king's castling move and writes the corresponding rook's
- *        move into a buffer.
+ * @brief Determine the human's move (in UCI notation) by comparing the previous and current boards
+ *
+ * @param chess_board_t* previous The previous state of the board
+ * @param chess_board_t* current The new/current state of the board
+ * @param move A buffer to write the move into *
+ * @return Whether the move was (likely) legal (will know for sure once checked by the chess engine)
+ */
+bool chessboard_get_move(chess_board_t* previous, chess_board_t* current, char move[5])
+{
+    // Find the changes in presence
+    uint64_t previous_presence   = previous->board_presence;
+    uint64_t current_presence    = current->board_presence;
+    uint64_t changes_in_presence = (previous_presence ^ current_presence);
+
+    // Get the indices of the changes
+    board_changes_t board_changes;
+    utils_get_board_changes(changes_in_presence, &board_changes);
+
+    // Translate the changes to a move
+    bool legality = false;
+    if (board_changes.num_changes == 2)             // Non-special move
+    {
+        char tile_initial[2];
+        char tile_final[2];
+        uint8_t index1 = board_changes.index1;
+        uint8_t index2 = board_changes.index2;
+
+        // Determine which index was the initial tile
+        uint8_t initial_index;
+        if ((previous_presence >> index1) & 0x01)   // If index1 was 1 on previous board, a piece moved from there
+        {
+            chessboard_index_to_tile(index1, tile_initial);
+            chessboard_index_to_tile(index2, tile_final);
+            initial_index = index1;
+        }
+        else                                        // Otherwise, the piece moved to index 1
+        {
+            chessboard_index_to_tile(index1, tile_final);
+            chessboard_index_to_tile(index2, tile_initial);
+            initial_index = index2;
+        }
+
+        // Fill the move buffer
+        move[0] = tile_initial[0];
+        move[1] = tile_initial[1];
+        move[2] = tile_final[0];
+        move[3] = tile_final[1];
+
+        // Determine if this move was a promotion
+        uint8_t initial_file_index = chessboard_index_to_file_index(initial_index);
+        uint8_t initial_rank_index = chessboard_index_to_rank_index(initial_index);
+
+        if (chessboard_is_promotion(tile_initial[1], tile_final[1], current->board_pieces[initial_rank_index][initial_file_index]))
+        {
+            move[4] = 'Q';
+        }
+        else
+        {
+            move[4] = '_';
+        }
+
+        // Update the pieces
+        chessboard_update_pieces_move(current, move);
+        legality = true;
+    }
+    else if (board_changes.num_changes == 4)        // Castling move, check the possible signatures
+    {
+        switch (changes_in_presence)
+        {
+            case CASTLE_WHITE_K:
+                move[0] = 'e';
+                move[1] = '1';
+                move[2] = 'g';
+                move[3] = '1';
+                move[4] = '_';
+                chessboard_update_pieces_castling(current, CASTLE_WHITE_K);
+                legality = true;
+            break;
+
+            case CASTLE_WHITE_Q:
+                move[0] = 'e';
+                move[1] = '1';
+                move[2] = 'c';
+                move[3] = '1';
+                move[4] = '_';
+                chessboard_update_pieces_castling(current, CASTLE_WHITE_Q);
+                legality = true;
+            break;
+
+            case CASTLE_BLACK_K:
+                move[0] = 'e';
+                move[1] = '8';
+                move[2] = 'g';
+                move[3] = '8';
+                move[4] = '_';
+                chessboard_update_pieces_castling(current, CASTLE_BLACK_K);
+                legality = true;
+            break;
+
+            case CASTLE_BLACK_Q:
+                move[0] = 'e';
+                move[1] = '8';
+                move[2] = 'c';
+                move[3] = '8';
+                move[4] = '_';
+                chessboard_update_pieces_castling(current, CASTLE_BLACK_Q);
+                legality = true;
+            break;
+
+            default:
+                // Must be an illegal move
+                legality = false;
+            break;
+        }
+    }
+    else
+    {
+        // Must be an illegal move
+        legality = false;
+    }
+
+    return legality;
+}
+
+/**
+ * @brief Update a board's presence based on a raw move
+ *
+ * @param board The board to apply the move to
+ * @param move The move in UCI notation (4-5 characters)
+ */
+static void chessboard_update_presence_move(chess_board_t* p_board, char move[5])
+{
+    // Get the initial and final indices for this move
+    uint8_t index_initial = chessboard_tile_to_index(move[0], move[1]);
+    uint8_t index_final = chessboard_tile_to_index(move[2], move[3]);
+
+    // The initial square becomes 0 since the piece has moved away from there
+    p_board->board_presence &= (~(0x0000000000000001) << index_initial);
+    
+    // The final square becomes 1 since the piece has moved there
+    p_board->board_presence |= ((0x0000000000000001) << index_final);
+}
+
+/**
+ * @brief Update an entire board's presence from a move (e.g., accounts for possible castling)
+ *
+ * @param board The board to apply the move to
+ * @param move The move in UCI notation (4-5 characters)
+ */
+static void chessboard_update_presence_board(chess_board_t* p_board, char move[5])
+{
+    // Check for castling move to update the board with the rook's move as well
+    if (move[4] == 'c')
+    {
+        // Update for the corresponding rook move
+        char rook_move[5];
+        chessboard_castle_get_rook_move(move, rook_move);
+        chessboard_update_presence_move(p_board, rook_move);
+    }
+
+    // Update for the specified move
+    chessboard_update_presence_move(p_board, move);
+}
+
+/**
+ * @brief Updates a board's pieces based on a raw move
+ *
+ * @param board The chessboard to apply the move to
+ * @param move The move in UCI notation (4-5 characters)
+ */
+static void chessboard_update_pieces_move(chess_board_t *board, char move[5])
+{
+    // Separate the initial and final squares into rank and file pairs
+    char tile_initial[2];
+    char tile_final[2];
+
+    // Assign values to the tiles from the move passed in
+    tile_initial[0] = move[0];
+    tile_initial[1] = move[1];
+    tile_final[0]   = move[2];
+    tile_final[1]   = move[3];
+
+    // Get indices for the tiles
+    uint8_t tile_initial_index = chessboard_tile_to_index(tile_initial[0], tile_initial[1]);
+    uint8_t tile_final_index = chessboard_tile_to_index(tile_final[0], tile_final[1]);
+
+    // Convert these indices to indices in the board_pieces 2D array
+    uint8_t tile_initial_file_index = chessboard_index_to_file_index(tile_initial_index);
+    uint8_t tile_initial_rank_index = chessboard_index_to_rank_index(tile_initial_index);
+    uint8_t tile_final_file_index   = chessboard_index_to_file_index(tile_final_index);
+    uint8_t tile_final_rank_index   = chessboard_index_to_rank_index(tile_final_index);
+
+    // Update the board
+    char moving_piece = board->board_pieces[tile_initial_rank_index][tile_initial_file_index];
+
+    // Update the final position, and account for promotion
+    board->board_pieces[tile_final_rank_index][tile_final_file_index] = moving_piece;
+
+    if ((move[4] == 'Q') || (move[4] == 'q'))
+    {
+        // 'p' + 1 = 'q' and 'P' + 1 = 'Q', so this works for both colors
+        board->board_pieces[tile_final_rank_index][tile_final_file_index] += 1;
+    }
+
+    // The initial square is now empty
+    board->board_pieces[tile_initial_rank_index][tile_initial_file_index] = '\0';
+}
+
+
+
+/**
+ * @brief Update an entire board's pieces from a move
+ *
+ * @param board The chessboard to apply the move to
+ * @param move The move in UCI notation (4-5 characters)
+ */
+static void chessboard_update_board_pieces(chess_board_t *board, char move[5])
+{
+    // Check for castling move to update the board with the rook's move as well
+    if (move[4] == 'c')
+    {
+        char rook_move[5];
+        chessboard_castle_get_rook_move(move, rook_move);
+        chessboard_update_pieces_move(board, rook_move);
+    }
+
+    // Update for the specified move
+    chessboard_update_pieces_move(board, move);
+}
+
+/**
+ * @brief Update a board's pieces according to a castling operation
+ *
+ * @param board The board to apply the castling move to
+ * @param castling_signature One of four possible castling signatures
+ * @return Whether the castling signature was valid
+ */
+static bool chessboard_update_pieces_castling(chess_board_t *board, uint64_t castling_signature)
+{
+    bool legality = true;
+
+    // Update the pieces
+    switch(castling_signature)
+    {
+        case CASTLE_WHITE_K:
+            board->board_pieces[FIRST_RANK][E_FILE] = '\0';
+            board->board_pieces[FIRST_RANK][F_FILE] = 'R';
+            board->board_pieces[FIRST_RANK][G_FILE] = 'K';
+            board->board_pieces[FIRST_RANK][H_FILE] = '\0';
+        break;
+
+        case CASTLE_WHITE_Q:
+            board->board_pieces[FIRST_RANK][A_FILE] = '\0';
+            board->board_pieces[FIRST_RANK][C_FILE] = 'K';
+            board->board_pieces[FIRST_RANK][D_FILE] = 'R';
+            board->board_pieces[FIRST_RANK][E_FILE] = '\0';
+        break;
+
+        case CASTLE_BLACK_K:
+            board->board_pieces[EIGHTH_RANK][E_FILE] = '\0';
+            board->board_pieces[EIGHTH_RANK][F_FILE] = 'r';
+            board->board_pieces[EIGHTH_RANK][G_FILE] = 'k';
+            board->board_pieces[EIGHTH_RANK][H_FILE] = '\0';
+        break;
+
+        case CASTLE_BLACK_Q:
+            board->board_pieces[EIGHTH_RANK][A_FILE] = '\0';
+            board->board_pieces[EIGHTH_RANK][C_FILE] = 'k';
+            board->board_pieces[EIGHTH_RANK][D_FILE] = 'r';
+            board->board_pieces[EIGHTH_RANK][E_FILE] = '\0';
+        break;
+
+        default:
+            legality = false;
+        break;
+    }
+    return legality;
+}
+
+/**
+ * @brief Updates the chessboards following the robot's move
+ * 
+ * @param move The move made by the robot
+ */
+void chessboard_update_robot_move(char move[5])
+{
+    chessboard_update_presence_board(p_prev_board, move);
+    chessboard_update_board_pieces(p_prev_board, move);
+}
+
+/**
+ * @brief Takes a king's castling move and writes the corresponding rook's move into a buffer.
  *
  * @param move The king's castling move
  * @param rook_move The buffer to write the corresponding rook's move into
  */
-void chessboard_rook_mv_from_king(char move[5], char rook_move[5])
+void chessboard_castle_get_rook_move(char move[5], char rook_move[5])
 {
-    rook_move[4] = '_';
-    // White king-side castle
-    // King's move: e1g1 | Rook's move: h1f1
+    // White king-side castle. King's move: e1g1 <=> Rook's move: h1f1
     if ((move[0] == 'e') && (move[1] == '1') && (move[2] == 'g') && (move[3] == '1'))
     {
         rook_move[0] = 'h';
@@ -528,8 +502,7 @@ void chessboard_rook_mv_from_king(char move[5], char rook_move[5])
         rook_move[2] = 'f';
         rook_move[3] = '1';
     }
-    // White queen-side castle
-    // King's move: e1c1 | Rook's move: a1d1
+    // White queen-side castle. King's move: e1c1 <=> Rook's move: a1d1
     else if ((move[0] == 'e') && (move[1] == '1') && (move[2] == 'c') && (move[3] == '1'))
     {
         rook_move[0] = 'a';
@@ -537,8 +510,7 @@ void chessboard_rook_mv_from_king(char move[5], char rook_move[5])
         rook_move[2] = 'd';
         rook_move[3] = '1';
     }
-    // Black king-side castle
-    // King's move: e8g8 | Rook's move: h8f8
+    // Black king-side castle. King's move: e8g8 <=> Rook's move: h8f8
     else if ((move[0] == 'e') && (move[1] == '8') && (move[2] == 'g') && (move[3] == '8'))
     {
         rook_move[0] = 'h';
@@ -546,8 +518,7 @@ void chessboard_rook_mv_from_king(char move[5], char rook_move[5])
         rook_move[2] = 'f';
         rook_move[3] = '8';
     }
-    // Black queen-side castle
-    // King's move: e8c8 | Rook's move: a8d8
+    // Black queen-side castle. King's move: e8c8 <=> Rook's move: a8d8
     else if ((move[0] == 'e') && (move[1] == '8') && (move[2] == 'c') && (move[3] == '8'))
     {
         rook_move[0] = 'a';
@@ -563,14 +534,9 @@ void chessboard_rook_mv_from_king(char move[5], char rook_move[5])
         rook_move[2] = '?';
         rook_move[3] = '?';
     }
-}
 
-/**
- * @brief Reset both chess boards to their default states
- */
-void chessboard_reset(chess_board_t *board)
-{
-    chessboard_init(board);
+    // Pad with '_'
+    rook_move[4] = '_';
 }
 
 /* End chessboard.c */

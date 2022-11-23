@@ -1,7 +1,6 @@
 /**
  * @file gantry.c
- * @author Nick Cooney (npc4crc@virginia.edu), Eli Jelesko (ebj5hec@virginia.edu),
- *         Keenan Alchaar (ka5nt@virginia.edu)
+ * @author Nick Cooney (npc4crc@virginia.edu), Eli Jelesko (ebj5hec@virginia.edu), Keenan Alchaar (ka5nt@virginia.edu)
  * @brief Code to unite all other modules
  * @version 1.0
  * @date 2022-11-21
@@ -11,9 +10,6 @@
 
 #include "gantry.h"
 
-//#define PERIPHERALS_ENABLED
-//#define CLOCK_TEST
-
 // Private functions
 void gantry_limit_stop(uint8_t limit_readings);
 void gantry_home(void);
@@ -21,19 +17,13 @@ void gantry_reset(void);
 void gantry_kill(void);
 void gantry_clear_command(gantry_command_t* gantry_command);
 
-// Previous and current chess boards
-static chess_board_t previous_board;
-static chess_board_t intermediate_board;
-static chess_board_t current_board;
-
 // Flags
-static bool gantry_homing = false;
-static bool robot_is_done = false;
-static bool comm_is_done = false;
-static bool human_is_done = false;
+static bool gantry_homing    = false;
+static bool robot_is_done    = false;
+static bool comm_is_done     = false;
+static bool human_is_done    = false;
 static bool msp_illegal_move = false;
-static bool send_msg = false;
-extern bool utils_sys_fault;
+bool sys_fault               = false;
 
 /**
  * @brief Initializes all modules
@@ -48,27 +38,22 @@ void gantry_init(void)
     clock_timer3a_init();               // Switches
     clock_timer4a_init();               // Gantry
     clock_timer5a_init();               // Delay
+    clock_timer6a_init();               // Sensor network
     clock_timer7c_init();               // Comm delay
-#ifdef CLOCK_TEST
-    gpio_set_as_output(GPION, GPIO_PIN_0);
-    gpio_set_output_low(GPION, GPIO_PIN_0);
-    clock_start_timer(COMM_TIMER);
-#endif
     clock_start_timer(GANTRY_TIMER);
 
     // System level initialization of all other modules
     command_queue_init();
 #ifdef PERIPHERALS_ENABLED
-    electromagnet_init();
-    leds_init();
-    sensors_init();
+   electromagnet_init();
+   led_init();
+   sensornetwork_init();
 #endif /* PERIPHERALS_ENABLED */
     switch_init();
     stepper_init_motors();
     rpi_init();
-    chessboard_init(&previous_board);
-    chessboard_init(&intermediate_board);
-    chessboard_init(&current_board);
+    chessboard_init();
+
 #ifdef THREE_PARTY_MODE
     uart_init(UART_CHANNEL_0);
 #endif
@@ -82,9 +67,9 @@ void gantry_init(void)
  */
 void gantry_limit_stop(uint8_t limit_readings)
 {
-    if ((!gantry_homing) && (limit_readings & (LIMIT_X | LIMIT_Y | LIMIT_Z)))
+    if ((!gantry_homing) && (limit_readings & (LIMIT_X_MASK | LIMIT_Y_MASK | LIMIT_Z_MASK)))
     {
-        gantry_kill();
+//        gantry_kill();
     }
 }
 
@@ -100,8 +85,7 @@ void gantry_reset(void)
     gantry_home();
 
     // Reset the chess board
-    chessboard_reset(&previous_board);
-    chessboard_reset(&current_board);
+    chessboard_reset_all();
 
     // Reset the rpi
     rpi_reset_uart();
@@ -131,7 +115,7 @@ void gantry_kill(void)
     stepper_z_stop();
 
     // Set the system fault flag
-    utils_sys_fault = true;
+    sys_fault = true;
 
     // Clear the command queue (just in case)
     command_queue_clear();
@@ -258,8 +242,8 @@ void gantry_human_action(command_t* command)
  */
 void gantry_human_exit(command_t* command)
 {
-#ifdef FINAL_IMPLEMENTATION_MODE
     gantry_command_t* p_gantry_command = (gantry_command_t*) command;
+#ifdef FINAL_IMPLEMENTATION_MODE
 
     if (msp_illegal_move)
     {
@@ -375,7 +359,7 @@ void gantry_comm_action(command_t* command)
                 clock_stop_timer(COMM_TIMER);
 
                 // Reset the value
-                clock_reset_timer_value(COMM_TIMER, COMM_TIMEOUT);
+                clock_reset_timer_value(COMM_TIMER);
             }
         }
     }
@@ -537,7 +521,7 @@ void gantry_robot_action(command_t* command)
                                 rpi_transmit_ack();
                                 // Human's move wasn't illegal, so update previous_board to current_board
                                 previous_board.board_presence = current_board.board_presence;
-                                utils_set_pieces_equal(previous_board.board_pieces, current_board.board_pieces);
+                                utils_copy_array(current_board.board_pieces, previous_board.board_pieces);
                                 // Split up the game statuses
                                 status_after_human = game_status >> 4;
                                 status_after_robot = game_status & (~0xF0);
@@ -642,14 +626,12 @@ void gantry_robot_exit(command_t* command)
              // the enums are the absolute positions of those ranks/file. current_pos is also absolute
              command_queue_push
              (
-                 (command_t*)stepper_build_chess_command
+                 (command_t*)stepper_build_chess_xy_command
                  (
                      p_gantry_command->move.source_file,  // file
                      p_gantry_command->move.source_rank,  // rank
-                     EMPTY,                               // piece
                      1,                                   // v_x
-                     1,                                   // v_y
-                     0                                    // v_z
+                     1                                    // v_y
                  )
              );
              // wait
@@ -661,14 +643,12 @@ void gantry_robot_exit(command_t* command)
              // the enums are the absolute positions of those ranks/file. current_pos is also absolute
              command_queue_push
              (
-                 (command_t*)stepper_build_chess_command
+                 (command_t*)stepper_build_chess_xy_command
                  (
                      p_gantry_command->move.dest_file, // file
                      p_gantry_command->move.dest_rank, // rank
-                     EMPTY,                            // piece
                      1,                                // v_x
-                     1,                                // v_y
-                     0                                 // v_z
+                     1                                 // v_y
                  )
              );
              // wait
@@ -692,14 +672,12 @@ void gantry_robot_exit(command_t* command)
               // Go to the promoted pawn's tile
               command_queue_push
               (
-                  (command_t*)stepper_build_chess_command
+                  (command_t*)stepper_build_chess_xy_command
                   (
                       p_gantry_command->move.source_file, // file
                       p_gantry_command->move.source_rank, // rank
-                      EMPTY,                            // piece
                       1,                                // v_x
-                      1,                                // v_y
-                      0                                 // v_z
+                      1                                 // v_y
                   )
               );
               // wait
@@ -708,14 +686,12 @@ void gantry_robot_exit(command_t* command)
               // Take the pawn being promoted off the board
               command_queue_push
               (
-                  (command_t*)stepper_build_chess_command
+                  (command_t*)stepper_build_chess_xy_command
                   (
                       CAPTURE_FILE, // file
                       CAPTURE_RANK, // rank
-                      EMPTY,                            // piece
                       1,                                // v_x
-                      1,                                // v_y
-                      0                                 // v_z
+                      1                                 // v_y
                   )
               );
               // wait
@@ -724,14 +700,12 @@ void gantry_robot_exit(command_t* command)
               // Go to the magical **queen tile**
               command_queue_push
               (
-                  (command_t*)stepper_build_chess_command
+                  (command_t*)stepper_build_chess_xy_command
                   (
                       CAPTURE_FILE, // file // TODO
                       CAPTURE_RANK, // rank // TODO
-                      EMPTY,                            // piece
                       1,                                // v_x
-                      1,                                // v_y
-                      0                                 // v_z
+                      1                                 // v_y
                   )
               );
               // wait
@@ -740,14 +714,12 @@ void gantry_robot_exit(command_t* command)
               // Move the queen to the destination tile
               command_queue_push
               (
-                  (command_t*)stepper_build_chess_command
+                  (command_t*)stepper_build_chess_xy_command
                   (
                       p_gantry_command->move.dest_file, // file
                       p_gantry_command->move.dest_rank, // rank
-                      EMPTY,                            // piece
                       1,                                // v_x
-                      1,                                // v_y
-                      0                                 // v_z
+                      1                                 // v_y
                   )
               );
               // wait
@@ -766,14 +738,12 @@ void gantry_robot_exit(command_t* command)
               // the enums are the absolute positions of those ranks/file. current_pos is also absolute
               command_queue_push
               (
-                  (command_t*)stepper_build_chess_command
+                  (command_t*)stepper_build_chess_xy_command
                   (
                       p_gantry_command->move.dest_file,  // file
                       p_gantry_command->move.dest_rank,  // rank
-                      EMPTY,                               // piece
                       1,                                   // v_x
-                      1,                                   // v_y
-                      0                                    // v_z
+                      1                                    // v_y
                   )
               );
               // wait
@@ -786,14 +756,12 @@ void gantry_robot_exit(command_t* command)
 
               command_queue_push
               (
-                  (command_t*)stepper_build_chess_command
+                  (command_t*)stepper_build_chess_xy_command
                   (
                       CAPTURE_FILE, // file
                       CAPTURE_RANK, // rank
-                      EMPTY,                            // piece
                       1,                                // v_x
-                      1,                                // v_y
-                      0                                 // v_z
+                      1                                 // v_y
                   )
               );
               // wait
@@ -806,14 +774,12 @@ void gantry_robot_exit(command_t* command)
 
               command_queue_push
               (
-                  (command_t*)stepper_build_chess_command
+                  (command_t*)stepper_build_chess_xy_command
                   (
                       p_gantry_command->move.source_file, // file
                       p_gantry_command->move.source_rank, // rank
-                      EMPTY,                            // piece
                       1,                                // v_x
-                      1,                                // v_y
-                      0                                 // v_z
+                      1                                 // v_y
                   )
               );
               // wait
@@ -825,14 +791,12 @@ void gantry_robot_exit(command_t* command)
 
               command_queue_push
               (
-                  (command_t*)stepper_build_chess_command
+                  (command_t*)stepper_build_chess_xy_command
                   (
                       p_gantry_command->move.dest_file, // file
                       p_gantry_command->move.dest_rank, // rank
-                      EMPTY,                            // piece
                       1,                                // v_x
-                      1,                                // v_y
-                      0                                 // v_z
+                      1                                 // v_y
                   )
               );
               // wait
@@ -851,19 +815,17 @@ void gantry_robot_exit(command_t* command)
               {
                   break;
               }
-              rook_move = rpi_get_castle_rook_move(&p_gantry_command->move);
+              rook_move = rpi_castle_get_rook_move(&p_gantry_command->move);
               // Move to the piece to move
               // the enums are the absolute positions of those ranks/file. current_pos is also absolute
               command_queue_push
               (
-                  (command_t*)stepper_build_chess_command
+                  (command_t*)stepper_build_chess_xy_command
                   (
                       p_gantry_command->move.source_file,  // file
                       p_gantry_command->move.source_rank,  // rank
-                      EMPTY,                               // piece
                       1,                                   // v_x
-                      1,                                   // v_y
-                      0                                    // v_z
+                      1                                    // v_y
                   )
               );
               // wait
@@ -876,14 +838,12 @@ void gantry_robot_exit(command_t* command)
 
               command_queue_push
               (
-                  (command_t*)stepper_build_chess_command
+                  (command_t*)stepper_build_chess_xy_command
                   (
                       p_gantry_command->move.dest_file, // file
                       p_gantry_command->move.dest_rank, // rank
-                      EMPTY,                            // piece
                       1,                                // v_x
-                      1,                                // v_y
-                      0                                 // v_z
+                      1                                 // v_y
                   )
               );
               // wait
@@ -896,14 +856,12 @@ void gantry_robot_exit(command_t* command)
 
               command_queue_push
               (
-                  (command_t*)stepper_build_chess_command
+                  (command_t*)stepper_build_chess_xy_command
                   (
                       rook_move.source_file, // file
                       rook_move.source_rank, // rank
-                      EMPTY,                            // piece
                       1,                                // v_x
-                      1,                                // v_y
-                      0                                 // v_z
+                      1                                 // v_y
                   )
               );
               // wait
@@ -915,14 +873,12 @@ void gantry_robot_exit(command_t* command)
 
               command_queue_push
               (
-                  (command_t*)stepper_build_chess_command
+                  (command_t*)stepper_build_chess_xy_command
                   (
                       rook_move.dest_file, // file
                       rook_move.dest_rank, // rank
-                      EMPTY,                            // piece
                       1,                                // v_x
-                      1,                                // v_y
-                      0                                 // v_z
+                      1                                 // v_y
                   )
               );
               // wait
@@ -947,14 +903,12 @@ void gantry_robot_exit(command_t* command)
               // Capture the pawn being en passant'd
               command_queue_push
               (
-                  (command_t*)stepper_build_chess_command
+                  (command_t*)stepper_build_chess_xy_command
                   (
                       p_gantry_command->move.dest_file, // file
                       p_gantry_command->move.source_rank, // rank
-                      EMPTY,                            // piece
                       1,                                // v_x
-                      1,                                // v_y
-                      0                                 // v_z
+                      1                                 // v_y
                   )
               );
               // wait
@@ -963,14 +917,12 @@ void gantry_robot_exit(command_t* command)
               // Move the en passant'd pawn to the capture rank and file
               command_queue_push
               (
-                  (command_t*)stepper_build_chess_command
+                  (command_t*)stepper_build_chess_xy_command
                   (
                       CAPTURE_FILE, // file
                       CAPTURE_RANK, // rank
-                      EMPTY,                            // piece
                       1,                                // v_x
-                      1,                                // v_y
-                      0                                 // v_z
+                      1                                 // v_y
                   )
               );
               // wait
@@ -979,14 +931,12 @@ void gantry_robot_exit(command_t* command)
               // Go to moving pawn's initial position
               command_queue_push
               (
-                  (command_t*)stepper_build_chess_command
+                  (command_t*)stepper_build_chess_xy_command
                   (
                       p_gantry_command->move.source_file, // file
                       p_gantry_command->move.source_rank, // rank
-                      EMPTY,                            // piece
                       1,                                // v_x
-                      1,                                // v_y
-                      0                                 // v_z
+                      1                                 // v_y
                   )
               );
               // wait
@@ -995,14 +945,12 @@ void gantry_robot_exit(command_t* command)
               // Take the moving pawn to its final position
               command_queue_push
               (
-                  (command_t*)stepper_build_chess_command
+                  (command_t*)stepper_build_chess_xy_command
                   (
                       p_gantry_command->move.dest_file, // file
                       p_gantry_command->move.dest_rank, // rank
-                      EMPTY,                            // piece
                       1,                                // v_x
-                      1,                                // v_y
-                      0                                 // v_z
+                      1                                 // v_y
                   )
               );
 
@@ -1029,9 +977,8 @@ void gantry_robot_exit(command_t* command)
      {
          command_queue_push((command_t*)gantry_human_build_command());
      }
-      // Finally, update previous_board with the robot's move
-     chessboard_update_presence(&previous_board, p_gantry_command->robot_move_uci);
-     chessboard_update_pieces(&previous_board, p_gantry_command->robot_move_uci);
+    // Finally, update previous_board with the robot's move
+    chessboard_update_robot_move(p_gantry_command->robot_move_uci);
 }
 
 /**
@@ -1101,7 +1048,7 @@ void gantry_home()
     command_queue_push((command_t*) gantry_home_build_command());
 
     // Home the motors with delay
-//    command_queue_push((command_t*) stepper_build_home_z_command());
+    command_queue_push((command_t*) stepper_build_home_z_command());
     command_queue_push((command_t*) stepper_build_home_xy_command());
     command_queue_push((command_t*) delay_build_command(HOMING_DELAY_MS));
 
@@ -1131,42 +1078,25 @@ __interrupt void GANTRY_HANDLER(void)
     uint8_t switch_data = switch_get_reading();
 
     // If the emergency stop button was pressed, kill everything
-    if (switch_data & BUTTON_ESTOP)
-    {
+//    if (switch_data & BUTTON_ESTOP)
+//    {
 //        gantry_kill();
-    }
+//    }
 
     // If a limit switch was pressed, disable the appropriate motor
     gantry_limit_stop(switch_data);
 
     // If the start/reset button was pressed, send the appropriate "new game" signal
-    if (switch_data & BUTTON_START_RESET)
+    if (switch_data & BUTTON_START_MASK)
     {
 //        gantry_reset();
     }
 
     // If the home button was pressed, clear the queue and execute a homing command
-    if (switch_data & BUTTON_HOME)
+    if (switch_data & BUTTON_HOME_MASK)
     {
 //        gantry_home();
     }
-}
-
-/**
- * @brief Interrupt handler for 5-second communication timer; called every 0.5 ms
- */
-__interrupt void COMM_HANDLER(void)
-{
-#ifdef CLOCK_TEST
-    clock_clear_interrupt(COMM_TIMER);
-    gpio_set_output_toggle(GPION, GPIO_PIN_0);
-#else
-    // Clear the interrupt flag
-    clock_clear_interrupt(COMM_TIMER);
-
-    // 5s has elapsed, so raise the flag that will make comm_action resend
-    send_msg = true;
-#endif
 }
 
 /* End gantry.c */

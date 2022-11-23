@@ -18,9 +18,9 @@ void clock_sys_init()
     // Configure PLL to be 480 MHz
     SYSCTL->PLLFREQ0 |=  (SYSCTL_PLLFREQ0_PLLPWR);          // Sets PWR to 1
     SYSCTL->PLLFREQ0 |=  (30 << SYSCTL_PLLFREQ0_MINT_S);    // Sets MINT to 30
-    SYSCTL->PLLFREQ0 &= ~(1 << SYSCTL_PLLFREQ0_MFRAC_S);    // Sets MFRAC to 0
-    SYSCTL->PLLFREQ1 &= ~(1 << SYSCTL_PLLFREQ1_Q_S);        // Sets Q to 0
-    SYSCTL->PLLFREQ1 |=  (1 << SYSCTL_PLLFREQ1_N_S);        // Sets N to 1
+    SYSCTL->PLLFREQ0 &= ~(1  << SYSCTL_PLLFREQ0_MFRAC_S);   // Sets MFRAC to 0
+    SYSCTL->PLLFREQ1 &= ~(1  << SYSCTL_PLLFREQ1_Q_S);       // Sets Q to 0
+    SYSCTL->PLLFREQ1 |=  (1  << SYSCTL_PLLFREQ1_N_S);       // Sets N to 1
 
     // Configure the clock
     SYSCTL->RSCLKCFG |=  (SYSCTL_RSCLKCFG_NEWFREQ);         // Set NEWFREQ to 1
@@ -45,19 +45,15 @@ void clock_sys_init()
     SYSCTL->RSCLKCFG |= (SYSCTL_RSCLKCFG_MEMTIMU | SYSCTL_RSCLKCFG_USEPLL);
 }
 
-
 /**
  * @brief Configure timer 0A
  */
 void clock_timer0a_init()
 {
     // Enable the timer and wait for it to be ready
-    SYSCTL->RCGCTIMER |= SYSCTL_RCGCTIMER_R0;
-    while (!(SYSCTL->PRTIMER & SYSCTL_RCGCTIMER_R0))
-    {
-    }
+    utils_timer_clock_enable(TIMER0);
 
-    // Configure Timer 0A for interrupts
+    // Configure the timer for interrupts
     TIMER0->CTL  &= ~(TIMER_CTL_TAEN);                      // Disable the timer
     TIMER0->CFG   =  (0);                                   // Clear the configuration
     TIMER0->TAMR  =  (TIMER_TAMR_TAMR_PERIOD);              // Configure for periodic interrupts
@@ -65,7 +61,7 @@ void clock_timer0a_init()
     TIMER0->IMR  |=  (TIMER_IMR_TATOIM);                    // Set the interrupt mask
 
     // Configure the interrupt in the NVIC
-    utils_set_nvic(TIMER_0A_INTERRUPT_SHIFT, 1);
+    utils_set_nvic(TIMER_0A_INTERRUPT_NUM, 1);
 }
 
 /**
@@ -74,12 +70,9 @@ void clock_timer0a_init()
 void clock_timer1a_init()
 {
     // Enable the timer and wait for it to be ready
-    SYSCTL->RCGCTIMER |= SYSCTL_RCGCTIMER_R1;
-    while (!(SYSCTL->PRTIMER & SYSCTL_RCGCTIMER_R1))
-    {
-    }
+    utils_timer_clock_enable(TIMER1);
 
-    // Configure Timer 0A for interrupts
+    // Configure the timer for interrupts
     TIMER1->CTL  &= ~(TIMER_CTL_TAEN);                      // Disable the timer
     TIMER1->CFG   =  (0);                                   // Clear the configuration
     TIMER1->TAMR  =  (TIMER_TAMR_TAMR_PERIOD);              // Configure for periodic interrupts
@@ -87,7 +80,7 @@ void clock_timer1a_init()
     TIMER1->IMR  |=  (TIMER_IMR_TATOIM);                    // Set the interrupt mask
 
     // Configure the interrupt in the NVIC
-    utils_set_nvic(TIMER_1A_INTERRUPT_SHIFT, 1);
+    utils_set_nvic(TIMER_1A_INTERRUPT_NUM, 1);
 }
 
 /**
@@ -96,12 +89,9 @@ void clock_timer1a_init()
 void clock_timer2a_init()
 {
     // Enable the timer and wait for it to be ready
-    SYSCTL->RCGCTIMER |= SYSCTL_RCGCTIMER_R2;
-    while (!(SYSCTL->PRTIMER & SYSCTL_RCGCTIMER_R2))
-    {
-    }
+    utils_timer_clock_enable(TIMER2);
 
-    // Configure Timer 0A for interrupts
+    // Configure the timer for interrupts
     TIMER2->CTL  &= ~(TIMER_CTL_TAEN);                      // Disable the timer
     TIMER2->CFG   =  (0);                                   // Clear the configuration
     TIMER2->TAMR  =  (TIMER_TAMR_TAMR_PERIOD);              // Configure for periodic interrupts
@@ -109,7 +99,7 @@ void clock_timer2a_init()
     TIMER2->IMR  |=  (TIMER_IMR_TATOIM);                    // Set the interrupt mask
 
     // Configure the interrupt in the NVIC
-    utils_set_nvic(TIMER_2A_INTERRUPT_SHIFT, 1);
+    utils_set_nvic(TIMER_2A_INTERRUPT_NUM, 1);
 }
 
 /**
@@ -118,12 +108,9 @@ void clock_timer2a_init()
 void clock_timer3a_init()
 {
     // Enable the timer and wait for it to be ready
-    SYSCTL->RCGCTIMER |= SYSCTL_RCGCTIMER_R3;
-    while (!(SYSCTL->PRTIMER & SYSCTL_RCGCTIMER_R3))
-    {
-    }
+    utils_timer_clock_enable(TIMER3);
 
-    // Configure Timer 0A for interrupts
+    // Configure the timer for interrupts
     TIMER3->CTL  &= ~(TIMER_CTL_TAEN);                      // Disable the timer
     TIMER3->CFG   =  (0);                                   // Clear the configuration
     TIMER3->TAMR  =  (TIMER_TAMR_TAMR_PERIOD);              // Configure for periodic interrupts
@@ -131,7 +118,7 @@ void clock_timer3a_init()
     TIMER3->IMR  |=  (TIMER_IMR_TATOIM);                    // Set the interrupt mask
 
     // Configure the interrupt in the NVIC
-    utils_set_nvic(TIMER_3A_INTERRUPT_SHIFT, 1);
+    utils_set_nvic(TIMER_3A_INTERRUPT_NUM, 1);
 }
 
 /**
@@ -140,12 +127,9 @@ void clock_timer3a_init()
 void clock_timer4a_init()
 {
     // Enable the timer and wait for it to be ready
-    SYSCTL->RCGCTIMER |= SYSCTL_RCGCTIMER_R4;
-    while (!(SYSCTL->PRTIMER & SYSCTL_RCGCTIMER_R4))
-    {
-    }
+    utils_timer_clock_enable(TIMER4);
 
-    // Configure Timer 0A for interrupts
+    // Configure the timer for interrupts
     TIMER4->CTL  &= ~(TIMER_CTL_TAEN);                      // Disable the timer
     TIMER4->CFG   =  (0);                                   // Clear the configuration
     TIMER4->TAMR  =  (TIMER_TAMR_TAMR_PERIOD);              // Configure for periodic interrupts
@@ -153,7 +137,7 @@ void clock_timer4a_init()
     TIMER4->IMR  |=  (TIMER_IMR_TATOIM);                    // Set the interrupt mask
 
     // Configure the interrupt in the NVIC
-    utils_set_nvic(TIMER_4A_INTERRUPT_SHIFT, 1);
+    utils_set_nvic(TIMER_4A_INTERRUPT_NUM, 1);
 }
 
 /**
@@ -162,12 +146,9 @@ void clock_timer4a_init()
 void clock_timer5a_init()
 {
     // Enable the timer and wait for it to be ready
-    SYSCTL->RCGCTIMER |= SYSCTL_RCGCTIMER_R5;
-    while (!(SYSCTL->PRTIMER & SYSCTL_RCGCTIMER_R5))
-    {
-    }
+    utils_timer_clock_enable(TIMER5);
 
-    // Configure Timer 0A for interrupts
+    // Configure the timer for interrupts
     TIMER5->CTL  &= ~(TIMER_CTL_TAEN);                      // Disable the timer
     TIMER5->CFG   =  (0);                                   // Clear the configuration
     TIMER5->TAMR  =  (TIMER_TAMR_TAMR_PERIOD);              // Configure for periodic interrupts
@@ -175,7 +156,7 @@ void clock_timer5a_init()
     TIMER5->IMR  |=  (TIMER_IMR_TATOIM);                    // Set the interrupt mask
 
     // Configure the interrupt in the NVIC
-    utils_set_nvic(TIMER_5A_INTERRUPT_SHIFT, 1);
+    utils_set_nvic(TIMER_5A_INTERRUPT_NUM, 1);
 }
 
 /**
@@ -184,12 +165,9 @@ void clock_timer5a_init()
 void clock_timer6a_init()
 {
     // Enable the timer and wait for it to be ready
-    SYSCTL->RCGCTIMER |= SYSCTL_RCGCTIMER_R6;
-    while (!(SYSCTL->PRTIMER & SYSCTL_RCGCTIMER_R6))
-    {
-    }
+    utils_timer_clock_enable(TIMER6);
 
-    // Configure Timer 0A for interrupts
+    // Configure the timer for interrupts
     TIMER6->CTL  &= ~(TIMER_CTL_TAEN);                      // Disable the timer
     TIMER6->CFG   =  (0);                                   // Clear the configuration
     TIMER6->TAMR  =  (TIMER_TAMR_TAMR_PERIOD);              // Configure for periodic interrupts
@@ -197,7 +175,7 @@ void clock_timer6a_init()
     TIMER6->IMR  |=  (TIMER_IMR_TATOIM);                    // Set the interrupt mask
 
     // Configure the interrupt in the NVIC
-    utils_set_nvic(TIMER_6A_INTERRUPT_SHIFT, 1);
+    utils_set_nvic(TIMER_6A_INTERRUPT_NUM, 1);
 }
 
 /**
@@ -206,12 +184,9 @@ void clock_timer6a_init()
 void clock_timer7c_init()
 {
     // Enable the timer and wait for it to be ready
-    SYSCTL->RCGCTIMER |= SYSCTL_RCGCTIMER_R7;
-    while (!(SYSCTL->PRTIMER & SYSCTL_RCGCTIMER_R7))
-    {
-    }
+    utils_timer_clock_enable(TIMER7);
 
-    // Configure Timer 0A for interrupts
+    // Configure the timer for interrupts
     TIMER7->CTL  &= ~(TIMER_CTL_TAEN);                      // Disable the timer
     TIMER7->CFG   =  (0);
     TIMER7->TAMR  =  (TIMER_TAMR_TAMR_PERIOD);              // Configure for periodic interrupts
@@ -219,13 +194,13 @@ void clock_timer7c_init()
     TIMER7->IMR  |=  (TIMER_IMR_TATOIM);                    // Set the interrupt mask
 
     // Configure the interrupt in the NVIC
-    utils_set_nvic(TIMER_7C_INTERRUPT_SHIFT, 1);
+    utils_set_nvic(TIMER_7C_INTERRUPT_NUM, 1);
 }
 
 /**
- * @brief Clears the interrupt flag associated with time-out raw on the given timer (on the a subsubmodule)
+ * @brief Clears the interrupt flag associated with time-out on the given timer (on the A subsubmodule)
  * 
- * @param timer One of TIMERX for X=0,...,7
+ * @param timer One of TIMERX for X={0,...,7}
  * @param type One of timer_a or timer_b
  */
 void clock_clear_interrupt(TIMER0_Type* timer)
@@ -234,10 +209,9 @@ void clock_clear_interrupt(TIMER0_Type* timer)
 }
 
 /**
- * @brief Pauses the specified timer (on the a subsubmodule)
+ * @brief Pauses the specified timer (on the A subsubmodule)
  * 
- * @param timer One of TIMERX for X=0,...,7
- * @param type One of timer_a or timer_b
+ * @param timer One of TIMERX for X={0,...,7}
  */
 void clock_stop_timer(TIMER0_Type* timer)
 {
@@ -245,10 +219,9 @@ void clock_stop_timer(TIMER0_Type* timer)
 }
 
 /**
- * @brief Resumes the specified timer (on the a subsubmodule)
+ * @brief Resumes the specified timer (on the A subsubmodule)
  * 
- * @param timer One of TIMERX for X=0,...,7
- * @param type One of timer_a or timer_b
+ * @param timer One of TIMERX for X={0,...,7}
  */
 void clock_start_timer(TIMER0_Type* timer)
 {
@@ -258,10 +231,10 @@ void clock_start_timer(TIMER0_Type* timer)
 /**
  * @brief Sets the period of the specified timer
  * 
- * @param timer One of TIMERX for X=0,...,7
+ * @param timer One of TIMERX for X={0,...,7}
  * @param value The period
  */
-void clock_set_timer_period(TIMER0_Type* timer, uint16_t value)
+void clock_set_timer_period(TIMER0_Type* timer, uint32_t value)
 {
     timer->CTL  &= ~(TIMER_CTL_TAEN);                       // Disable the timer
     timer->TAILR =  value;                                  // Set the interval value
@@ -270,29 +243,29 @@ void clock_set_timer_period(TIMER0_Type* timer, uint16_t value)
 /**
  * @brief Gets the period of the specified timer
  *
- * @param timer One of TIMERX for X=0,...,7
- * @return value The period
+ * @param timer One of TIMERX for X={0,...,7}
+ * @return The period
  */
-uint16_t clock_get_timer_period(TIMER0_Type* timer)
+uint32_t clock_get_timer_period(TIMER0_Type* timer)
 {
-    uint16_t value;
+    uint32_t value;
+
     timer->CTL  &= ~(TIMER_CTL_TAEN);                       // Disable the timer
-    value = (uint16_t)timer->TAILR;                         // The interval value
+    value = (uint32_t) timer->TAILR;                        // Get the interval value
     timer->CTL |= (TIMER_CTL_TAEN);                         // Enable the timer
 
     return value;
 }
 
 /**
- * @brief Gets the period of the specified timer
+ * @brief Resets the period of the specified timer
  *
- * @param timer One of TIMERX for X=0,...,7
- * @param value The value to reset the timer's counter to
+ * @param timer One of TIMERX for X={0,...,7}
  */
-void clock_reset_timer_value(TIMER0_Type* timer, uint32_t value)
+void clock_reset_timer_value(TIMER0_Type* timer)
 {
-    timer->CTL  &= ~(TIMER_CTL_TAEN);           // Disable the timer
-    timer->TAV = value;                         // The interval value
+    timer->CTL &= ~(TIMER_CTL_TAEN);                        // Disable the timer
+    timer->TAV  = clock_get_timer_period(timer);            // Reset the value to the period
 }
 
 /* End clock.c */

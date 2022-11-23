@@ -1,7 +1,6 @@
 /**
  * @file main.c
- * @author Eli Jelesko (ebj5hec@virginia.edu), Nick Cooney (npc4crc@virginia.edu),
- *         Keenan Alchaar (ka5nt@virginia.edu)
+ * @author Eli Jelesko (ebj5hec@virginia.edu), Nick Cooney (npc4crc@virginia.edu), Keenan Alchaar (ka5nt@virginia.edu)
  * @brief Main method using command queue approach
  * @version 1.0
  * @date 2022-11-21
@@ -9,38 +8,38 @@
  * @copyright Copyright (c) 2022
  */
 
-// Project-specific source code
+#include "msp.h"
 #include "gantry.h"
 
-// Standard includes necessary for base functionality
-#include "msp.h"
+// Debug mode select
+// #define STEPPER_DEBUG
+// #define UART_DEBUG
+// #define PERIPHERALS_ENABLED
 
-//#define UART_DEBUG
-//#define MOTION_PROFILING
-#define COMMAND_QUEUE
-
-// Flag that gets set in the utils module when there is a system fault
-extern bool utils_sys_fault;
-
+// Game mode select (define at most one at a time)
+// #define USER_MODE                 // User, through UART0 terminal, sends moves to MSP directly
+// #define THREE_PARTY_MODE          // User sends moves to MSP, which sends moves to RPi, which sends moves back
+// #define FINAL_IMPLEMENTATION_MODE // Ideally, final implementation w/board reading
 int main(void)
 {
-
-#ifdef COMMAND_QUEUE
-    // Probably need to allocate enough memory for the largest command struct
-    command_t* p_current_command;
-
     // System level initialization
     gantry_init();
 
-#ifdef MOTION_PROFILING
-    command_queue_push((command_t*)stepper_build_rel_command(100, 100, 0, 1, 1, 0));
-#else
     // Add commands to the queue
+#ifdef UART_DEBUG
+    while (1)
+    {
+        uart_out_string(UART_CHANNEL_0, "Hello world!\n", 14);
+    }
+#elif defined(STEPPER_DEBUG)
+    command_queue_push((command_t*) stepper_build_rel_command(0, 0, 40, 0, 0, 1));
+#else
     gantry_reset();
 #endif
 
-
     // Main program flow
+    command_t* p_current_command;
+
     while (1)
     {
         // Run the entry function
@@ -55,34 +54,22 @@ int main(void)
             // Run the action function - is_done() determines when action is complete
             while (!p_current_command->p_is_done(p_current_command))
             {
-                // Check for a system fault (e-stop, etc.)
-                if (utils_sys_fault)
+                // Check for a system fault (E-stop, etc.)
+                if (sys_fault)
                 {
-                    break;  // TODO: Break both loops?
+                    // TODO: Break both loops?
+                    break;
                 }
                 p_current_command->p_action(p_current_command);
             }
 
             // Run the exit function
             p_current_command->p_exit(p_current_command);
-            // Free the command
+
+            // Free the command memory
             free(p_current_command);
         }
     }
-#endif
-
-    #ifdef UART_DEBUG
-
-    gantry_init();
-
-    // Read whatever comes in to the message string.
-    while (1)
-    {
-        uart_out_string(UART_CHANNEL_0, "Hello world!\n", 14);
-    }
-    #endif
-
-
 }
 
 /* End main.c */
