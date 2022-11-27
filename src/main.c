@@ -12,7 +12,7 @@
 #include "gantry.h"
 
 // Debug mode select
-// #define STEPPER_DEBUG
+ #define STEPPER_DEBUG
 // #define UART_DEBUG
 // #define PERIPHERALS_ENABLED
 
@@ -33,6 +33,7 @@ int main(void)
     }
 #elif defined(STEPPER_DEBUG)
     command_queue_push((command_t*) stepper_build_rel_command(0, 0, 40, 0, 0, 1));
+    gpio_set_as_output(GPION, GPIO_PIN_0);
 #else
     gantry_reset();
 #endif
@@ -42,6 +43,17 @@ int main(void)
 
     while (1)
     {
+        uint16_t switch_data = switch_get_reading();
+        if (switch_data & CAPTURE_MASK)
+        {
+            gpio_set_output_high(GPION, GPIO_PIN_0);
+        }
+        else
+        {
+            gpio_set_output_low(GPION, GPIO_PIN_0);
+        }
+
+
         // Run the entry function
         if (!command_queue_pop(&p_current_command))
         {

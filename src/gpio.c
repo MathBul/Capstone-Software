@@ -83,7 +83,7 @@ void gpio_set_as_input(GPIO_Type* port, uint8_t pin)
 uint8_t gpio_read_input(GPIO_Type* port, uint8_t pin)
 {
     // Produce the result
-    return (port->DATA & pin);
+    return ((port->DATA & pin) != 0);
 }
 
 /**

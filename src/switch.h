@@ -107,6 +107,6 @@ union utils_vport16_t switch_vport;
 
 // Public functions
 void switch_init();
-uint8_t switch_get_reading();
+uint16_t switch_get_reading();
 
 #endif /* SWITCHES_H_ */

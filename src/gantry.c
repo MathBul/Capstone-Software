@@ -95,7 +95,7 @@ void gantry_reset(void)
 #ifdef FINAL_IMPLEMENTATION_MODE
     // Start a new game
     char user_color = 'W';
-    uint8_t switch_data = switch_get_reading();
+    uint16_t switch_data = switch_get_reading();
     if (switch_data & ROCKER_COLOR)
     {
         user_color = 'B';

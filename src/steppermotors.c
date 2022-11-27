@@ -140,6 +140,14 @@ void stepper_init_motors()
     gpio_set_output_high(STEPPER_XY_MS1_PORT, STEPPER_XY_MS1_PIN);
     gpio_set_output_high(STEPPER_XY_MS0_PORT, STEPPER_XY_MS0_PIN);
 
+    // Configure Z motor for 1/8 stepping
+    gpio_set_as_output(STEPPER_Z_MS0_PORT, STEPPER_Z_MS0_PIN);
+    gpio_set_as_output(STEPPER_Z_MS1_PORT, STEPPER_Z_MS1_PIN);
+    gpio_set_as_output(STEPPER_Z_MS2_PORT, STEPPER_Z_MS2_PIN);
+    gpio_set_output_low(STEPPER_Z_MS2_PORT, STEPPER_Z_MS2_PIN);
+    gpio_set_output_high(STEPPER_Z_MS1_PORT, STEPPER_Z_MS1_PIN);
+    gpio_set_output_high(STEPPER_Z_MS0_PORT, STEPPER_Z_MS0_PIN);
+
     // Disable the common reset/sleep
     gpio_set_as_output(STEPPER_XYZ_NRESET_PORT, STEPPER_XYZ_NRESET_PIN);
     gpio_set_output_high(STEPPER_XYZ_NRESET_PORT, STEPPER_XYZ_NRESET_PIN);
