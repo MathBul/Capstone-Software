@@ -239,8 +239,8 @@ uint8_t utils_bits8_remask(uint8_t byte, uint8_t original_mask, uint8_t new_mask
 
 // Fletcher-16 checksum utilsutils
 uint16_t utils_fl16_data_to_checksum(uint8_t *data, int count);
-char* utils_fl16_checksum_to_checkbytes(uint16_t checksum, char check_bytes[2]);
-char* utils_fl16_data_to_checkbytes(uint8_t *data, int count, char check_bytes[2]);
+void utils_fl16_checksum_to_checkbytes(uint16_t checksum, char check_bytes[2]);
+void utils_fl16_data_to_checkbytes(uint8_t *data, int count, char check_bytes[2]);
 bool utils_validate_transmission(uint8_t *data, int count, char check_bytes[2]);
 
 // Chess utils

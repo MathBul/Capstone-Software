@@ -359,7 +359,7 @@ uint16_t utils_fl16_data_to_checksum(uint8_t *data, int count)
  * @param check_bytes Char buffer to write the check bytes into
  * @return The checkbyte array
  */
-char* utils_fl16_checksum_to_checkbytes(uint16_t checksum, char check_bytes[2])
+void utils_fl16_checksum_to_checkbytes(uint16_t checksum, char check_bytes[2])
 {
     uint16_t f0, f1, c0, c1;
 
@@ -373,7 +373,6 @@ char* utils_fl16_checksum_to_checkbytes(uint16_t checksum, char check_bytes[2])
     check_bytes[0] = c0;
     check_bytes[1] = c1;
 
-    return check_bytes;
 }
 
 /**
@@ -384,7 +383,7 @@ char* utils_fl16_checksum_to_checkbytes(uint16_t checksum, char check_bytes[2])
  * @param check_bytes Char buffer to write the check bytes into
  * @return The checkbyte array
  */
-char* utils_fl16_data_to_checkbytes(uint8_t *data, int count, char check_bytes[2])
+void utils_fl16_data_to_checkbytes(uint8_t *data, int count, char check_bytes[2])
 {
     // Get the checksum from the data
     uint16_t checksum = utils_fl16_data_to_checksum(data, count);
@@ -392,7 +391,6 @@ char* utils_fl16_data_to_checkbytes(uint8_t *data, int count, char check_bytes[2
     // Get the check bytes from the checksum and write them to check_bytes
     utils_fl16_checksum_to_checkbytes(checksum, check_bytes);
 
-    return check_bytes;
 }
 
 /**
