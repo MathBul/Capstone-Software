@@ -132,7 +132,7 @@ void led_off(led_indicator_t indicator)
  */
 void led_all_on()
 {
-    uint8_t i = 0;
+    int i = 0;
     for (i = 0; i < NUMBER_OF_LEDS; i++)
     {
         led_enable(&leds[i]);
@@ -144,7 +144,7 @@ void led_all_on()
  */
 void led_all_off()
 {
-    uint8_t i = 0;
+    int i = 0;
     for (i = 0; i < NUMBER_OF_LEDS; i++)
     {
         led_disable(&leds[i]);

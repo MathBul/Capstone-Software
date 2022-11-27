@@ -178,9 +178,9 @@ void stepper_init_motors();
 void stepper_x_stop();
 void stepper_y_stop();
 void stepper_z_stop();
-bool stepper_x_fault();
-bool stepper_y_fault();
-bool stepper_z_fault();
+bool stepper_x_has_fault();
+bool stepper_y_has_fault();
+bool stepper_z_has_fault();
 
 // Command Functions
 stepper_rel_command_t* stepper_build_rel_command(int16_t rel_x, int16_t rel_y, int16_t rel_z, uint16_t v_x, uint16_t v_y, uint16_t v_z);

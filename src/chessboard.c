@@ -20,7 +20,6 @@ static bool chessboard_is_promotion(char initial_rank, char final_rank, char mov
 static void chessboard_update_presence_move(chess_board_t* p_board, char move[5]);
 static void chessboard_update_presence_board(chess_board_t* p_board, char move[5]);
 static void chessboard_update_pieces_move(chess_board_t *board, char move[5]);
-static void chessboard_update_pieces_board(chess_board_t *board, char move[5]);
 static bool chessboard_update_pieces_castling(chess_board_t *board, uint64_t castling_signature);
 static void chessboard_castle_get_rook_move(char move[5], char rook_move[5]);
 
@@ -59,7 +58,7 @@ static void chessboard_reset_board(chess_board_t *board)
     board->board_pieces[FIRST_RANK][H_FILE] = 'R';
 
     // Set white's pawns, the empty 4 ranks in the middle of the board, then black's pawns
-    uint8_t i = 0;
+    int i = 0;
     for (i = 0; i < 8; i++)
     {
         board->board_pieces[SECOND_RANK][i]  = 'P';
@@ -86,7 +85,7 @@ static void chessboard_reset_board(chess_board_t *board)
  */
 void chessboard_reset_all()
 {
-    uint8_t i = 0;
+    int i = 0;
     for (i = 0; i < NUMBER_OF_CHESSBOARDS; i++)
     {
         chessboard_reset_board(&chessboards[i]);

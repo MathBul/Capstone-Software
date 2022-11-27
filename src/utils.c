@@ -517,44 +517,47 @@ uint8_t utils_tile_to_index(chess_file_t file, chess_rank_t rank)
  */
 chess_rank_t utils_index_to_rank(uint8_t index)
 {
+    chess_rank_t output = RANK_ERROR;
     switch (index)
     {
         case 0:
-            return FIRST;
+            output = FIRST;
         break;
         
         case 1:
-            return SECOND;
+            output = SECOND;
         break;
 
         case 2:
-            return THIRD;
+            output = THIRD;
         break;
         
         case 3:
-            return FOURTH;
+            output = FOURTH;
         break;
         
         case 4:
-            return FIFTH;
+            output = FIFTH;
         break;
         
         case 5:
-            return SIXTH;
+            output = SIXTH;
         break;
         
         case 6:
-            return SEVENTH;
+            output = SEVENTH;
         break;
         
         case 7:
-            return EIGHTH;
+            output = EIGHTH;
         break;
 
         default:
-            // Invalid index provided, do nothing
+            output = RANK_ERROR;
         break;
     }
+
+    return output;
 }
 
 /**
@@ -565,44 +568,47 @@ chess_rank_t utils_index_to_rank(uint8_t index)
  */
 chess_file_t utils_index_to_file(uint8_t index)
 {
+    chess_file_t output = FILE_ERROR;
     switch (index)
     {
         case 0:
-            return A;
+            output = A;
         break;
         
         case 1:
-            return B;
+            output = B;
         break;
 
         case 2:
-            return C;
+            output = C;
         break;
         
         case 3:
-            return D;
+            output = D;
         break;
         
         case 4:
-            return E;
+            output = E;
         break;
         
         case 5:
-            return F;
+            output = F;
         break;
         
         case 6:
-            return G;
+            output = G;
         break;
         
         case 7:
-            return H;
+            output = H;
         break;
 
         default:
-            // Invalid index provided, do nothing
+            output = FILE_ERROR;
         break;
     }
+
+    return output;
 }
 
 /**
@@ -762,7 +768,7 @@ void utils_get_board_changes(uint64_t changes_in_presence, board_changes_t *boar
     board_changes->index4 = 0xFF;
 
     // Find set bits in the changed presence
-    uint8_t i = 0;
+    int i = 0;
     for (i = 0; i < 64; i++)
     {
         // If a set bit is found in some bit position i, store its index
@@ -799,8 +805,8 @@ void utils_get_board_changes(uint64_t changes_in_presence, board_changes_t *boar
  */
 void utils_copy_array(char source[8][8], char dest[8][8])
 {
-    uint8_t i = 0;
-    uint8_t j = 0;
+    int i = 0;
+    int j = 0;
     for (i = 0; i < 8; i++)
     {
         for (j = 0; j < 8; j++)

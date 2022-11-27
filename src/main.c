@@ -43,16 +43,6 @@ int main(void)
 
     while (1)
     {
-        uint16_t switch_data = switch_get_reading();
-        if (switch_data & CAPTURE_MASK)
-        {
-            gpio_set_output_high(GPION, GPIO_PIN_0);
-        }
-        else
-        {
-            gpio_set_output_low(GPION, GPIO_PIN_0);
-        }
-
 
         // Run the entry function
         if (!command_queue_pop(&p_current_command))

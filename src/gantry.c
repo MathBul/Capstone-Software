@@ -242,8 +242,8 @@ void gantry_human_action(command_t* command)
  */
 void gantry_human_exit(command_t* command)
 {
-    gantry_command_t* p_gantry_command = (gantry_command_t*) command;
 #ifdef FINAL_IMPLEMENTATION_MODE
+    gantry_command_t* p_gantry_command = (gantry_command_t*) command;
 
     if (msp_illegal_move)
     {

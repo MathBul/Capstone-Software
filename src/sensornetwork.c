@@ -75,104 +75,115 @@ void sensornetwork_init()
 void sensornetwork_select_tile(chess_file_t file, chess_rank_t rank)
 {
     // Set the row select lines
-    if (file == A)          // Select == 000
+    switch (file)
     {
-        gpio_set_output_low(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
-        gpio_set_output_low(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
-        gpio_set_output_low(sensor_row_select_1->line_port, sensor_row_select_1->line_pin);
-    } 
-    else if (file == B)     // Select == 001
-    {
-        gpio_set_output_low(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
-        gpio_set_output_low(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
-        gpio_set_output_high(sensor_row_select_1->line_port, sensor_row_select_1->line_pin);
-    } 
-    else if (file == C)     // Select == 010
-    {
-        gpio_set_output_low(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
-        gpio_set_output_high(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
-        gpio_set_output_low(sensor_row_select_1->line_port, sensor_row_select_1->line_pin);
-    } 
-    else if (file == D)     // Select == 011
-    {
-        gpio_set_output_low(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
-        gpio_set_output_high(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
-        gpio_set_output_high(sensor_row_select_1->line_port, sensor_row_select_1->line_pin);
-    } 
-    else if (file == E)     // Select == 100
-    {
-        gpio_set_output_high(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
-        gpio_set_output_low(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
-        gpio_set_output_low(sensor_row_select_1->line_port, sensor_row_select_1->line_pin);
-    } 
-    else if (file == F)     // Select == 101
-    {
-        gpio_set_output_high(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
-        gpio_set_output_low(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
-        gpio_set_output_high(sensor_row_select_1->line_port, sensor_row_select_1->line_pin);
-    } 
-    else if (file == G)     // Select == 110
-    {
-        gpio_set_output_high(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
-        gpio_set_output_high(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
-        gpio_set_output_low(sensor_row_select_1->line_port, sensor_row_select_1->line_pin);
-    } 
-    else if (file == H)     // Select == 111
-    {
-        gpio_set_output_high(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
-        gpio_set_output_high(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
-        gpio_set_output_high(sensor_row_select_1->line_port, sensor_row_select_1->line_pin);
+        case A: // Select == 000
+            gpio_set_output_low(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
+            gpio_set_output_low(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
+            gpio_set_output_low(sensor_row_select_1->line_port, sensor_row_select_1->line_pin);
+        break;
+
+        case B: // Select == 001
+            gpio_set_output_low(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
+            gpio_set_output_low(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
+            gpio_set_output_high(sensor_row_select_1->line_port, sensor_row_select_1->line_pin);
+        break;
+
+        case C: // Select == 010
+            gpio_set_output_low(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
+            gpio_set_output_high(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
+            gpio_set_output_low(sensor_row_select_1->line_port, sensor_row_select_1->line_pin);
+        break;
+
+        case D: // Select == 011
+            gpio_set_output_low(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
+            gpio_set_output_high(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
+            gpio_set_output_high(sensor_row_select_1->line_port, sensor_row_select_1->line_pin);
+        break;
+
+        case E: // Select == 100
+            gpio_set_output_high(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
+            gpio_set_output_low(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
+            gpio_set_output_low(sensor_row_select_1->line_port, sensor_row_select_1->line_pin);
+        break;
+
+        case F: // Select == 101
+            gpio_set_output_high(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
+            gpio_set_output_low(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
+            gpio_set_output_high(sensor_row_select_1->line_port, sensor_row_select_1->line_pin);
+        break;
+
+        case G: // Select == 110
+            gpio_set_output_high(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
+            gpio_set_output_high(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
+            gpio_set_output_low(sensor_row_select_1->line_port, sensor_row_select_1->line_pin);
+        break;
+
+        case H: // Select == 111
+            gpio_set_output_high(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
+            gpio_set_output_high(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
+            gpio_set_output_high(sensor_row_select_1->line_port, sensor_row_select_1->line_pin);
+        break;
+
+        default: // ??
+        break;
     }
 
     // Set the column select lines
-    if (rank == FIRST)      // Select == 000
+    switch (rank)
     {
-        gpio_set_output_low(sensor_col_select_3->line_port, sensor_col_select_3->line_pin);
-        gpio_set_output_low(sensor_col_select_2->line_port, sensor_col_select_2->line_pin);
-        gpio_set_output_low(sensor_col_select_1->line_port, sensor_col_select_1->line_pin);
-    } 
-    else if (rank == SECOND) // Select == 001
-    {
-        gpio_set_output_low(sensor_col_select_3->line_port, sensor_col_select_3->line_pin);
-        gpio_set_output_low(sensor_col_select_2->line_port, sensor_col_select_2->line_pin);
-        gpio_set_output_high(sensor_col_select_1->line_port, sensor_col_select_1->line_pin);
-    } 
-    else if (rank == THIRD) // Select == 010
-    {
-        gpio_set_output_low(sensor_col_select_3->line_port, sensor_col_select_3->line_pin);
-        gpio_set_output_high(sensor_col_select_2->line_port, sensor_col_select_2->line_pin);
-        gpio_set_output_low(sensor_col_select_1->line_port, sensor_col_select_1->line_pin);
-    } 
-    else if (rank == FOURTH) // Select == 011
-    {
-        gpio_set_output_low(sensor_col_select_3->line_port, sensor_col_select_3->line_pin);
-        gpio_set_output_high(sensor_col_select_2->line_port, sensor_col_select_2->line_pin);
-        gpio_set_output_high(sensor_col_select_1->line_port, sensor_col_select_1->line_pin);
-    } 
-    else if (rank == FIFTH) // Select == 100
-    {
-        gpio_set_output_high(sensor_col_select_3->line_port, sensor_col_select_3->line_pin);
-        gpio_set_output_low(sensor_col_select_2->line_port, sensor_col_select_2->line_pin);
-        gpio_set_output_low(sensor_col_select_1->line_port, sensor_col_select_1->line_pin);
-    } 
-    else if (rank == SIXTH) // Select == 101
-    {
-        gpio_set_output_high(sensor_col_select_3->line_port, sensor_col_select_3->line_pin);
-        gpio_set_output_low(sensor_col_select_2->line_port, sensor_col_select_2->line_pin);
-        gpio_set_output_high(sensor_col_select_1->line_port, sensor_col_select_1->line_pin);
-    } 
-    else if (rank == SEVENTH) // Select == 110
-    {
-        gpio_set_output_high(sensor_col_select_3->line_port, sensor_col_select_3->line_pin);
-        gpio_set_output_high(sensor_col_select_2->line_port, sensor_col_select_2->line_pin);
-        gpio_set_output_low(sensor_col_select_1->line_port, sensor_col_select_1->line_pin);
-    } 
-    else if (rank == EIGHTH) // Select == 111
-    {
-        gpio_set_output_high(sensor_col_select_3->line_port, sensor_col_select_3->line_pin);
-        gpio_set_output_high(sensor_col_select_2->line_port, sensor_col_select_2->line_pin);
-        gpio_set_output_high(sensor_col_select_1->line_port, sensor_col_select_1->line_pin);
+        case FIRST: // Select == 000
+            gpio_set_output_low(sensor_col_select_3->line_port, sensor_col_select_3->line_pin);
+            gpio_set_output_low(sensor_col_select_2->line_port, sensor_col_select_2->line_pin);
+            gpio_set_output_low(sensor_col_select_1->line_port, sensor_col_select_1->line_pin);
+        break;
+
+        case SECOND: // Select == 001
+            gpio_set_output_low(sensor_col_select_3->line_port, sensor_col_select_3->line_pin);
+            gpio_set_output_low(sensor_col_select_2->line_port, sensor_col_select_2->line_pin);
+            gpio_set_output_high(sensor_col_select_1->line_port, sensor_col_select_1->line_pin);
+        break;
+
+        case THIRD: // Select == 010
+            gpio_set_output_low(sensor_col_select_3->line_port, sensor_col_select_3->line_pin);
+            gpio_set_output_high(sensor_col_select_2->line_port, sensor_col_select_2->line_pin);
+            gpio_set_output_low(sensor_col_select_1->line_port, sensor_col_select_1->line_pin);
+        break;
+
+        case FOURTH: // Select == 011
+            gpio_set_output_low(sensor_col_select_3->line_port, sensor_col_select_3->line_pin);
+            gpio_set_output_high(sensor_col_select_2->line_port, sensor_col_select_2->line_pin);
+            gpio_set_output_high(sensor_col_select_1->line_port, sensor_col_select_1->line_pin);
+        break;
+
+        case FIFTH: // Select == 100
+            gpio_set_output_high(sensor_col_select_3->line_port, sensor_col_select_3->line_pin);
+            gpio_set_output_low(sensor_col_select_2->line_port, sensor_col_select_2->line_pin);
+            gpio_set_output_low(sensor_col_select_1->line_port, sensor_col_select_1->line_pin);
+        break;
+
+        case SIXTH: // Select == 101
+            gpio_set_output_high(sensor_col_select_3->line_port, sensor_col_select_3->line_pin);
+            gpio_set_output_low(sensor_col_select_2->line_port, sensor_col_select_2->line_pin);
+            gpio_set_output_high(sensor_col_select_1->line_port, sensor_col_select_1->line_pin);
+        break;
+
+        case SEVENTH: // Select == 110
+            gpio_set_output_high(sensor_col_select_3->line_port, sensor_col_select_3->line_pin);
+            gpio_set_output_high(sensor_col_select_2->line_port, sensor_col_select_2->line_pin);
+            gpio_set_output_low(sensor_col_select_1->line_port, sensor_col_select_1->line_pin);
+        break;
+
+        case EIGHTH: // Select == 111
+            gpio_set_output_high(sensor_col_select_3->line_port, sensor_col_select_3->line_pin);
+            gpio_set_output_high(sensor_col_select_2->line_port, sensor_col_select_2->line_pin);
+            gpio_set_output_high(sensor_col_select_1->line_port, sensor_col_select_1->line_pin);
+        break;
+
+        default: // ??
+        break;
     }
+
 }
 
 /**
@@ -194,13 +205,9 @@ uint64_t sensornetwork_get_reading()
  */
 static uint64_t sensornetwork_shift_assign()
 {
-    // Arrays to convert indices to ranks/files
-    chess_rank_t ranks[NUMBER_OF_ROWS] = {FIRST, SECOND, THIRD, FOURTH, FIFTH, SIXTH, SEVENTH, EIGHTH};
-    chess_file_t files[NUMBER_OF_COLS] = {A, B, C, D, E, F, G, H};
-
     // Loop through all tiles
-    uint8_t i = 0;
-    uint8_t j = 0;
+    int i = 0;
+    int j = 0;
     sensor_vport.image = 0;
 
     for (i = 0; i < NUMBER_OF_ROWS; i++)

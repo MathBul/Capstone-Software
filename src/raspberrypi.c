@@ -37,7 +37,7 @@ bool rpi_transmit(char* data, uint8_t size)
     bool status = true;
 
     // Write one byte at a time
-    uint8_t i = 0;
+    int i = 0;
     for (i = 0; (i < size) && (status) && (data[i] != '\0'); i++)
     {
         status &= uart_out_byte(RPI_UART_CHANNEL, (uint8_t) data[i]);

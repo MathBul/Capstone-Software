@@ -23,7 +23,7 @@ static void stepper_enable_all_motors();
 static void stepper_pause_all_motors();
 static void stepper_resume_all_motors();
 static int16_t stepper_get_current_pos_mm(stepper_motors_t *p_stepper_motor);
-static void stepper_update_velocities(uint16_t v_x, uint16_t v_y, uint16_t v_z, uint16_t maz_a_x, uint16_t maz_a_y, uint16_t maz_a_z);
+static void stepper_update_velocities(uint16_t v_x, uint16_t v_y, uint16_t v_z, uint16_t max_a_x, uint16_t max_a_y, uint16_t max_a_z);
 static uint64_t stepper_get_period_shift(stepper_motors_t* p_stepper_motor);
 static void stepper_interrupt_activity(stepper_motors_t *p_stepper_motor);
 
@@ -297,16 +297,12 @@ void stepper_z_stop()
  * 
  * @return Whether a fault occured
  */
-bool stepper_x_fault()
+bool stepper_x_has_fault()
 {
     uint8_t nfault = gpio_read_input(p_stepper_motor_x->nfault_port, p_stepper_motor_x->nfault_pin);
 
     // Return true (fault) if nfault (active-low) is 0
-    if (nfault == 0)
-    {
-        return true;
-    }
-    return false;
+    return nfault == 0;
 }
 
 /**
@@ -314,16 +310,12 @@ bool stepper_x_fault()
  * 
  * @return Whether a fault occured
  */
-bool stepper_y_fault()
+bool stepper_y_has_fault()
 {
     uint8_t nfault = gpio_read_input(p_stepper_motor_y->nfault_port, p_stepper_motor_y->nfault_pin);
 
     // Return true (fault) if nfault (active-low) is 0
-    if (nfault == 0)
-    {
-        return true;
-    }
-    return false;
+    return nfault == 0;
 }
 
 /**
@@ -331,16 +323,12 @@ bool stepper_y_fault()
  * 
  * @return Whether a fault occured
  */
-bool stepper_z_fault()
+bool stepper_z_has_fault()
 {
     uint8_t nfault = gpio_read_input(p_stepper_motor_z->nfault_port, p_stepper_motor_z->nfault_pin);
 
     // Return true (fault) if nfault (active-low) is 0
-    if (nfault == 0)
-    {
-        return true;
-    }
-    return false;
+    return nfault == 0;
 }
 
 /**
@@ -383,7 +371,7 @@ static int16_t stepper_get_current_pos_mm(stepper_motors_t *p_stepper_motor)
  * @param v_y Desired y-axis velocity
  * @param v_z Desired z-axis velocity
  */
-static void stepper_update_velocities(uint16_t v_x, uint16_t v_y, uint16_t v_z, uint16_t maz_a_x, uint16_t maz_a_y, uint16_t maz_a_z)
+static void stepper_update_velocities(uint16_t v_x, uint16_t v_y, uint16_t v_z, uint16_t max_a_x, uint16_t max_a_y, uint16_t max_a_z)
 {
     // X-axis determine the points where the speeds need to change
     if (STEPPER_X_MAX_V * STEPPER_X_MAX_V / STEPPER_X_MAX_A > p_stepper_motor_x->transitions_to_desired_pos)
@@ -434,7 +422,7 @@ static void stepper_update_velocities(uint16_t v_x, uint16_t v_y, uint16_t v_z, 
         uint32_t stepper_x_initial_period = stepper_velocity_to_timer_period(v_x_bounded);
         
         // Set the acceleration
-        p_stepper_motor_x->max_accel = maz_a_x;
+        p_stepper_motor_x->max_accel = max_a_x;
         
         // Start the timer
         clock_set_timer_period(STEPPER_X_TIMER, stepper_x_initial_period);
@@ -448,7 +436,7 @@ static void stepper_update_velocities(uint16_t v_x, uint16_t v_y, uint16_t v_z, 
         uint32_t stepper_y_initial_period = stepper_velocity_to_timer_period(v_y_bounded);
         
         // Set the acceleration
-        p_stepper_motor_y->max_accel = maz_a_y;
+        p_stepper_motor_y->max_accel = max_a_y;
         
         // Start the timer
         clock_set_timer_period(STEPPER_Y_TIMER, stepper_y_initial_period);
@@ -462,7 +450,7 @@ static void stepper_update_velocities(uint16_t v_x, uint16_t v_y, uint16_t v_z, 
         uint32_t stepper_z_initial_period = stepper_velocity_to_timer_period(v_z_bounded);
         
         // Set the acceleration
-        p_stepper_motor_z->max_accel = maz_a_z;
+        p_stepper_motor_z->max_accel = max_a_z;
         
         // Start the timer
         clock_set_timer_period(STEPPER_Z_TIMER, stepper_z_initial_period);
@@ -885,7 +873,7 @@ bool stepper_is_done(command_t* command)
     bool arrived = true;
     
     // Loop through all motors
-    uint8_t i = 0;
+    int i = 0;
     for (i = 0; (i < NUMBER_OF_STEPPER_MOTORS) && (arrived); i++)
     {
         arrived &= (stepper_motors[i].transitions_to_desired_pos == 0);

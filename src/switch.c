@@ -72,8 +72,6 @@ static uint16_t switch_shift_assign()
     switch_reassigned |= (gpio_read_input(LIMIT_PORT, LIMIT_X_PIN)                      << LIMIT_X_SHIFT);
     switch_reassigned |= (gpio_read_input(LIMIT_PORT, LIMIT_Y_PIN)                      << LIMIT_Y_SHIFT);
     switch_reassigned |= (gpio_read_input(LIMIT_PORT, LIMIT_Z_PIN)                      << LIMIT_Z_SHIFT);
-    uint8_t temp1 = gpio_read_input(CAPTURE_PORT, CAPTURE_PIN);
-    uint8_t temp2 = (temp1 << SWITCH_CAPTURE_SHIFT);
     switch_reassigned |= (gpio_read_input(CAPTURE_PORT, CAPTURE_PIN)                    << SWITCH_CAPTURE_SHIFT);
     switch_reassigned |= (gpio_read_input(FUTURE_PROOF_PORT, FUTURE_PROOF_1_PIN)        << FUTURE_PROOF_1_SHIFT);
     switch_reassigned |= (gpio_read_input(FUTURE_PROOF_PORT, FUTURE_PROOF_2_PIN)        << FUTURE_PROOF_2_SHIFT);
