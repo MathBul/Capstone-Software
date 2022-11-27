@@ -14,7 +14,7 @@
 static void rpi_checksum(char *data, uint8_t size);
 
 // Flags
-bool send_msg = false;
+bool msg_ready_to_send = false;
 
 /**
  * @brief Initialize the Raspberry Pi UART Tx and Rx lines
@@ -233,7 +233,7 @@ __interrupt void COMM_HANDLER(void)
     clock_clear_interrupt(COMM_TIMER);
 
     // Indicate that the message timed out
-    send_msg = true;
+    msg_ready_to_send = true;
 }
 
 /* End raspberrypi.c */

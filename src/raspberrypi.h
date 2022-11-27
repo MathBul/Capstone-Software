@@ -21,7 +21,7 @@
 #include <stdbool.h>
 
 // Flags
-extern bool send_msg;
+extern bool msg_ready_to_send;
 
 // General Raspberry Pi defines
 #define COMM_TIMER                          (TIMER7)

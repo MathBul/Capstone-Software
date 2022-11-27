@@ -254,13 +254,13 @@ void gantry_human_exit(command_t* command)
     {
         // Place the gantry_comm command on the queue to send the message
         command_queue_push((command_t*)gantry_comm_build_command(p_gantry_command->move_to_send));
-        send_msg = true;
+        msg_ready_to_send = true;
     }
 #endif
 #ifdef THREE_PARTY_MODE
     // Place the gantry_comm command on the queue to send the message
     command_queue_push((command_t*)gantry_comm_build_command(p_gantry_command->move_to_send));
-    send_msg = true;
+    msg_ready_to_send = true;
 
     // Reset flag
     human_is_done = false;
@@ -335,13 +335,13 @@ void gantry_comm_action(command_t* command)
 
     char ack_byte;
 
-    if (send_msg)
+    if (msg_ready_to_send)
     {
         // Send the human move
         rpi_transmit_human_move(p_gantry_command->move_to_send);
 
         // Don't resend the message unless interrupt sets send_msg
-        send_msg = false;
+        msg_ready_to_send = false;
 
         // Start the timer
         clock_start_timer(COMM_TIMER);
