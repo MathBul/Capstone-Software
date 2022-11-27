@@ -20,13 +20,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-// Flags
-extern bool msg_ready_to_send;
-
 // General Raspberry Pi defines
-#define COMM_TIMER                          (TIMER7)
-#define COMM_HANDLER                        (TIMER7A_IRQHandler)
-#define COMM_TIMEOUT                        (600000000)
 
 #ifdef USER_MODE
 #   define RPI_UART_CHANNEL                 (UART_CHANNEL_0)

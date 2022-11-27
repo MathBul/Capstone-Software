@@ -23,6 +23,7 @@ static bool robot_is_done    = false;
 static bool comm_is_done     = false;
 static bool human_is_done    = false;
 static bool msp_illegal_move = false;
+static bool msg_ready_to_send= true;
 bool sys_fault               = false;
 
 /**
@@ -146,15 +147,6 @@ gantry_command_t* gantry_human_build_command(void)
     p_command->move.dest_rank   = RANK_ERROR;
     p_command->move.move_type   = IDLE;
 
-    // Game Status
-    p_command->game_status = ONGOING;
-
-    // The move to be sent (not used for this type of command)
-    p_command->move_to_send[0] = '?';
-    p_command->move_to_send[1] = '?';
-    p_command->move_to_send[2] = '?';
-    p_command->move_to_send[3] = '?';
-    p_command->move_to_send[4] = '?';
 
     return p_command;
 }
@@ -292,26 +284,16 @@ bool gantry_human_is_done(command_t* command)
  *
  * @returns Pointer to the dynamically-allocated command
  */
-gantry_command_t* gantry_comm_build_command(char move[5])
+gantry_comm_command_t* gantry_comm_build_command(char move[5])
 {
     // The thing to return
-    gantry_command_t* p_command = (gantry_command_t*) malloc(sizeof(gantry_command_t));
+    gantry_comm_command_t* p_command = (gantry_comm_command_t*) malloc(sizeof(gantry_comm_command_t));
 
     // Functions
     p_command->command.p_entry   = &utils_empty_function;
     p_command->command.p_action  = &gantry_comm_action;
     p_command->command.p_exit    = &gantry_comm_exit;
     p_command->command.p_is_done = &gantry_comm_is_done;
-
-    // Data
-    p_command->move.source_file = FILE_ERROR;
-    p_command->move.source_rank = RANK_ERROR;
-    p_command->move.dest_file   = FILE_ERROR;
-    p_command->move.dest_rank   = RANK_ERROR;
-    p_command->move.move_type   = IDLE;
-
-    // Game Status
-    p_command->game_status = ONGOING;
 
     // The move to be sent
     p_command->move_to_send[0] = move[0];
@@ -331,11 +313,9 @@ gantry_command_t* gantry_comm_build_command(char move[5])
  */
 void gantry_comm_action(command_t* command)
 {
-    gantry_command_t* p_gantry_command = (gantry_command_t*) command;
+    gantry_comm_command_t* p_gantry_command = (gantry_comm_command_t*) command;
 
-    char ack_byte;
-
-    if (msg_ready_to_send)
+    if (msg_ready_to_send) // This is set to true by the timer interrupt
     {
         // Send the human move
         rpi_transmit_human_move(p_gantry_command->move_to_send);
@@ -346,27 +326,16 @@ void gantry_comm_action(command_t* command)
         // Start the timer
         clock_start_timer(COMM_TIMER);
     }
-    else
-    {
-        if (rpi_receive(&ack_byte, 1))
-        {
-            if (ack_byte == ACK_BYTE)
-            {
-                // ACK byte received!
-                comm_is_done = true;
-
-                // Stop the timer
-                clock_stop_timer(COMM_TIMER);
-
-                // Reset the value
-                clock_reset_timer_value(COMM_TIMER);
-            }
-        }
-    }
 }
 
 void gantry_comm_exit(command_t* command)
 {
+    // Stop the timer
+    clock_stop_timer(COMM_TIMER);
+
+    // Reset the value
+    clock_reset_timer_value(COMM_TIMER);
+
     // Verified comm, so push a robot command onto the queue
     command_queue_push((command_t*)gantry_robot_build_command());
 
@@ -376,7 +345,13 @@ void gantry_comm_exit(command_t* command)
 
 bool gantry_comm_is_done(command_t* command)
 {
-    return comm_is_done;
+    char ack_byte;
+
+    // Read from the Pi
+    rpi_receive(&ack_byte, 1);
+
+    // If we get our ACK, we're done
+    return ack_byte == ACK_BYTE;
 }
 
 /**
@@ -401,23 +376,6 @@ gantry_command_t* gantry_robot_build_command(void)
     p_command->move.dest_file   = FILE_ERROR;
     p_command->move.dest_rank   = RANK_ERROR;
     p_command->move.move_type   = IDLE;
-
-    // Game Status
-    p_command->game_status = ONGOING;
-
-    // The robot's move in uci notation
-    p_command->robot_move_uci[0] = '?';
-    p_command->robot_move_uci[1] = '?';
-    p_command->robot_move_uci[2] = '?';
-    p_command->robot_move_uci[3] = '?';
-    p_command->robot_move_uci[4] = '?';
-
-    // The move to be sent (not used for this type of command)
-    p_command->move_to_send[0] = '?';
-    p_command->move_to_send[1] = '?';
-    p_command->move_to_send[2] = '?';
-    p_command->move_to_send[3] = '?';
-    p_command->move_to_send[4] = '?';
 
     return p_command;
 }
@@ -1097,6 +1055,18 @@ __interrupt void GANTRY_HANDLER(void)
     {
 //        gantry_home();
     }
+}
+
+/**
+ * @brief Interrupt handler for the 5-second communication timer
+ */
+__interrupt void COMM_HANDLER(void)
+{
+    // Clear the interrupt flag
+    clock_clear_interrupt(COMM_TIMER);
+
+    // Indicate that the message timed out
+    msg_ready_to_send = true;
 }
 
 /* End gantry.c */

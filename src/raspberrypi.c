@@ -13,9 +13,6 @@
 // Private functions
 static void rpi_checksum(char *data, uint8_t size);
 
-// Flags
-bool msg_ready_to_send = false;
-
 /**
  * @brief Initialize the Raspberry Pi UART Tx and Rx lines
  */
@@ -224,16 +221,6 @@ chess_move_t rpi_castle_get_rook_move(chess_move_t *p_king_move)
     return rook_move;
 }
 
-/**
- * @brief Interrupt handler for the 5-second communication timer
- */
-__interrupt void COMM_HANDLER(void)
-{
-    // Clear the interrupt flag
-    clock_clear_interrupt(COMM_TIMER);
 
-    // Indicate that the message timed out
-    msg_ready_to_send = true;
-}
 
 /* End raspberrypi.c */

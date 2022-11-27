@@ -32,14 +32,23 @@ extern bool sys_fault;
 #define GANTRY_TIMER                        (TIMER4)
 #define GANTRY_HANDLER                      (TIMER4A_IRQHandler)
 
+#define COMM_TIMER                          (TIMER7)
+#define COMM_HANDLER                        (TIMER7A_IRQHandler)
+#define COMM_TIMEOUT                        (600000000)
+
+
 // Gantry command struct
 typedef struct gantry_command_t {
     command_t command;
     chess_move_t move;              // All the info about the move the robot will make
-    char robot_move_uci[5];         // The move the robot will make in UCI notation
     game_status_t game_status;      // The current state of the game, as reported by the Pi (ongoing, ended)
-    char move_to_send[5];           // The human's move in UCI notation
+    char robot_move_uci[5];         // The move the robot will make in UCI notation
 } gantry_command_t;
+
+typedef struct gantry_comm_command_t {
+    command_t command;
+    char move_to_send[5];           // The human's move in UCI notation
+} gantry_comm_command_t;
 
 // Public functions
 void gantry_init(void);
@@ -53,7 +62,7 @@ void gantry_human_exit(command_t* command);
 bool gantry_human_is_done(command_t* command);
 
 // Command Functions (sending the user's move, verifying transmission)
-gantry_command_t* gantry_comm_build_command(char move[5]);
+gantry_comm_command_t* gantry_comm_build_command(char move[5]);
 void gantry_comm_entry(command_t* command);
 void gantry_comm_action(command_t* command);
 void gantry_comm_exit(command_t* command);
