@@ -216,17 +216,12 @@ void utils_delay(uint32_t ticks)
 void utils_set_nvic(uint8_t interrupt_num, uint8_t priority)
 {
     // Determine the correct ISER register (32 interrupts per ISER)
-    uint8_t interrupt_shift = (interrupt_num % 32);
-    uint8_t iser_position   = ((interrupt_num - interrupt_shift) >> 5);
+    uint8_t enable_shift = (interrupt_num % 32);
+    uint8_t iser_position = (interrupt_num - enable_shift)/32;
 
-    // Determine the correct IP register (4 interrupts per IP)
-    uint8_t priority_num      = (interrupt_num % 4);
-    uint8_t priority_shift    = ((priority_num >> 3) + 5);
-    uint8_t priority_position = ((interrupt_num - priority_num) >> 2);
-
-    // Enable the interrupt and set the priority
-    NVIC->ISER[iser_position]   |= (1 << (interrupt_shift));
-    NVIC->IP[priority_position] |= (priority << (priority_shift));
+    // Set the values to the registers
+    NVIC->ISER[iser_position] |= (1 << (enable_shift));
+    NVIC->IP[interrupt_num] |= (priority << 5);
 }
 
 /**

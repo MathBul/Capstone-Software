@@ -10,6 +10,10 @@
 
 #include "steppermotors.h"
 
+#ifdef STEPPER_DEBUG
+#include "uart.h"
+#endif
+
 // Private functions
 static void stepper_set_direction_clockwise(stepper_motors_t *stepper_motor);
 static void stepper_set_direction_counterclockwise(stepper_motors_t *stepper_motor);
@@ -68,6 +72,9 @@ void stepper_init_motors()
     p_stepper_motor_x->dir                        = 1;
     p_stepper_motor_x->current_pos                = 0;
     p_stepper_motor_x->current_vel                = 0;
+#ifdef STEPPER_DEBUG
+    p_stepper_motor_x->time_elapsed               = 0;
+#endif
 
     /* Stepper 2 (Y-axis) */
     // Disable, set direction clockwise, prepare step
@@ -99,6 +106,9 @@ void stepper_init_motors()
     p_stepper_motor_y->dir                        = 1;
     p_stepper_motor_y->current_pos                = 0;
     p_stepper_motor_y->current_vel                = 0;
+#ifdef STEPPER_DEBUG
+    p_stepper_motor_y->time_elapsed               = 0;
+#endif
 
     /* Stepper 3 (Z-axis) */
     // Disable, set direction clockwise, prepare step
@@ -130,6 +140,9 @@ void stepper_init_motors()
     p_stepper_motor_z->dir                        = 1;
     p_stepper_motor_z->current_pos                = 0;
     p_stepper_motor_z->current_vel                = 0;
+#ifdef STEPPER_DEBUG
+    p_stepper_motor_z->time_elapsed               = 0;
+#endif
 
     /* Common Stepper GPIO */
     // Configure XY motors for 1/8 stepping
@@ -154,6 +167,9 @@ void stepper_init_motors()
 
     // Place the motors in mixed decay mode (open pin)
     gpio_set_as_output(STEPPER_XYZ_DECAY_PORT, STEPPER_XYZ_DECAY_PIN);
+#ifdef STEPPER_DEBUG
+    uart_init(PROFILING_CHANNEL);
+#endif
 }
 
 /**
@@ -910,6 +926,15 @@ static void stepper_interrupt_activity(stepper_motors_t* p_stepper_motor)
         stepper_edge_transition(p_stepper_motor);
         p_stepper_motor->transitions_to_desired_pos -= 1;
         p_stepper_motor->current_pos += p_stepper_motor->dir;
+
+#ifdef STEPPER_DEBUG
+        // Send the data to the laptop
+        char data[32];
+        sprintf(data, "(%d,%d,%d)", p_stepper_motor->current_pos / TRANSITIONS_PER_MM, clock_get_timer_period(p_stepper_motor->timer), p_stepper_motor->time_elapsed); // current_pos, the number in the register, time_elapsed
+        uart_out_string(PROFILING_CHANNEL, data, 32);
+        // Delay so this is not spamable (we only transmit strings for testing, so this is not an issue for the actual robot)
+        utils_delay(150000);
+#endif
 
         // Update the timer period for smooth motion profiling
         uint64_t period_shift = stepper_get_period_shift(p_stepper_motor);

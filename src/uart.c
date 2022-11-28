@@ -47,7 +47,7 @@ void uart_init(uint8_t uart_channel)
         case UART_CHANNEL_0:
             uart0_init();
         break;
-        
+
         case UART_CHANNEL_1:
             uart1_init();
         break;
@@ -55,15 +55,15 @@ void uart_init(uint8_t uart_channel)
         case UART_CHANNEL_2:
             uart2_init();
         break;
-        
+
         case UART_CHANNEL_3:
             uart3_init();
         break;
-        
+
         case UART_CHANNEL_6:
             uart6_init();
         break;
-        
+
         default:
             // Invalid channel provided, do nothing
         break;
@@ -99,10 +99,10 @@ void uart0_init()
     UART0->LCRH |= (UART_LCRH_WLEN_8);                           // Sets word length to 8 bits
     UART0->CC   |= (UART_CC_CS_PIOSC);                           // Sets baud rate generator to PIOSC (16 MHz)
 
-    // Configure interrupts 
+    // Configure interrupts
     UART0->IFLS |= (UART_IFLS_RX1_8 | UART_IFLS_TX1_8);          // Sets Tx/Rx interrupt triggers to when FIFOs are 1/8 full
     UART0->IM   |= (UART_IM_RXIM | UART_IM_TXIM | UART_IM_RTIM); // Enable the Tx and Rx FIFOs, and Rx timeout interrupt
-    utils_set_nvic(UART0_INTERRUPT_NUM, 1);                      // Configure the NVIC
+    utils_set_nvic(UART0_INTERRUPT_NUM, 0);                      // Configure the NVIC
 
     // Enable the UART module
     UART0->CTL  |= UART_CTL_UARTEN;
@@ -137,10 +137,10 @@ void uart1_init()
     UART1->LCRH |= (UART_LCRH_WLEN_8);                           // Sets word length to 8 bits
     UART1->CC   |= (UART_CC_CS_PIOSC);                           // Sets baud rate generator to PIOSC (16 MHz)
 
-    // Configure interrupts 
+    // Configure interrupts
     UART1->IFLS |= (UART_IFLS_RX1_8 | UART_IFLS_TX1_8);          // Sets Tx/Rx interrupt triggers to when FIFOs are 1/8 full
     UART1->IM   |= (UART_IM_RXIM | UART_IM_TXIM | UART_IM_RTIM); // Enable the Tx and Rx FIFOs, and Rx timeout interrupt
-    utils_set_nvic(UART1_INTERRUPT_NUM, 2);                      // Configure the NVIC
+    utils_set_nvic(UART1_INTERRUPT_NUM, 0);                      // Configure the NVIC
 
     // Enable the UART module
     UART1->CTL  |= UART_CTL_UARTEN;
@@ -175,10 +175,10 @@ void uart2_init()
     UART2->LCRH |= (UART_LCRH_WLEN_8);                           // Sets word length to 8 bits
     UART2->CC   |= (UART_CC_CS_PIOSC);                           // Sets baud rate generator to PIOSC (16 MHz)
 
-    // Configure interrupts 
+    // Configure interrupts
     UART2->IFLS |= (UART_IFLS_RX1_8 | UART_IFLS_TX1_8);          // Sets Tx/Rx interrupt triggers to when FIFOs are 1/8 full
     UART2->IM   |= (UART_IM_RXIM | UART_IM_TXIM | UART_IM_RTIM); // Enable the Tx and Rx FIFOs, and Rx timeout interrupt
-    utils_set_nvic(UART2_INTERRUPT_NUM, 3);                      // Configure the NVIC
+    utils_set_nvic(UART2_INTERRUPT_NUM, 0);                      // Configure the NVIC
 
     // Enable the UART module
     UART2->CTL  |= UART_CTL_UARTEN;
@@ -213,10 +213,10 @@ void uart3_init()
     UART3->LCRH |= (UART_LCRH_WLEN_8);                           // Sets word length to 8 bits
     UART3->CC   |= (UART_CC_CS_PIOSC);                           // Sets baud rate generator to PIOSC (16 MHz)
 
-    // Configure interrupts 
+    // Configure interrupts
     UART3->IFLS |= (UART_IFLS_RX1_8 | UART_IFLS_TX1_8);          // Sets Tx/Rx interrupt triggers to when FIFOs are 1/8 full
     UART3->IM   |= (UART_IM_RXIM | UART_IM_TXIM | UART_IM_RTIM); // Enable the Tx and Rx FIFOs, and Rx timeout interrupt
-    utils_set_nvic(UART3_INTERRUPT_NUM, 3);                      // Configure the NVIC
+    utils_set_nvic(UART3_INTERRUPT_NUM, 0);                      // Configure the NVIC
 
     // Enable the UART module
     UART3->CTL  |= UART_CTL_UARTEN;
@@ -228,18 +228,18 @@ void uart3_init()
 void uart6_init()
 {
     // Initialize the software FIFOS
-    fifo8_init(uart_3_rx);
-    fifo8_init(uart_3_tx);
+    fifo8_init(uart_6_rx);
+    fifo8_init(uart_6_tx);
 
     // Enable the UART clock gate control
-    utils_uart_clock_enable(UART_CHANNEL_3);
+    utils_uart_clock_enable(UART_CHANNEL_6);
 
     // Configure the transmit and receive GPIO
-    utils_gpio_clock_enable(UART3_PORT);
-    gpio_set_as_input(UART3_PORT, UART3_RX);
-    gpio_set_as_output(UART3_PORT, UART3_TX);
-    gpio_select_alternate_function(UART3_PORT, UART3_RX, 1);             // Select 1st alternate function for this GPIO pin
-    gpio_select_alternate_function(UART3_PORT, UART3_TX, 1);             // Select 1st alternate function for this GPIO pin
+    utils_gpio_clock_enable(UART6_PORT);
+    gpio_set_as_input(UART6_PORT, UART6_RX);
+    gpio_set_as_output(UART6_PORT, UART6_TX);
+    gpio_select_alternate_function(UART6_PORT, UART6_RX, 1);             // Select 1st alternate function for this GPIO pin
+    gpio_select_alternate_function(UART6_PORT, UART6_TX, 1);             // Select 1st alternate function for this GPIO pin
 
     // Disable the UART module
     UART6->CTL &= ~UART_CTL_UARTEN;
@@ -251,10 +251,10 @@ void uart6_init()
     UART6->LCRH |= (UART_LCRH_WLEN_8);                           // Sets word length to 8 bits
     UART6->CC   |= (UART_CC_CS_PIOSC);                           // Sets baud rate generator to PIOSC (16 MHz)
 
-    // Configure interrupts 
+    // Configure interrupts
     UART6->IFLS |= (UART_IFLS_RX1_8 | UART_IFLS_TX1_8);          // Sets Tx/Rx interrupt triggers to when FIFOs are 1/8 full
     UART6->IM   |= (UART_IM_RXIM | UART_IM_TXIM | UART_IM_RTIM); // Enable the Tx and Rx FIFOs, and Rx timeout interrupt
-    utils_set_nvic(UART6_INTERRUPT_NUM, 3);                      // Configure the NVIC
+    utils_set_nvic(UART6_INTERRUPT_NUM, 0);                      // Configure the NVIC
 
     // Enable the UART module
     UART6->CTL  |= UART_CTL_UARTEN;
@@ -280,7 +280,7 @@ bool uart_out_byte(uint8_t uart_channel, uint8_t data)
             p_uart_tx_fifo = uart_0_tx;
             p_uart_module = UART0;
         break;
-        
+
         case UART_CHANNEL_1:
             p_uart_tx_fifo = uart_1_tx;
             p_uart_module = UART1;
@@ -290,23 +290,23 @@ bool uart_out_byte(uint8_t uart_channel, uint8_t data)
             p_uart_tx_fifo = uart_2_tx;
             p_uart_module = UART2;
         break;
-        
+
         case UART_CHANNEL_3:
             p_uart_tx_fifo = uart_3_tx;
             p_uart_module = UART3;
         break;
-        
+
         case UART_CHANNEL_6:
             p_uart_tx_fifo = uart_6_tx;
             p_uart_module = UART6;
         break;
-        
+
         default:
             // Invalid channel provided, do nothing
             status = false;
         break;
     }
-    
+
     // If an invalid channel was provided, exit
     if (!status)
     {
@@ -321,7 +321,7 @@ bool uart_out_byte(uint8_t uart_channel, uint8_t data)
     {
         uart_copy_software_to_hardware(uart_channel);
     }
-    
+
     return status;
 }
 
@@ -344,8 +344,6 @@ bool uart_out_string(uint8_t uart_channel, char* data, uint8_t size)
         status &= uart_out_byte(uart_channel, (uint8_t) data[i]);
     }
 
-    // Delay so this is not spamable (we only transmit strings for testing, so this is not an issue for the actual robot)
-    utils_delay(200000);
 
     return status;
 }
@@ -371,7 +369,7 @@ bool uart_out_int16_t(uint8_t uart_channel, int16_t data)
         data_chunk = (data >> data_shift);
         status &= uart_out_byte(uart_channel, data_chunk);
     }
-    
+
     return status;
 }
 
@@ -468,7 +466,7 @@ bool uart_read_string(uint8_t uart_channel, char *data, uint8_t size)
 
 /**
  * @brief Moves data from the hardware FIFO to our software one
- * 
+ *
  * @param uart_channel One of UART_CHANNEL_X for X={0,1,2,3,6}
  */
 static void uart_copy_hardware_to_software(uint8_t uart_channel)
@@ -485,7 +483,7 @@ static void uart_copy_hardware_to_software(uint8_t uart_channel)
             p_uart_rx_fifo = uart_0_rx;
             p_uart_module = UART0;
         break;
-        
+
         case UART_CHANNEL_1:
             p_uart_rx_fifo = uart_1_rx;
             p_uart_module = UART1;
@@ -495,21 +493,21 @@ static void uart_copy_hardware_to_software(uint8_t uart_channel)
             p_uart_rx_fifo = uart_2_rx;
             p_uart_module = UART2;
         break;
-        
+
         case UART_CHANNEL_3:
             p_uart_rx_fifo = uart_3_rx;
             p_uart_module = UART3;
         break;
-        
+
         case UART_CHANNEL_6:
             p_uart_rx_fifo = uart_6_rx;
             p_uart_module = UART6;
         break;
-        
+
         default:
             // Invalid channel provided, do nothing
             status = false;
-        break; 
+        break;
     }
 
     // If an invalid channel was provided, exit
@@ -545,7 +543,7 @@ static void uart_copy_software_to_hardware(uint8_t uart_channel)
             p_uart_tx_fifo = uart_0_tx;
             p_uart_module = UART0;
         break;
-        
+
         case UART_CHANNEL_1:
             p_uart_tx_fifo = uart_1_tx;
             p_uart_module = UART1;
@@ -555,21 +553,21 @@ static void uart_copy_software_to_hardware(uint8_t uart_channel)
             p_uart_tx_fifo = uart_2_tx;
             p_uart_module = UART2;
         break;
-        
+
         case UART_CHANNEL_3:
             p_uart_tx_fifo = uart_3_tx;
             p_uart_module = UART3;
         break;
-        
+
         case UART_CHANNEL_6:
             p_uart_tx_fifo = uart_6_tx;
             p_uart_module = UART6;
         break;
-        
+
         default:
             // Invalid channel provided, do nothing
             status = false;
-        break; 
+        break;
     }
 
     // If an invalid channel was provided, exit
@@ -615,7 +613,7 @@ void uart_reset(uint8_t uart_channel)
             fifo8_clear(uart_2_rx);
             fifo8_clear(uart_2_tx);
         break;
-        
+
         case UART_CHANNEL_3:
             fifo8_clear(uart_3_rx);
             fifo8_clear(uart_3_tx);
@@ -641,7 +639,7 @@ void uart_reset(uint8_t uart_channel)
  */
 static void uart_interrupt_activity(uint8_t uart_channel)
 {
-    bool status;
+    bool status = true;
     UART0_Type* p_uart_module;
 
     // Get a pointer to the appropriate UART module
@@ -650,7 +648,7 @@ static void uart_interrupt_activity(uint8_t uart_channel)
         case UART_CHANNEL_0:
             p_uart_module = UART0;
         break;
-        
+
         case UART_CHANNEL_1:
             p_uart_module = UART1;
         break;
@@ -658,19 +656,19 @@ static void uart_interrupt_activity(uint8_t uart_channel)
         case UART_CHANNEL_2:
             p_uart_module = UART2;
         break;
-        
+
         case UART_CHANNEL_3:
             p_uart_module = UART3;
         break;
-        
+
         case UART_CHANNEL_6:
             p_uart_module = UART6;
         break;
-        
+
         default:
             // Invalid channel provided, do nothing
             status = false;
-        break; 
+        break;
     }
 
     // If an invalid channel was provided, exit

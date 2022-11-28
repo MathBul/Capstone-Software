@@ -52,7 +52,7 @@ void gantry_init(void)
 #endif /* PERIPHERALS_ENABLED */
     switch_init();
     stepper_init_motors();
-    rpi_init();
+    //rpi_init();
     chessboard_init();
 
 #ifdef THREE_PARTY_MODE

@@ -61,6 +61,7 @@ bool command_queue_push(command_t* value)
  */
 bool command_queue_pop(command_t** p_value)
 {
+
     // If it's empty do nothing
     if (command_queue_is_empty())
     {

@@ -8,11 +8,13 @@
  * @copyright Copyright (c) 2022
  */
 
+#define STEPPER_DEBUG
+
+
 #include "msp.h"
 #include "gantry.h"
 
 // Debug mode select
- #define STEPPER_DEBUG
 // #define UART_DEBUG
 // #define PERIPHERALS_ENABLED
 
@@ -23,6 +25,7 @@
 int main(void)
 {
     // System level initialization
+    command_queue_init();
     gantry_init();
 
     // Add commands to the queue
@@ -34,6 +37,7 @@ int main(void)
 #elif defined(STEPPER_DEBUG)
     command_queue_push((command_t*) stepper_build_rel_command(0, 0, 40, 0, 0, 1));
     gpio_set_as_output(GPION, GPIO_PIN_0);
+    gpio_set_output_high(GPION, GPIO_PIN_0);
 #else
     gantry_reset();
 #endif

@@ -48,6 +48,14 @@
 #include <stdlib.h>
 #include <math.h>
 
+// Debugging
+#define STEPPER_DEBUG
+#ifdef STEPPER_DEBUG
+#define PROFILING_CHANNEL               (UART_CHANNEL_0)
+#include <stdio.h>
+#endif
+
+
 // General stepper defines
 #define NUMBER_OF_STEPPER_MOTORS            (3)
 #define MICROSTEP_LEVEL                     (8)
@@ -150,6 +158,9 @@ typedef struct {
     int16_t                x_1;                        // Point where the speed plateaus (in transitions)
     int16_t                x_2;                        // Point where the speed starts decreasing (in transitions)
     uint16_t               max_accel;                  // Max value to adjust the clock period to accel/deccel
+#ifdef STEPPER_DEBUG
+    uint32_t               time_elapsed;
+#endif
 } stepper_motors_t;
 
 // Stepper motor command structs

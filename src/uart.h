@@ -14,7 +14,7 @@
 // Note on UART:
 //  - Communication is done with receive (Rx) and transmit (Tx) hardware FIFOs
 //  - To read and write, date is moved to/from software FIFOs
-// 
+//
 // Baude rate math:
 //  - Baude_Rate_Divisor = Baude_Rate_Generator / (Clock_Div * Baude_Rate)
 //  - All channels use PIOSC (16MHz) as Baude_Rate_Generator
