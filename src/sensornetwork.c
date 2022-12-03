@@ -64,6 +64,9 @@ void sensornetwork_init()
 
     // Configure data lines
     gpio_set_as_input(SENSOR_DATA_PORT, SENSOR_DATA_PIN);
+
+    // Start the ISR timer
+    clock_start_timer(SENSOR_NETWORK_TIMER);
 }
 
 /**

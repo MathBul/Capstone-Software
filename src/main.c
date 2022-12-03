@@ -8,20 +8,19 @@
  * @copyright Copyright (c) 2022
  */
 
-#define STEPPER_DEBUG
-
-
 #include "msp.h"
 #include "gantry.h"
 
 // Debug mode select
 // #define UART_DEBUG
 // #define PERIPHERALS_ENABLED
+#define STEPPER_DEBUG
 
 // Game mode select (define at most one at a time)
 // #define USER_MODE                 // User, through UART0 terminal, sends moves to MSP directly
 // #define THREE_PARTY_MODE          // User sends moves to MSP, which sends moves to RPi, which sends moves back
 // #define FINAL_IMPLEMENTATION_MODE // Ideally, final implementation w/board reading
+
 int main(void)
 {
     // System level initialization
@@ -35,9 +34,10 @@ int main(void)
         uart_out_string(UART_CHANNEL_0, "Hello world!\n", 14);
     }
 #elif defined(STEPPER_DEBUG)
-    command_queue_push((command_t*) stepper_build_rel_command(0, 0, 40, 0, 0, 1));
-    gpio_set_as_output(GPION, GPIO_PIN_0);
-    gpio_set_output_high(GPION, GPIO_PIN_0);
+//    command_queue_push((command_t*) delay_build_command(2000));
+//    command_queue_push((command_t*) stepper_build_rel_command(100, 100, 40, 1, 1, 1));
+    gpio_set_as_output(SWITCH_TEST_PORT, SWITCH_TEST_PIN);
+    gpio_set_output_high(SWITCH_TEST_PORT, SWITCH_TEST_PIN);
 #else
     gantry_reset();
 #endif
@@ -47,6 +47,7 @@ int main(void)
 
     while (1)
     {
+        switch_test(BUTTON_HOME_MASK);
 
         // Run the entry function
         if (!command_queue_pop(&p_current_command))

@@ -26,6 +26,8 @@
 // General switch macros
 #define SWITCH_TIMER                        (TIMER3)
 #define SWITCH_HANDLER                      (TIMER3A_IRQHandler)
+#define SWITCH_TEST_PORT                    (GPION)
+#define SWITCH_TEST_PIN                     (GPIO_PIN_0)
 
 // Button GPIO macros
 #define BUTTON_START_PORT                   (GPIOF)
@@ -35,7 +37,7 @@
 #define BUTTON_HOME_PORT                    (GPIOM)
 #define BUTTON_HOME_PIN                     (GPIO_PIN_3)
 #define BUTTON_NEXT_TURN_PORT               (GPIOE)
-#define BUTTON_NEXT_TURN_PIN                (GPIO_PIN_3)
+#define BUTTON_NEXT_TURN_PIN                (GPIO_PIN_5)
 
 // Toggle switch GPIO macros
 #define COLOR_PORT                          (GPIOC)
@@ -108,5 +110,6 @@ union utils_vport16_t switch_vport;
 // Public functions
 void switch_init();
 uint16_t switch_get_reading();
+void switch_test(uint16_t mask);
 
 #endif /* SWITCHES_H_ */

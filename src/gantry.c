@@ -48,11 +48,11 @@ void gantry_init(void)
 #ifdef PERIPHERALS_ENABLED
    electromagnet_init();
    led_init();
-   sensornetwork_init();
 #endif /* PERIPHERALS_ENABLED */
+    sensornetwork_init();
     switch_init();
     stepper_init_motors();
-    //rpi_init();
+    // rpi_init();
     chessboard_init();
 
 #ifdef THREE_PARTY_MODE

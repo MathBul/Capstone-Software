@@ -27,6 +27,7 @@
 
 // Functions for GPIO output
 void gpio_set_as_output(GPIO_Type* port, uint8_t pin);
+void gpio_unlock(GPIO_Type* port, uint8_t pin);
 void gpio_set_output_high(GPIO_Type* port, uint8_t pin);
 void gpio_set_output_low(GPIO_Type* port, uint8_t pin);
 void gpio_set_output_toggle(GPIO_Type* port, uint8_t pin);

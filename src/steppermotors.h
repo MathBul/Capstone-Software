@@ -49,7 +49,7 @@
 #include <math.h>
 
 // Debugging
-#define STEPPER_DEBUG
+//#define STEPPER_DEBUG
 #ifdef STEPPER_DEBUG
 #define PROFILING_CHANNEL               (UART_CHANNEL_0)
 #include <stdio.h>

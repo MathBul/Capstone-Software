@@ -54,6 +54,24 @@ uint16_t switch_get_reading()
     return p_switches->current_inputs;
 }
 
+/**
+ * @brief Temporary function to test the switch by toggling an LED
+ *
+ * @param mask One of the switch masks to test
+ */
+void switch_test(uint16_t mask)
+{
+    uint16_t switch_data = switch_get_reading();
+    if (switch_data & mask)
+    {
+        gpio_set_output_high(SWITCH_TEST_PORT, SWITCH_TEST_PIN);
+    }
+    else
+    {
+        gpio_set_output_low(SWITCH_TEST_PORT, SWITCH_TEST_PIN);
+    }
+}
+
 /* Interrupts */
 
 /**
@@ -101,6 +119,8 @@ __interrupt void SWITCH_HANDLER(void)
     p_switches->pos_transitions = (p_switches->current_inputs & p_switches->edges);
     p_switches->neg_transitions = ((~p_switches->current_inputs) & p_switches->edges);
     p_switches->previous_inputs = p_switches->current_inputs;
+
+
 }
 
 /* End buttons.c */

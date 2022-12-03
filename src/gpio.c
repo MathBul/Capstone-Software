@@ -20,10 +20,26 @@
  */
 void gpio_set_as_output(GPIO_Type* port, uint8_t pin)
 {
+    gpio_unlock(port, pin);
     utils_gpio_clock_enable(port);
     port->DIR |= pin;
     port->DEN |= pin;
     port->DATA &= ~pin;
+}
+
+/**
+ * @brief Unlock a special purpose register to make changes
+ *
+ * @param port GPIO_Type for the port being used
+ * @param pin Pin being used, GPIO_PIN_X for X={0,...,7}
+ */
+void gpio_unlock(GPIO_Type* port, uint8_t pin)
+{
+    if ((port == GPIOD) && (pin == GPIO_PIN_7))
+    {
+        GPIOD->LOCK  = (GPIO_LOCK_KEY);
+        GPIOD->CR   |= (pin);
+    }
 }
 
 /**
@@ -34,6 +50,7 @@ void gpio_set_as_output(GPIO_Type* port, uint8_t pin)
  */
 void gpio_set_output_high(GPIO_Type* port, uint8_t pin)
 {
+    gpio_unlock(port, pin);
     port->DATA |= pin;
 }
 
@@ -45,6 +62,7 @@ void gpio_set_output_high(GPIO_Type* port, uint8_t pin)
  */
 void gpio_set_output_low(GPIO_Type* port, uint8_t pin)
 {
+    gpio_unlock(port, pin);
     port->DATA &= ~pin;
 }
 
@@ -56,6 +74,7 @@ void gpio_set_output_low(GPIO_Type* port, uint8_t pin)
  */
 void gpio_set_output_toggle(GPIO_Type* port, uint8_t pin)
 {
+    gpio_unlock(port, pin);
     port->DATA ^= pin;
 }
 
