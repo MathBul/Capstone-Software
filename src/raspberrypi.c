@@ -122,7 +122,7 @@ bool rpi_transmit_start(char color)
  */
 bool rpi_transmit_human_move(char move[5])
 {
-    uint8_t msg_length = 4;
+    uint8_t msg_length = 9;
     char message[msg_length];
 
     // Build the message
@@ -220,7 +220,5 @@ chess_move_t rpi_castle_get_rook_move(chess_move_t *p_king_move)
 
     return rook_move;
 }
-
-
 
 /* End raspberrypi.c */

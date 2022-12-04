@@ -21,12 +21,10 @@
 #include <stdbool.h>
 
 // General Raspberry Pi defines
+#define USER_CHANNEL                        (UART_CHANNEL_0)
 
 #ifdef USER_MODE
 #   define RPI_UART_CHANNEL                 (UART_CHANNEL_0)
-#elif defined(THREE_PARTY_MODE)
-#   define RPI_UART_CHANNEL                 (UART_CHANNEL_3)
-#   define USER_CHANNEL                     (UART_CHANNEL_0)
 #else
 #   define RPI_UART_CHANNEL                 (UART_CHANNEL_3)
 #endif
@@ -77,7 +75,7 @@ typedef struct chess_move_t {
     chess_rank_t source_rank;        // The number
     chess_file_t dest_file;
     chess_rank_t dest_rank;
-    chess_move_type move_type;
+    chess_move_type_t move_type;
 } chess_move_t;
 
 typedef enum game_status_t {

@@ -14,6 +14,7 @@
 #include "msp.h"
 #include "clock.h"
 #include "command_queue.h"
+#include "utils.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -33,6 +34,5 @@ typedef struct delay_command_t {
 delay_command_t* delay_build_command(uint16_t time_ms);
 void delay_entry(command_t* command);
 bool delay_is_done(command_t* command);
-
 
 #endif /* DELAY_H_ */

@@ -11,20 +11,23 @@
 #include "gantry.h"
 
 // Private functions
-void gantry_limit_stop(uint8_t limit_readings);
 void gantry_home(void);
 void gantry_reset(void);
 void gantry_kill(void);
-void gantry_clear_command(gantry_command_t* gantry_command);
+static void gantry_robot_move_piece(chess_file_t initial_file, chess_rank_t initial_rank, chess_file_t final_file, chess_rank_t final_rank, chess_piece_t piece);
+
+// Stores the board readings, which are read in an interrupt and used in various commands
+uint64_t board_reading_current      = 0;
+uint64_t board_reading_intermediate = 0;
 
 // Flags
-static bool gantry_homing    = false;
-static bool robot_is_done    = false;
-static bool comm_is_done     = false;
-static bool human_is_done    = false;
-static bool msp_illegal_move = false;
-static bool msg_ready_to_send= true;
-bool sys_fault               = false;
+static bool gantry_homing      = false;
+static bool human_move_legal   = false;
+static bool human_move_capture = false;
+static bool human_move_done    = false;
+static bool robot_is_done      = false;
+static bool msg_ready_to_send  = true;
+bool sys_fault                 = false;
 
 /**
  * @brief Initializes all modules
@@ -44,16 +47,17 @@ void gantry_init(void)
     clock_start_timer(GANTRY_TIMER);
 
     // System level initialization of all other modules
+    chessboard_init();
     command_queue_init();
+    rpi_init();
+    sensornetwork_init();
+    stepper_init_motors();
+    switch_init();
+
 #ifdef PERIPHERALS_ENABLED
    electromagnet_init();
    led_init();
-#endif /* PERIPHERALS_ENABLED */
-    sensornetwork_init();
-    switch_init();
-    stepper_init_motors();
-    // rpi_init();
-    chessboard_init();
+#endif
 
 #ifdef THREE_PARTY_MODE
     uart_init(UART_CHANNEL_0);
@@ -61,21 +65,34 @@ void gantry_init(void)
 }
 
 /**
- * @brief Stops stepper motors based on the current limit switch readings
- *  TODO: Change functionality beyond kill
- * 
- * @param limit_readings A limit switch reading configured according to the switch vport
+ * @brief Homes the gantry system (motors all the way up, right, back -- from point-of-view of the robot)
  */
-void gantry_limit_stop(uint8_t limit_readings)
+void gantry_home(void)
 {
-    if ((!gantry_homing) && (limit_readings & (LIMIT_X_MASK | LIMIT_Y_MASK | LIMIT_Z_MASK)))
-    {
-//        gantry_kill();
-    }
+    // Set the homing flag
+    command_queue_push((command_t*) gantry_home_build_command());
+
+    // Home the motors with delay
+    command_queue_push((command_t*) stepper_build_home_z_command());
+    command_queue_push((command_t*) stepper_build_home_xy_command());
+    command_queue_push((command_t*) delay_build_command(HOMING_DELAY_MS));
+
+    // Back away from the edge
+    command_queue_push((command_t*) stepper_build_rel_command(
+        HOMING_X_BACKOFF,
+        HOMING_Y_BACKOFF,
+        HOMING_Z_BACKOFF,
+        HOMING_X_VELOCITY,
+        HOMING_Y_VELOCITY,
+        HOMING_Z_VELOCITY
+    ));
+
+    // Clear the homing flag
+    command_queue_push((command_t*) gantry_home_build_command());
 }
 
 /**
- * @brief Resets the entire system (motors, stored chess boards, UART, etc.)
+ * @brief Resets the entire system (motors, stored chess boards, UART, etc.). NOT a system fault
  */
 void gantry_reset(void)
 {
@@ -90,18 +107,27 @@ void gantry_reset(void)
 
     // Reset the rpi
     rpi_reset_uart();
-#ifdef THREE_PARTY_MODE
-    uart_reset(USER_CHANNEL);
-#endif
+
 #ifdef FINAL_IMPLEMENTATION_MODE
-    // Start a new game
+    // Read the user color
     char user_color = 'W';
+
     uint16_t switch_data = switch_get_reading();
-    if (switch_data & ROCKER_COLOR)
+    if (switch_data & TOGGLE_MASK)
     {
+        // User is black, start in gantry_robot
         user_color = 'B';
+        rpi_transmit_start(user_color);
+        command_queue_push((command_t*) gantry_robot_build_command());
+    } else {
+        // User is white, start in gantry_human
+        user_color = 'W';
+        rpi_transmit_start(user_color);
+        command_queue_push((command_t*) gantry_human_build_command());
     }
-    rpi_transmit_start(user_color);
+
+#elif defined(THREE_PARTY_MODE)
+    uart_reset(USER_CHANNEL);
 #endif
 }
 
@@ -117,6 +143,10 @@ void gantry_kill(void)
 
     // Set the system fault flag
     sys_fault = true;
+
+    // Turn on the error LED
+    led_all_off();
+    led_on(led_error);
 
     // Clear the command queue (just in case)
     command_queue_clear();
@@ -135,128 +165,145 @@ gantry_command_t* gantry_human_build_command(void)
     gantry_command_t* p_command = (gantry_command_t*) malloc(sizeof(gantry_command_t));
 
     // Functions
+#ifdef FINAL_IMPLEMENTATION_MODE
+    p_command->command.p_entry   = &utils_empty_function;
+    p_command->command.p_action  = &utils_empty_function;
+    p_command->command.p_exit    = &gantry_human_exit;
+    p_command->command.p_is_done = &gantry_human_is_done;
+#elif defined(THREE_PARTY_MODE)
     p_command->command.p_entry   = &utils_empty_function;
     p_command->command.p_action  = &gantry_human_action;
     p_command->command.p_exit    = &gantry_human_exit;
     p_command->command.p_is_done = &gantry_human_is_done;
-
-    // Data
-    p_command->move.source_file = FILE_ERROR;
-    p_command->move.source_rank = RANK_ERROR;
-    p_command->move.dest_file   = FILE_ERROR;
-    p_command->move.dest_rank   = RANK_ERROR;
-    p_command->move.move_type   = IDLE;
-
+#endif
 
     return p_command;
 }
 
 /*
- * @brief Continuously determines the move the human has made. Ends
- *        when the human hits the "end turn" button.
+ * @brief Reads the move the human has made until the human hits the "end turn" button. Only used in three-party mode
  *
  * @param command The gantry command being run
  */
 void gantry_human_action(command_t* command)
 {
-#ifdef FINAL_IMPLEMENTATION_MODE
-    gantry_command_t* p_gantry_command = (gantry_command_t*) command;
+    gantry_robot_command_t* p_gantry_command = (gantry_robot_command_t*) command;
 
-    // Read the current board state, store it in current_board's board_presence
-    uint64_t board_reading = sensor_get_reading();
-    current_board.board_presence = board_reading;
-
-    // Interpret the board state, store the interpreted move into move var
-    if (!chessboard_get_move(&previous_board, &current_board, p_gantry_command->move_to_send))
-    {
-        // Definitely illegal move
-        msp_illegal_move = true;
-    }
-    else
-    {
-        msp_illegal_move = false;
-    }
-#endif
-
-#ifdef THREE_PARTY_MODE
-    char first_byte = 0;
-    char instr_op_len = 0;
+    char message[9];
     char move[5];
     char check_bytes[2];
-    char pi_message[9];
-    uint8_t instr;
+    bool msg_status = false;
 
-    // First, read the first two bytes of the entire message from terminal
-    if (uart_receive(USER_CHANNEL, &first_byte, 1))
+    // Read the START byte
+    msg_status = uart_read_byte(USER_CHANNEL, (uint8_t*) &message[0]);
+    if ((!msg_status) || (message[0] != START_BYTE))
     {
-        if (first_byte == START_BYTE)
+        return;
+    }
+
+    // Read the INSTRUCTION byte
+    msg_status = uart_read_byte(USER_CHANNEL, (uint8_t*) &message[1]);
+    uint8_t instruction = message[1] >> 4;                          // Shift to remove the LENGTH portion from this section of this message
+    if ((!msg_status) || (instruction != ROBOT_MOVE_INSTR))
+    {
+        // If the RPi responded "illegal move", receive the rest of the message, then short circuit to robot_is_done
+        if (instruction == ILLEGAL_MOVE_INSTR)
         {
-            if (uart_receive(USER_CHANNEL, &instr_op_len, 1))
+            // Read the CHECK BYTES data and validate the transmission
+            msg_status = uart_read_string(USER_CHANNEL, check_bytes, 2);
+            if ((!msg_status) || (!utils_validate_transmission((uint8_t *) message, 2, check_bytes)))
             {
-                instr = instr_op_len >> 4;
-                if (instr == HUMAN_MOVE_INSTR)
-                {
-                    if (uart_receive(USER_CHANNEL, move, 5))
-                    {
-                        pi_message[0] = START_BYTE;
-                        pi_message[1] = HUMAN_MOVE_INSTR_AND_LEN;
-                        pi_message[2] = move[0];
-                        pi_message[3] = move[1];
-                        pi_message[4] = move[2];
-                        pi_message[5] = move[3];
-                        pi_message[6] = move[4];
-                        utils_fl16_data_to_cbytes((uint8_t *) pi_message, 7, check_bytes);
-                        pi_message[7] = check_bytes[0];
-                        pi_message[8] = check_bytes[1];
-
-                        // Transmit the move to the RPi (9 bytes long)
-                        rpi_transmit(pi_message, 9);
-
-                        // We're done!
-                        human_is_done = true;
-                    }
-                }
+                return;
             }
+
+            // No ACK's
+
+            // Turn on the error LED
+            led_all_off();
+            led_on(led_error);
+
+            // Mark the humans's move as illegal, the robot's move as done
+            human_move_legal = false;
+            p_gantry_command->move.move_type = IDLE;
+            robot_is_done = true;
         }
+        return;
     }
-    else
+
+    // Read the MOVE bytes
+    msg_status = uart_read_string(USER_CHANNEL, move, 5);
+    if (!msg_status)
     {
-        // Didn't get anything; move on
+        return;
     }
-#endif
+    message[2] = move[0];
+    message[3] = move[1];
+    message[4] = move[2];
+    message[5] = move[3];
+    message[6] = move[4];
+
+    // No GAME STATUS byte
+
+    // Read the CHECK BYTES data and validate the transmission
+    msg_status = uart_read_string(USER_CHANNEL, &check_bytes[0], 2);
+    if ((!msg_status) || (!utils_validate_transmission((uint8_t *) message, 7, check_bytes)))
+    {
+        return;
+    }
+
+    // At this point, the full message was received properly. Copy the check bytes and transmit to the RPi    
+    message[7] = check_bytes[0];
+    message[8] = check_bytes[1];
+    rpi_transmit(message, 9);
+    human_move_done = true;
 }
 
 /**
- * @brief Places a human or comm command on the queue depending on if the MSP
- *        could verify the human's move was not certainly illegal.
+ * @brief Places a human or comm command on the queue depending on if the detected move was legal
  *
  * @param command The gantry command being run
  */
 void gantry_human_exit(command_t* command)
 {
 #ifdef FINAL_IMPLEMENTATION_MODE
-    gantry_command_t* p_gantry_command = (gantry_command_t*) command;
+    // Update the board state from the reading
+    human_move_legal = true;
+    char move[5];
 
-    if (msp_illegal_move)
+    if (human_move_capture)
     {
-        // Place the gantry_human command on the queue until a legal move is given
-        command_queue_push((command_t*)gantry_human_build_command());
+        human_move_legal &= chessboard_update_intermediate_board_from_presence(board_reading_intermediate, move);
+    }
+    human_move_legal &= chessboard_update_current_board_from_presence(board_reading_current, move, human_move_capture);
+
+    // If the move was roughly legal, prepare to transmit. Otherwise, turn on the error LED and wait for a new move
+    if (human_move_legal)
+    {
+        // Place the gantry_comm command on the queue to send the message
+        command_queue_push((command_t*) gantry_comm_build_command(move));
+        msg_ready_to_send = true;
     }
     else
     {
-        // Place the gantry_comm command on the queue to send the message
-        command_queue_push((command_t*)gantry_comm_build_command(p_gantry_command->move_to_send));
-        msg_ready_to_send = true;
+        // Change the LED's to indicate an error
+        led_all_off();
+        led_on(led_error);
+        
+        // Place the gantry_human command on the queue until a legal move is given
+        command_queue_push((command_t*) gantry_human_build_command());
     }
-#endif
-#ifdef THREE_PARTY_MODE
-    // Place the gantry_comm command on the queue to send the message
-    command_queue_push((command_t*)gantry_comm_build_command(p_gantry_command->move_to_send));
-    msg_ready_to_send = true;
 
-    // Reset flag
-    human_is_done = false;
+#elif defined(THREE_PARTY_MODE)
+    gantry_command_t* p_gantry_command = (gantry_command_t*) command;
+
+    // Place the gantry_comm command on the queue to send the message
+    command_queue_push((command_t*) gantry_comm_build_command(p_gantry_command->move_to_send));
+    msg_ready_to_send = true;
 #endif
+
+    // Reset the flags
+    human_move_capture = false;
+    human_move_done    = false;
 }
 
 /**
@@ -267,14 +314,7 @@ void gantry_human_exit(command_t* command)
  */
 bool gantry_human_is_done(command_t* command)
 {
-#ifdef FINAL_IMPLEMENTATION_MODE
-    uint8_t switch_data = switch_get_reading();
-    return (switch_data & BUTTON_END_TURN);
-#elif defined(THREE_PARTY_MODE)
-    return human_is_done;
-#else
-    return true;
-#endif
+    return human_move_done;
 }
 
 /**
@@ -306,8 +346,7 @@ gantry_comm_command_t* gantry_comm_build_command(char move[5])
 }
 
 /*
- * @brief Sends the move passed in through the command, then uses a timer to
- *        wait and resend the move if no ACK is received from the RPi
+ * @brief Sends the supplied move (every 5 seconds) until an ACK is received from the RPi
  *
  * @param command The gantry command being run
  */
@@ -315,12 +354,13 @@ void gantry_comm_action(command_t* command)
 {
     gantry_comm_command_t* p_gantry_command = (gantry_comm_command_t*) command;
 
-    if (msg_ready_to_send) // This is set to true by the timer interrupt
+    // Message is ready for first try and every 5 seconds after
+    if (msg_ready_to_send)
     {
         // Send the human move
         rpi_transmit_human_move(p_gantry_command->move_to_send);
 
-        // Don't resend the message unless interrupt sets send_msg
+        // Do not resend the message until the interrupt sets send_msg
         msg_ready_to_send = false;
 
         // Start the timer
@@ -328,21 +368,27 @@ void gantry_comm_action(command_t* command)
     }
 }
 
+/**
+ * @brief Places a robot command command on the queue
+ *
+ * @param command The gantry command being run
+ */
 void gantry_comm_exit(command_t* command)
 {
-    // Stop the timer
+    // Stop and reset the timer
     clock_stop_timer(COMM_TIMER);
-
-    // Reset the value
     clock_reset_timer_value(COMM_TIMER);
 
-    // Verified comm, so push a robot command onto the queue
-    command_queue_push((command_t*)gantry_robot_build_command());
-
-    // Reset the flag
-    comm_is_done = false;
+    // The communication was verified, so push a robot command onto the queue
+    command_queue_push((command_t*) gantry_robot_build_command());
 }
 
+/**
+ * @brief Checks if an ACK has been received from the RPi
+ * 
+ * @param command The gantry command being run
+ * @return true If an ack_byte has been received, false otherwise
+ */
 bool gantry_comm_is_done(command_t* command)
 {
     char ack_byte;
@@ -350,7 +396,7 @@ bool gantry_comm_is_done(command_t* command)
     // Read from the Pi
     rpi_receive(&ack_byte, 1);
 
-    // If we get our ACK, we're done
+    // If we get an ACK, we are done
     return ack_byte == ACK_BYTE;
 }
 
@@ -359,10 +405,10 @@ bool gantry_comm_is_done(command_t* command)
  *
  * @returns Pointer to the dynamically-allocated command
  */
-gantry_command_t* gantry_robot_build_command(void)
+gantry_robot_command_t* gantry_robot_build_command(void)
 {
     // The thing to return
-    gantry_command_t* p_command = (gantry_command_t*)malloc(sizeof(gantry_command_t));
+    gantry_robot_command_t* p_command = (gantry_robot_command_t*) malloc(sizeof(gantry_robot_command_t));
 
     // Functions
     p_command->command.p_entry   = &gantry_robot_entry;
@@ -376,6 +422,7 @@ gantry_command_t* gantry_robot_build_command(void)
     p_command->move.dest_file   = FILE_ERROR;
     p_command->move.dest_rank   = RANK_ERROR;
     p_command->move.move_type   = IDLE;
+    p_command->game_status      = ONGOING;
 
     return p_command;
 }
@@ -387,7 +434,11 @@ gantry_command_t* gantry_robot_build_command(void)
  */
 void gantry_robot_entry(command_t* command)
 {
-    gantry_command_t* gantry_robot_move_cmd = (gantry_command_t*) command;
+    gantry_robot_command_t* gantry_robot_move_cmd = (gantry_robot_command_t*) command;
+
+    // Set the robot moving LED
+    led_all_off();
+    led_on(led_robot_move);
 
     // Reset everything
     robot_is_done = false;
@@ -399,551 +450,418 @@ void gantry_robot_entry(command_t* command)
 }
 
 /**
- * @brief Attempts to read from the RPi until data has been received
+ * @brief Reads from the RPi until data has been received
  * 
  * @param command The gantry command being run
  */
 void gantry_robot_action(command_t* command)
 {
-#ifdef USER_MODE
-    gantry_command_t* p_gantry_command = (gantry_command_t*) command;
-    // TODO: Waits, checksums, etc. as needed
+    gantry_robot_command_t* p_gantry_command = (gantry_robot_command_t*) command;
+    char message[8];
+    char move[5];
+    char check_bytes[2];
+    bool msg_status = false;
 
-    // Receive a move from the RPi and load it into the command struct for the exit() function
-
-    /* RPi can send back 3 instructions: ROBOT_MOVE, ILLEGAL_MOVE,
-     * or GAME_STATUS. Only the first two should be possible here.
-     * GAME_STATUS will only be sent in response to a legal move. */
-
-    /* Receive arrays */
-    char move[5]; // NOTE: May not be used if ILLEGAL_MOVE is received
-    if (rpi_receive(move, 5))
+#if defined(FINAL_IMPLEMENTATION_MODE) || defined(THREE_PARTY_MODE)
+    // Read the START byte
+    msg_status = rpi_receive(&message[0], 1);
+    if ((!msg_status) || (message[0] != START_BYTE))
     {
-        /*
-         * Dev notes:
-         * Order of operations: (if timeout at any point reset)
-         * 1. Wait for start byte
-         * 2. Once start sequence is received, read the order and assign to variables
-         * 3. Calculate checksum
-         * 4. If checksum passes, send an ack and return the move struct
-         * 4b. If checksum fails, send a bad ack and goto step 1.
-         */
+        return;
+    }
+
+    // Read the INSTRUCTION byte
+    msg_status = rpi_receive(&message[1], 1);
+    uint8_t instruction = message[1] >> 4;                          // Shift to remove the LENGTH portion from this section of this message
+    if ((!msg_status) || (instruction != ROBOT_MOVE_INSTR))
+    {
+        // If the RPi responded "illegal move", receive the rest of the message, then short circuit to robot_is_done
+        if (instruction == ILLEGAL_MOVE_INSTR)
+        {
+            // Read the CHECK BYTES data and validate the transmission
+            msg_status = rpi_receive(check_bytes, 2);
+            if ((!msg_status) || (!utils_validate_transmission((uint8_t *) message, 2, check_bytes)))
+            {
+                return;
+            }
+
+            // Transmit an ACK
+            rpi_transmit_ack();
+
+            // Turn on the error LED
+            led_all_off();
+            led_on(led_error);
+
+            // Mark the humans's move as illegal, the robot's move as done
+            human_move_legal = false;
+            p_gantry_command->move.move_type = IDLE;
+            robot_is_done = true;
+        }
+        return;
+    }
+
+    // Read the MOVE bytes
+    msg_status = rpi_receive(move, 5);
+    if (!msg_status)
+    {
+        return;
+    }
+    message[2] = move[0];
+    message[3] = move[1];
+    message[4] = move[2];
+    message[5] = move[3];
+    message[6] = move[4];
+
+    // Read the GAME STATUS byte
+    msg_status = rpi_receive(&message[7], 1);
+    if (!msg_status)
+    {
+        return;
+    }
+
+    // Read the CHECK BYTES data and validate the transmission
+    msg_status = rpi_receive(&check_bytes[0], 2);
+    if ((!msg_status) || (!utils_validate_transmission((uint8_t *) message, 8, check_bytes)))
+    {
+        return;
+    }
+
+    // At this point, the full message was received properly. Transmit an ACK
+    rpi_transmit_ack();
+
+    // Since the human move was legal, we can update the previous board 
+    chessboard_update_previous_board_from_current_board();
+
+    // To reduce the number of transmissions, game_status holds the status after the last human move and (possibly) the resulting robot move
+    char game_status = message[7];
+    uint8_t status_after_human = (game_status >> 4);
+    uint8_t status_after_robot = (game_status & 0x0F);
+
+    // Record the UCI move
+    p_gantry_command->move_uci[0] = move[0];
+    p_gantry_command->move_uci[1] = move[1];
+    p_gantry_command->move_uci[2] = move[2];
+    p_gantry_command->move_uci[3] = move[3];
+    p_gantry_command->move_uci[4] = move[4];
+
+    // Interpret the status of the game
+    if (status_after_human == GAME_CHECKMATE)
+    {
+        // If the human ended the game, do not let the robot move
+        p_gantry_command->game_status    = HUMAN_WIN;
+        p_gantry_command->move.move_type = IDLE;
+    }
+    else if (status_after_robot == GAME_CHECKMATE)
+    {
+        // If the robot is about to win the game, let it make the final move
+        p_gantry_command->game_status      = ROBOT_WIN;
         p_gantry_command->move.source_file = utils_byte_to_file(move[0]);
         p_gantry_command->move.source_rank = utils_byte_to_rank(move[1]);
         p_gantry_command->move.dest_file   = utils_byte_to_file(move[2]);
         p_gantry_command->move.dest_rank   = utils_byte_to_rank(move[3]);
         p_gantry_command->move.move_type   = utils_byte_to_move_type(move[4]);
-
-        robot_is_done = true; // We've got the data we need
     }
+    else if (status_after_human == GAME_STALEMATE)
+    {
+        // If the human put the game in stalemate, do not let the robot move
+        p_gantry_command->game_status    = STALEMATE;
+        p_gantry_command->move.move_type = IDLE;
+    }
+    else if (status_after_robot == GAME_STALEMATE)
+    {
+        // If the robot is about to put the game in stalemate, let it make the final move
+        p_gantry_command->game_status      = STALEMATE;
+        p_gantry_command->move.source_file = utils_byte_to_file(move[0]);
+        p_gantry_command->move.source_rank = utils_byte_to_rank(move[1]);
+        p_gantry_command->move.dest_file   = utils_byte_to_file(move[2]);
+        p_gantry_command->move.dest_rank   = utils_byte_to_rank(move[3]);
+        p_gantry_command->move.move_type   = utils_byte_to_move_type(move[4]);
+    }
+    else
+    {
+        // If both moves continue the game, proceed as usual
+        p_gantry_command->game_status      = ONGOING;
+        p_gantry_command->move.source_file = utils_byte_to_file(move[0]);
+        p_gantry_command->move.source_rank = utils_byte_to_rank(move[1]);
+        p_gantry_command->move.dest_file   = utils_byte_to_file(move[2]);
+        p_gantry_command->move.dest_rank   = utils_byte_to_rank(move[3]);
+        p_gantry_command->move.move_type   = utils_byte_to_move_type(move[4]);
+    }
+#endif
+
+#ifdef USER_MODE
+    /*
+    * Dev notes:
+    *  RPi could send any of {ROBOT_MOVE, ILLEGAL_MOVE, GAME_STATUS}. Only the first two should be possible here. GAME_STATUS will only be sent in response to a legal move
+    *  Order of operations: (if timeout at any point reset)
+    *   1. Wait for start byte
+    *   2. Once start sequence is received, read the order and assign to variables
+    *   3. Calculate checksum
+    *   4. If checksum passes, send an ack and return the move struct
+    *   4b. If checksum fails, send a bad ack and goto step 1.
+    */
+
+    // Read the MOVE bytes
+    msg_status = rpi_receive(move, 5);
+    if (!msg_status)
+    {
+        return;
+    }
+    // Proceed as usual
+    p_gantry_command->game_status      = ONGOING;
+    p_gantry_command->move.source_file = utils_byte_to_file(move[0]);
+    p_gantry_command->move.source_rank = utils_byte_to_rank(move[1]);
+    p_gantry_command->move.dest_file   = utils_byte_to_file(move[2]);
+    p_gantry_command->move.dest_rank   = utils_byte_to_rank(move[3]);
+    p_gantry_command->move.move_type   = utils_byte_to_move_type(move[4]);
 #endif /* USER_MODE */
 
-#if defined(FINAL_IMPLEMENTATION_MODE) || defined(THREE_PARTY_MODE)
-    gantry_command_t* p_gantry_command = (gantry_command_t*) command;
-    char first_byte = 0;
-    char instr_op_len = 0;
-    char move[5];
-    char game_status = 0;
-    char check_bytes[2];
-    char message[8];
-    uint8_t instr;
-    uint8_t status_after_human;
-    uint8_t status_after_robot;
-
-    // First, read the first two bytes of the entire message
-    if (rpi_receive(&first_byte, 1))
-    {
-        if (first_byte == START_BYTE)
-        {
-            if (rpi_receive(&instr_op_len, 1))
-            {
-                instr = instr_op_len >> 4;
-                if (instr == ROBOT_MOVE_INSTR)
-                {
-                    if (rpi_receive(move, 5))
-                    {
-                        if (rpi_receive(&game_status, 1))
-                        {
-                            message[0] = first_byte;
-                            message[1] = instr_op_len;
-                            message[2] = move[0];
-                            message[3] = move[1];
-                            message[4] = move[2];
-                            message[5] = move[3];
-                            message[6] = move[4];
-                            message[7] = game_status;
-                            rpi_receive(check_bytes, 2);
-                            if (utils_validate_transmission((uint8_t *) message, 8, check_bytes))
-                            {
-                                // Send ack
-                                rpi_transmit_ack();
-                                // Human's move wasn't illegal, so update previous_board to current_board
-                                previous_board.board_presence = current_board.board_presence;
-                                utils_copy_array(current_board.board_pieces, previous_board.board_pieces);
-                                // Split up the game statuses
-                                status_after_human = game_status >> 4;
-                                status_after_robot = game_status & (~0xF0);
-                                // Write the UCI move to update the board later
-                                p_gantry_command->robot_move_uci[0] = move[0];
-                                p_gantry_command->robot_move_uci[1] = move[1];
-                                p_gantry_command->robot_move_uci[2] = move[2];
-                                p_gantry_command->robot_move_uci[3] = move[3];
-                                p_gantry_command->robot_move_uci[4] = move[4];
-                                if (status_after_human == GAME_CHECKMATE)
-                                {
-                                    // If the human ended the game, don't let the robot move
-                                    p_gantry_command->game_status = HUMAN_WIN;
-                                    p_gantry_command->move.move_type = IDLE;
-                                }
-                                else if (status_after_robot == GAME_CHECKMATE)
-                                {
-                                    p_gantry_command->game_status = ROBOT_WIN;
-                                    // Let the robot make its final move
-                                    p_gantry_command->move.source_file = utils_byte_to_file(move[0]);
-                                    p_gantry_command->move.source_rank = utils_byte_to_rank(move[1]);
-                                    p_gantry_command->move.dest_file = utils_byte_to_file(move[2]);
-                                    p_gantry_command->move.dest_rank = utils_byte_to_rank(move[3]);
-                                    p_gantry_command->move.move_type = utils_byte_to_move_type(move[4]);
-                                }
-                                else if (status_after_human == GAME_STALEMATE)
-                                {
-                                    // If the human ended the game, don't let the robot move
-                                    p_gantry_command->game_status = STALEMATE;
-                                    p_gantry_command->move.move_type = IDLE;
-                                }
-                                else if (status_after_robot == GAME_STALEMATE)
-                                {
-                                    p_gantry_command->game_status = STALEMATE;
-                                    // Let the robot make its final move
-                                    p_gantry_command->move.source_file = utils_byte_to_file(move[0]);
-                                    p_gantry_command->move.source_rank = utils_byte_to_rank(move[1]);
-                                    p_gantry_command->move.dest_file = utils_byte_to_file(move[2]);
-                                    p_gantry_command->move.dest_rank = utils_byte_to_rank(move[3]);
-                                    p_gantry_command->move.move_type = utils_byte_to_move_type(move[4]);
-                                }
-                                else
-                                {
-                                    // When both moves continue the game, proceed as usual
-                                    p_gantry_command->game_status = ONGOING;
-                                    p_gantry_command->move.source_file = utils_byte_to_file(move[0]);
-                                    p_gantry_command->move.source_rank = utils_byte_to_rank(move[1]);
-                                    p_gantry_command->move.dest_file = utils_byte_to_file(move[2]);
-                                    p_gantry_command->move.dest_rank = utils_byte_to_rank(move[3]);
-                                    p_gantry_command->move.move_type = utils_byte_to_move_type(move[4]);
-                                }
-                                robot_is_done = true;
-                            }
-                        }
-                    }
-                }
-                else if (instr == ILLEGAL_MOVE_INSTR)
-                {
-                    // Still player's turn; robot will not move.
-                    message[0] = first_byte;
-                    message[1] = instr_op_len;
-                    rpi_receive(check_bytes, 2);
-                    if (utils_validate_transmission((uint8_t *) message, 2, check_bytes))
-                    {
-                        rpi_transmit_ack();
-                        p_gantry_command->move.move_type = IDLE;
-                        robot_is_done = true;
-                    }
-                }
-            }
-        }
-    }
-#endif /* THREE_PARTY_MODE */
+    robot_is_done = true;
 }
 
 /**
- * @brief Interprets the RPi's move, and adds the appropriate commands to the queue
- *        Additionally, waits for the game status from RPi.
+ * @brief Helper function to move the specified piece from the initial position to the final position
+ * 
+ * @param initial_file The initial position file
+ * @param initial_rank The initial position rank
+ * @param final_file The final position file
+ * @param final_rank The final position rank
+ * @param piece The piece being moved
+ */
+static void gantry_robot_move_piece(chess_file_t initial_file, chess_rank_t initial_rank, chess_file_t final_file, chess_rank_t final_rank, chess_piece_t piece)
+{
+    // Check for errors
+    if ((initial_file == FILE_ERROR) || (initial_rank == RANK_ERROR) || (final_file == FILE_ERROR) || (final_rank == RANK_ERROR))
+    {
+        // TODO: Turn on the sys_fault flag? Turn on the error LED? Kill the gantry?
+        gantry_kill();
+        return;
+    }
+
+    // Go to the source tile
+    command_queue_push((command_t*) stepper_build_chess_xy_command(initial_file, initial_rank, MOTORS_MOVE_V_X, MOTORS_MOVE_V_Y));
+
+    // Lower the magnet
+    command_queue_push((command_t*) stepper_build_chess_z_command(piece, MOTORS_MOVE_V_Z));
+
+#ifdef PERIPHERALS_ENABLED
+    // Engage the magnet
+    command_queue_push((command_t*) electromagnet_build_command(enabled));
+#else 
+    // Temporary wait
+    command_queue_push((command_t*) delay_build_command(1000));
+#endif
+
+    // Raise the magnet
+    command_queue_push((command_t*) stepper_build_chess_z_command(-piece, MOTORS_MOVE_V_Z));
+
+    // Go to the destination tile
+    command_queue_push((command_t*) stepper_build_chess_xy_command(final_file, final_rank, MOTORS_MOVE_V_X, MOTORS_MOVE_V_Y));
+
+    // Lower the magnet
+    command_queue_push((command_t*) stepper_build_chess_z_command(piece, MOTORS_MOVE_V_Z));
+
+#ifdef PERIPHERALS_ENABLED
+    // Disengage the magnet
+    command_queue_push((command_t*) electromagnet_build_command(disabled));
+#else 
+    // Temporary wait
+    command_queue_push((command_t*) delay_build_command(1000));
+#endif
+
+    // Raise the magnet
+    command_queue_push((command_t*) stepper_build_chess_z_command(-piece, MOTORS_MOVE_V_Z));
+}
+
+/**
+ * @brief Interprets the RPi's move, and adds the corresponding commands to the queue
  *
  * @param command The gantry command being run
  */
 void gantry_robot_exit(command_t* command)
 {
-    gantry_command_t* p_gantry_command = (gantry_command_t*) command;
+    gantry_robot_command_t* p_gantry_command = (gantry_robot_command_t*) command;
+
+    // Special case of human made an illegal move
+    if (!human_move_legal)
+    {
+        // Turn on the error LED and go back to human move
+        led_all_off();
+        led_on(led_error);
+        command_queue_push((command_t*) gantry_human_build_command());
+    }
     
-    chess_move_t rook_move;
+    // Load commands based on the move that the RPi sent
+    chess_piece_t moving_piece;
+    switch (p_gantry_command->move.move_type)
+    {
+        case MOVE:
+            // Make the move
+            moving_piece = chessboard_get_piece_at_position(p_gantry_command->move.source_file, p_gantry_command->move.source_rank);
+            gantry_robot_move_piece(
+                p_gantry_command->move.source_file,
+                p_gantry_command->move.source_rank,
+                p_gantry_command->move.dest_file,
+                p_gantry_command->move.dest_rank,
+                moving_piece
+            );
 
-    // We should have the necessary data from the action function
+            // Go to home
+            gantry_home();
+        break;
 
-    // TODO: Fill this in to load the next commands. Very rough pseudocode follows!
-    // lc = led_build_command()
-    // command_queue_push(lc)
-    
-     switch (p_gantry_command->move.move_type) {
-         case MOVE:
-             // Error checking
-             if (p_gantry_command->move.source_file == FILE_ERROR || p_gantry_command->move.source_rank == RANK_ERROR)
-             {
-                 break;
-             }
-             // Move to the piece to move
-             // the enums are the absolute positions of those ranks/file. current_pos is also absolute
-             command_queue_push
-             (
-                 (command_t*)stepper_build_chess_xy_command
-                 (
-                     p_gantry_command->move.source_file,  // file
-                     p_gantry_command->move.source_rank,  // rank
-                     1,                                   // v_x
-                     1                                    // v_y
-                 )
-             );
-             // wait
-             command_queue_push((command_t*)delay_build_command(1000));
-             // lower the lifter
-             // grab the piece
-             // raise the lifter
-             // move to the dest
-             // the enums are the absolute positions of those ranks/file. current_pos is also absolute
-             command_queue_push
-             (
-                 (command_t*)stepper_build_chess_xy_command
-                 (
-                     p_gantry_command->move.dest_file, // file
-                     p_gantry_command->move.dest_rank, // rank
-                     1,                                // v_x
-                     1                                 // v_y
-                 )
-             );
-             // wait
-             command_queue_push((command_t*)delay_build_command(1000));
-             // lower the lifter
-             // release the piece
-             // raise the lifter
-             // home
+        case PROMOTION:
+            // Banish the source pawn to the graveyard
+            moving_piece = chessboard_get_piece_at_position(p_gantry_command->move.source_file, p_gantry_command->move.source_rank);
+            gantry_robot_move_piece(
+                p_gantry_command->move.source_file,
+                p_gantry_command->move.source_rank,
+                CAPTURE_FILE,
+                CAPTURE_RANK,
+                moving_piece
+            );
 
-             gantry_home();
-         break;
+            // Revive the queen from the magical **queen tile** and move it to the destination
+            //  TODO: Get a magical queen tile
+            moving_piece = QUEEN;
+            gantry_robot_move_piece(
+                QUEEN_FILE,
+                QUEEN_RANK,
+                p_gantry_command->move.dest_file,
+                p_gantry_command->move.dest_rank,
+                moving_piece
+            );
 
-         case PROMOTION:
-             // TODO
-             // Error checking
-              if (p_gantry_command->move.source_file == FILE_ERROR || p_gantry_command->move.source_rank == RANK_ERROR)
-              {
-                  break;
-              }
+            // Go to home
+            gantry_home();
+        break;
 
-              // Go to the promoted pawn's tile
-              command_queue_push
-              (
-                  (command_t*)stepper_build_chess_xy_command
-                  (
-                      p_gantry_command->move.source_file, // file
-                      p_gantry_command->move.source_rank, // rank
-                      1,                                // v_x
-                      1                                 // v_y
-                  )
-              );
-              // wait
-              command_queue_push((command_t*)delay_build_command(1000));
+        case CAPTURE:
+            // Banish the piece being captured to the graveyard
+            moving_piece = chessboard_get_piece_at_position(p_gantry_command->move.dest_file, p_gantry_command->move.dest_rank);
+            gantry_robot_move_piece(
+                p_gantry_command->move.dest_file,
+                p_gantry_command->move.dest_rank,
+                CAPTURE_FILE,
+                CAPTURE_RANK,
+                moving_piece
+            );
 
-              // Take the pawn being promoted off the board
-              command_queue_push
-              (
-                  (command_t*)stepper_build_chess_xy_command
-                  (
-                      CAPTURE_FILE, // file
-                      CAPTURE_RANK, // rank
-                      1,                                // v_x
-                      1                                 // v_y
-                  )
-              );
-              // wait
-              command_queue_push((command_t*)delay_build_command(1000));
+            // Make the move
+            moving_piece = chessboard_get_piece_at_position(p_gantry_command->move.source_file, p_gantry_command->move.source_rank);
+            gantry_robot_move_piece(
+                p_gantry_command->move.source_file,
+                p_gantry_command->move.source_rank,
+                p_gantry_command->move.dest_file,
+                p_gantry_command->move.dest_rank,
+                moving_piece
+            );
 
-              // Go to the magical **queen tile**
-              command_queue_push
-              (
-                  (command_t*)stepper_build_chess_xy_command
-                  (
-                      CAPTURE_FILE, // file // TODO
-                      CAPTURE_RANK, // rank // TODO
-                      1,                                // v_x
-                      1                                 // v_y
-                  )
-              );
-              // wait
-              command_queue_push((command_t*)delay_build_command(1000));
+            // Go to home
+            gantry_home();
+        break;
 
-              // Move the queen to the destination tile
-              command_queue_push
-              (
-                  (command_t*)stepper_build_chess_xy_command
-                  (
-                      p_gantry_command->move.dest_file, // file
-                      p_gantry_command->move.dest_rank, // rank
-                      1,                                // v_x
-                      1                                 // v_y
-                  )
-              );
-              // wait
-              command_queue_push((command_t*)delay_build_command(1000));
+        case CASTLING:
+            // Move the king
+            moving_piece = chessboard_get_piece_at_position(p_gantry_command->move.source_file, p_gantry_command->move.source_rank);
+            gantry_robot_move_piece(
+                p_gantry_command->move.source_file,
+                p_gantry_command->move.source_rank,
+                p_gantry_command->move.dest_file,
+                p_gantry_command->move.dest_rank,
+                moving_piece
+            );
 
-              gantry_home();
-         break;
+            // UCI notation gives us the king's move, determine the rook's move
+            chess_move_t rook_move = rpi_castle_get_rook_move(&p_gantry_command->move);
+
+            // Move the rook
+            moving_piece = ROOK;
+            gantry_robot_move_piece(
+                rook_move.source_file,
+                rook_move.source_rank,
+                rook_move.dest_file,
+                rook_move.dest_rank,
+                moving_piece
+            );
+
+            // Go to home
+            gantry_home();
+        break;
+
+        case EN_PASSENT:
+            // With an en passant capture, the captured pawn will have the moving pawn's *source rank* and *destination file*
+            
+            // Banish the piece being captured to the graveyard
+            moving_piece = chessboard_get_piece_at_position(p_gantry_command->move.dest_file, p_gantry_command->move.dest_rank);
+            gantry_robot_move_piece(
+                p_gantry_command->move.dest_file,
+                p_gantry_command->move.source_rank,
+                CAPTURE_FILE,
+                CAPTURE_RANK,
+                moving_piece
+            );
+
+            // Make the move
+            moving_piece = chessboard_get_piece_at_position(p_gantry_command->move.source_file, p_gantry_command->move.source_rank);
+            gantry_robot_move_piece(
+                p_gantry_command->move.source_file,
+                p_gantry_command->move.source_rank,
+                p_gantry_command->move.dest_file,
+                p_gantry_command->move.dest_rank,
+                moving_piece
+            );
+
+            // Go to home
+            gantry_home();
+        break;
+
+        case IDLE:
+            // Move was invalid, do nothing
+        break;
+
+        default:
+            // Move was invalid, do nothing
+        break;
+    }
+
+    // Check if the game is still going
+    //  TODO: Differentiate ROBOT_WIN, HUMAN_WIN, STALEMATE
+    switch (p_gantry_command->game_status) 
+    {
+        case ONGOING:
+            command_queue_push((command_t*) gantry_human_build_command());
         
-         case CAPTURE:
-             // Error checking
-              if (p_gantry_command->move.source_file == FILE_ERROR || p_gantry_command->move.source_rank == RANK_ERROR)
-              {
-                  break;
-              }
-              // Move to the piece to move
-              // the enums are the absolute positions of those ranks/file. current_pos is also absolute
-              command_queue_push
-              (
-                  (command_t*)stepper_build_chess_xy_command
-                  (
-                      p_gantry_command->move.dest_file,  // file
-                      p_gantry_command->move.dest_rank,  // rank
-                      1,                                   // v_x
-                      1                                    // v_y
-                  )
-              );
-              // wait
-              command_queue_push((command_t*)delay_build_command(1000));
-              // lower the lifter
-              // grab the piece
-              // raise the lifter
-              // move to the dest
-              // the enums are the absolute positions of those ranks/file. current_pos is also absolute
+            // Set the human moving LED
+            led_all_off();
+            led_on(led_human_move);
+        break;
 
-              command_queue_push
-              (
-                  (command_t*)stepper_build_chess_xy_command
-                  (
-                      CAPTURE_FILE, // file
-                      CAPTURE_RANK, // rank
-                      1,                                // v_x
-                      1                                 // v_y
-                  )
-              );
-              // wait
-              command_queue_push((command_t*)delay_build_command(1000));
-              // lower the lifter
-              // grab the piece
-              // raise the lifter
-              // move to the dest
-              // the enums are the absolute positions of those ranks/file. current_pos is also absolute
+        case HUMAN_WIN:
+            // Turn on a white LED
+            led_all_on();
+        break;
 
-              command_queue_push
-              (
-                  (command_t*)stepper_build_chess_xy_command
-                  (
-                      p_gantry_command->move.source_file, // file
-                      p_gantry_command->move.source_rank, // rank
-                      1,                                // v_x
-                      1                                 // v_y
-                  )
-              );
-              // wait
-              command_queue_push((command_t*)delay_build_command(1000));
-              // lower the lifter
-              // release the piece
-              // raise the lifter
-              // home
+        case ROBOT_WIN:
+            // Turn on a white LED
+            led_all_on();
+        break;
 
-              command_queue_push
-              (
-                  (command_t*)stepper_build_chess_xy_command
-                  (
-                      p_gantry_command->move.dest_file, // file
-                      p_gantry_command->move.dest_rank, // rank
-                      1,                                // v_x
-                      1                                 // v_y
-                  )
-              );
-              // wait
-              command_queue_push((command_t*)delay_build_command(1000));
-              // lower the lifter
-              // release the piece
-              // raise the lifter
-              // home
+        case STALEMATE:
+            // Turn on a white LED
+            led_all_on();
+        break;
+    }
 
-              gantry_home();
-         break;
-
-         case CASTLING:
-             // Error checking
-              if (p_gantry_command->move.source_file == FILE_ERROR || p_gantry_command->move.source_rank == RANK_ERROR)
-              {
-                  break;
-              }
-              rook_move = rpi_castle_get_rook_move(&p_gantry_command->move);
-              // Move to the piece to move
-              // the enums are the absolute positions of those ranks/file. current_pos is also absolute
-              command_queue_push
-              (
-                  (command_t*)stepper_build_chess_xy_command
-                  (
-                      p_gantry_command->move.source_file,  // file
-                      p_gantry_command->move.source_rank,  // rank
-                      1,                                   // v_x
-                      1                                    // v_y
-                  )
-              );
-              // wait
-              command_queue_push((command_t*)delay_build_command(1000));
-              // lower the lifter
-              // grab the piece
-              // raise the lifter
-              // move to the dest
-              // the enums are the absolute positions of those ranks/file. current_pos is also absolute
-
-              command_queue_push
-              (
-                  (command_t*)stepper_build_chess_xy_command
-                  (
-                      p_gantry_command->move.dest_file, // file
-                      p_gantry_command->move.dest_rank, // rank
-                      1,                                // v_x
-                      1                                 // v_y
-                  )
-              );
-              // wait
-              command_queue_push((command_t*)delay_build_command(1000));
-              // lower the lifter
-              // grab the piece
-              // raise the lifter
-              // move to the dest
-              // the enums are the absolute positions of those ranks/file. current_pos is also absolute
-
-              command_queue_push
-              (
-                  (command_t*)stepper_build_chess_xy_command
-                  (
-                      rook_move.source_file, // file
-                      rook_move.source_rank, // rank
-                      1,                                // v_x
-                      1                                 // v_y
-                  )
-              );
-              // wait
-              command_queue_push((command_t*)delay_build_command(1000));
-              // lower the lifter
-              // release the piece
-              // raise the lifter
-              // home
-
-              command_queue_push
-              (
-                  (command_t*)stepper_build_chess_xy_command
-                  (
-                      rook_move.dest_file, // file
-                      rook_move.dest_rank, // rank
-                      1,                                // v_x
-                      1                                 // v_y
-                  )
-              );
-              // wait
-              command_queue_push((command_t*)delay_build_command(1000));
-              // lower the lifter
-              // release the piece
-              // raise the lifter
-              // home
-
-              gantry_home();
-         break;
-
-         case EN_PASSENT:
-             // Error checking
-              if (p_gantry_command->move.source_file == FILE_ERROR || p_gantry_command->move.source_rank == RANK_ERROR)
-              {
-                  break;
-              }
-              /* With an en passant capture, the captured pawn will have
-               * the moving pawn's *source rank* and *destination file*. */
-
-              // Capture the pawn being en passant'd
-              command_queue_push
-              (
-                  (command_t*)stepper_build_chess_xy_command
-                  (
-                      p_gantry_command->move.dest_file, // file
-                      p_gantry_command->move.source_rank, // rank
-                      1,                                // v_x
-                      1                                 // v_y
-                  )
-              );
-              // wait
-              command_queue_push((command_t*)delay_build_command(1000));
-
-              // Move the en passant'd pawn to the capture rank and file
-              command_queue_push
-              (
-                  (command_t*)stepper_build_chess_xy_command
-                  (
-                      CAPTURE_FILE, // file
-                      CAPTURE_RANK, // rank
-                      1,                                // v_x
-                      1                                 // v_y
-                  )
-              );
-              // wait
-              command_queue_push((command_t*)delay_build_command(1000));
-
-              // Go to moving pawn's initial position
-              command_queue_push
-              (
-                  (command_t*)stepper_build_chess_xy_command
-                  (
-                      p_gantry_command->move.source_file, // file
-                      p_gantry_command->move.source_rank, // rank
-                      1,                                // v_x
-                      1                                 // v_y
-                  )
-              );
-              // wait
-              command_queue_push((command_t*)delay_build_command(1000));
-
-              // Take the moving pawn to its final position
-              command_queue_push
-              (
-                  (command_t*)stepper_build_chess_xy_command
-                  (
-                      p_gantry_command->move.dest_file, // file
-                      p_gantry_command->move.dest_rank, // rank
-                      1,                                // v_x
-                      1                                 // v_y
-                  )
-              );
-
-              gantry_home();
-
-         break;
-
-         case IDLE:
-             // TODO
-             // Invalid move
-         break;
-
-         default:
-             // TODO
-         break;
-     }
-
-    // lc = led_build_command()
-    // command_queue_push(lc)
-    // snc = sensor_network_build_command()
-    // command_queue_push(snc)
-     // Do it again !
-     if (p_gantry_command->game_status == ONGOING)
-     {
-         command_queue_push((command_t*)gantry_human_build_command());
-     }
     // Finally, update previous_board with the robot's move
-    chessboard_update_robot_move(p_gantry_command->robot_move_uci);
+    chessboard_update_previous_board_from_move(p_gantry_command->move_uci);
 }
 
 /**
- * @brief Moves to the next command once a move has been received from the RPi
+ * @brief Moves to the next command once a valid move has been received from the RPi
  * 
  * @param command The gantry command being run
- * @return true If the RPi responded
+ * @return true If the RPi responded and the transmission was valid
  */
 bool gantry_robot_is_done(command_t* command)
 {
@@ -958,20 +876,13 @@ bool gantry_robot_is_done(command_t* command)
 gantry_command_t* gantry_home_build_command(void)
 {
     // The thing to return
-    gantry_command_t* p_command = (gantry_command_t*)malloc(sizeof(gantry_command_t));
+    gantry_command_t* p_command = (gantry_command_t*) malloc(sizeof(gantry_command_t));
 
     // Functions
     p_command->command.p_entry   = &gantry_home_entry;
     p_command->command.p_action  = &utils_empty_function;
     p_command->command.p_exit    = &utils_empty_function;
     p_command->command.p_is_done = &gantry_home_is_done;
-
-    // Data
-    p_command->move.source_file = FILE_ERROR;
-    p_command->move.source_rank = RANK_ERROR;
-    p_command->move.dest_file   = FILE_ERROR;
-    p_command->move.dest_rank   = RANK_ERROR;
-    p_command->move.move_type   = IDLE;
 
     return p_command;
 }
@@ -997,32 +908,7 @@ bool gantry_home_is_done(command_t* command)
     return true;
 }
 
-/**
- * @brief Homes the gantry system (motors all the way up, right, back -- from point-of-view of the robot)
- */
-void gantry_home()
-{
-    // Set the homing flag
-    command_queue_push((command_t*) gantry_home_build_command());
-
-    // Home the motors with delay
-    command_queue_push((command_t*) stepper_build_home_z_command());
-    command_queue_push((command_t*) stepper_build_home_xy_command());
-    command_queue_push((command_t*) delay_build_command(HOMING_DELAY_MS));
-
-    // Back away from the edge
-    command_queue_push((command_t*) stepper_build_rel_command(
-            HOMING_X_BACKOFF,
-            HOMING_Y_BACKOFF,
-            HOMING_Z_BACKOFF,
-            HOMING_X_VELOCITY,
-            HOMING_Y_VELOCITY,
-            HOMING_Z_VELOCITY
-    ));
-
-    // Clear the homing flag
-    command_queue_push((command_t*) gantry_home_build_command());
-}
+/* Interrupts */
 
 /**
  * @brief Interrupt handler for the gantry module
@@ -1036,24 +922,41 @@ __interrupt void GANTRY_HANDLER(void)
     uint8_t switch_data = switch_get_reading();
 
     // If the emergency stop button was pressed, kill everything
-//    if (switch_data & BUTTON_ESTOP)
-//    {
-//        gantry_kill();
-//    }
+    if (switch_data & FUTURE_PROOF_1_MASK)
+    {
+        // gantry_kill();
+    }
 
-    // If a limit switch was pressed, disable the appropriate motor
-    gantry_limit_stop(switch_data);
+    // If a limit switch was pressed, and the system is not homing, kill everything
+    if ((!gantry_homing) && (switch_data & LIMIT_MASK))
+    {
+    //    gantry_kill();
+    }
 
     // If the start/reset button was pressed, send the appropriate "new game" signal
-    if (switch_data & BUTTON_START_MASK)
+    if ((switch_data & BUTTON_RESET_MASK) || (switch_data & BUTTON_START_MASK))
     {
-//        gantry_reset();
+    //    gantry_reset();
     }
 
     // If the home button was pressed, clear the queue and execute a homing command
     if (switch_data & BUTTON_HOME_MASK)
     {
-//        gantry_home();
+    //    gantry_home();
+    }
+
+    // Store the current reading if the human hit the capture tile
+    if ((!human_move_capture) && (switch_data & SWITCH_CAPTURE_MASK))
+    {
+        board_reading_intermediate = sensornetwork_get_reading();
+        human_move_capture = true;
+    }
+
+    // Store the current reading if the human hit the "end turn"" tile
+    if ((!human_move_done) && (switch_data & BUTTON_NEXT_TURN_MASK))
+    {
+        board_reading_current = sensornetwork_get_reading();
+        human_move_done = true;
     }
 }
 

@@ -45,7 +45,7 @@ typedef struct electromagnet_command_t {
 } electromagnet_command_t;
 
 // Public functions
-void electromagnet_init();
+void electromagnet_init(void);
 
 // Command Functions
 electromagnet_command_t* electromagnet_build_command(peripheral_state_t desired_state);

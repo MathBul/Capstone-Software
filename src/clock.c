@@ -13,7 +13,7 @@
 /**
  * @brief Configure the system clock to run at 120 MHz using PLL at 240 MHz
  */
-void clock_sys_init()
+void clock_sys_init(void)
 {
     // Configure PLL to be 480 MHz
     SYSCTL->PLLFREQ0 |=  (SYSCTL_PLLFREQ0_PLLPWR);          // Sets PWR to 1
@@ -48,7 +48,7 @@ void clock_sys_init()
 /**
  * @brief Configure timer 0A
  */
-void clock_timer0a_init()
+void clock_timer0a_init(void)
 {
     // Enable the timer and wait for it to be ready
     utils_timer_clock_enable(TIMER0);
@@ -67,7 +67,7 @@ void clock_timer0a_init()
 /**
  * @brief Configure timer 1A
  */
-void clock_timer1a_init()
+void clock_timer1a_init(void)
 {
     // Enable the timer and wait for it to be ready
     utils_timer_clock_enable(TIMER1);
@@ -86,7 +86,7 @@ void clock_timer1a_init()
 /**
  * @brief Configure timer 2A
  */
-void clock_timer2a_init()
+void clock_timer2a_init(void)
 {
     // Enable the timer and wait for it to be ready
     utils_timer_clock_enable(TIMER2);
@@ -105,7 +105,7 @@ void clock_timer2a_init()
 /**
  * @brief Configure timer 3A
  */
-void clock_timer3a_init()
+void clock_timer3a_init(void)
 {
     // Enable the timer and wait for it to be ready
     utils_timer_clock_enable(TIMER3);
@@ -124,7 +124,7 @@ void clock_timer3a_init()
 /**
  * @brief Configure timer 4A
  */
-void clock_timer4a_init()
+void clock_timer4a_init(void)
 {
     // Enable the timer and wait for it to be ready
     utils_timer_clock_enable(TIMER4);
@@ -143,7 +143,7 @@ void clock_timer4a_init()
 /**
  * @brief Configure timer 5A
  */
-void clock_timer5a_init()
+void clock_timer5a_init(void)
 {
     // Enable the timer and wait for it to be ready
     utils_timer_clock_enable(TIMER5);
@@ -162,7 +162,7 @@ void clock_timer5a_init()
 /**
  * @brief Configure timer 6A
  */
-void clock_timer6a_init()
+void clock_timer6a_init(void)
 {
     // Enable the timer and wait for it to be ready
     utils_timer_clock_enable(TIMER6);
@@ -181,7 +181,7 @@ void clock_timer6a_init()
 /**
  * @brief Configure timer 7A
  */
-void clock_timer7c_init()
+void clock_timer7c_init(void)
 {
     // Enable the timer and wait for it to be ready
     utils_timer_clock_enable(TIMER7);

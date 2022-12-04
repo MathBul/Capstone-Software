@@ -24,7 +24,7 @@ static led_t* p_led_system_status = &leds[2];
 /**
  * @brief Initialize all LEDs
  */
-void led_init()
+void led_init(void)
 {
     // Game status LEDs
     gpio_set_as_output(RGB_RED_PORT, RGB_RED_PIN);
@@ -130,7 +130,7 @@ void led_off(led_indicator_t indicator)
 /**
  * @brief Turn on all LEDs
  */
-void led_all_on()
+void led_all_on(void)
 {
     int i = 0;
     for (i = 0; i < NUMBER_OF_LEDS; i++)
@@ -142,7 +142,7 @@ void led_all_on()
 /**
  * @brief Turn off all LEDs
  */
-void led_all_off()
+void led_all_off(void)
 {
     int i = 0;
     for (i = 0; i < NUMBER_OF_LEDS; i++)

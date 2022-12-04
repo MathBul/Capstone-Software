@@ -68,7 +68,7 @@ typedef struct {
 union utils_vport64_t sensor_vport;
 
 // Public functions
-void sensornetwork_init();
-uint64_t sensornetwork_get_reading();
+void sensornetwork_init(void);
+uint64_t sensornetwork_get_reading(void);
 
 #endif /* SENSORNETWORK_H_ */

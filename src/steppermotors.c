@@ -21,11 +21,11 @@ static void stepper_edge_transition(stepper_motors_t *stepper_motor);
 static uint16_t stepper_distance_to_transitions(int16_t distance);
 static uint32_t stepper_velocity_to_timer_period(uint16_t velocity);
 static void stepper_disable_motor(stepper_motors_t *stepper_motor);
-static void stepper_disable_all_motors();
+static void stepper_disable_all_motors(void);
 static void stepper_enable_motor(stepper_motors_t *stepper_motor);
-static void stepper_enable_all_motors();
-static void stepper_pause_all_motors();
-static void stepper_resume_all_motors();
+static void stepper_enable_all_motors(void);
+static void stepper_pause_all_motors(void);
+static void stepper_resume_all_motors(void);
 static int16_t stepper_get_current_pos_mm(stepper_motors_t *p_stepper_motor);
 static void stepper_update_velocities(uint16_t v_x, uint16_t v_y, uint16_t v_z, uint16_t max_a_x, uint16_t max_a_y, uint16_t max_a_z);
 static uint64_t stepper_get_period_shift(stepper_motors_t* p_stepper_motor);
@@ -40,7 +40,7 @@ static stepper_motors_t* p_stepper_motor_z = &stepper_motors[STEPPER_Z_ID];
 /**
  * @brief Initialize all stepper motors
  */
-void stepper_init_motors()
+void stepper_init_motors(void)
 {
     /* Stepper 1 (X-axis) */
     // Disable, set direction clockwise, prepare step
@@ -244,7 +244,7 @@ static void stepper_disable_motor(stepper_motors_t *p_stepper_motor)
 /**
  * @brief Disable all motors
  */
-static void stepper_disable_all_motors()
+static void stepper_disable_all_motors(void)
 {
     uint8_t i = 0;
     for (i = 0; i < NUMBER_OF_STEPPER_MOTORS; i++)
@@ -267,7 +267,7 @@ static void stepper_enable_motor(stepper_motors_t *p_stepper_motor)
 /**
  * @brief Enable all motors
  */
-static void stepper_enable_all_motors()
+static void stepper_enable_all_motors(void)
 {
     uint8_t i = 0;
     for (i = 0; i < NUMBER_OF_STEPPER_MOTORS; i++)
@@ -279,7 +279,7 @@ static void stepper_enable_all_motors()
 /**
  * @brief Disables the STEPPER_X motor, clears the transitions left, and stops its timer
  */
-void stepper_x_stop()
+void stepper_x_stop(void)
 {
     stepper_disable_motor(p_stepper_motor_x);
     p_stepper_motor_x->transitions_to_desired_pos = 0;
@@ -290,7 +290,7 @@ void stepper_x_stop()
  * @brief Disables the STEPPER_Y motor, clears the transitions left, and stops its timer
  * 
  */
-void stepper_y_stop()
+void stepper_y_stop(void)
 {
     stepper_disable_motor(p_stepper_motor_y);
     p_stepper_motor_y->transitions_to_desired_pos = 0;
@@ -301,7 +301,7 @@ void stepper_y_stop()
  * @brief Disables the STEPPER_Z motor, clears the transitions left, and stops its timer
  * 
  */
-void stepper_z_stop()
+void stepper_z_stop(void)
 {
     stepper_disable_motor(p_stepper_motor_z);
     p_stepper_motor_z->transitions_to_desired_pos = 0;
@@ -313,7 +313,7 @@ void stepper_z_stop()
  * 
  * @return Whether a fault occured
  */
-bool stepper_x_has_fault()
+bool stepper_x_has_fault(void)
 {
     uint8_t nfault = gpio_read_input(p_stepper_motor_x->nfault_port, p_stepper_motor_x->nfault_pin);
 
@@ -326,7 +326,7 @@ bool stepper_x_has_fault()
  * 
  * @return Whether a fault occured
  */
-bool stepper_y_has_fault()
+bool stepper_y_has_fault(void)
 {
     uint8_t nfault = gpio_read_input(p_stepper_motor_y->nfault_port, p_stepper_motor_y->nfault_pin);
 
@@ -339,7 +339,7 @@ bool stepper_y_has_fault()
  * 
  * @return Whether a fault occured
  */
-bool stepper_z_has_fault()
+bool stepper_z_has_fault(void)
 {
     uint8_t nfault = gpio_read_input(p_stepper_motor_z->nfault_port, p_stepper_motor_z->nfault_pin);
 
@@ -350,7 +350,7 @@ bool stepper_z_has_fault()
 /**
  * @brief Pause all motors and their ISR clocks, can resume from this point later
  */
-void stepper_pause_all_motors()
+void stepper_pause_all_motors(void)
 {
     clock_stop_timer(STEPPER_X_TIMER);
     clock_stop_timer(STEPPER_Y_TIMER);
@@ -361,7 +361,7 @@ void stepper_pause_all_motors()
 /**
  * @brief Resume all motors and their ISR clocks from a previously paused state
  */
-void stepper_resume_all_motors()
+void stepper_resume_all_motors(void)
 {
     stepper_enable_all_motors();
     clock_start_timer(STEPPER_X_TIMER);
@@ -532,7 +532,7 @@ stepper_chess_command_t* stepper_build_chess_xy_command(chess_file_t file, chess
     // Data
     p_command->file  = file;
     p_command->rank  = rank;
-    p_command->piece = PIECE_ERROR;
+    p_command->piece = EMPTY_PIECE;
     p_command->v_x   = v_x;
     p_command->v_y   = v_y;
     p_command->v_z   = 0;
@@ -574,7 +574,7 @@ stepper_chess_command_t* stepper_build_chess_z_command(chess_piece_t piece, uint
  *
  * @return Pointer to the command object
  */
-stepper_rel_command_t* stepper_build_home_xy_command()
+stepper_rel_command_t* stepper_build_home_xy_command(void)
 {
     // The thing to return
     stepper_rel_command_t* p_command = (stepper_rel_command_t*) malloc(sizeof(stepper_rel_command_t));
@@ -601,7 +601,7 @@ stepper_rel_command_t* stepper_build_home_xy_command()
  *
  * @return Pointer to the command object
  */
-stepper_rel_command_t* stepper_build_home_z_command()
+stepper_rel_command_t* stepper_build_home_z_command(void)
 {
     // The thing to return
     stepper_rel_command_t* p_command = (stepper_rel_command_t*) malloc(sizeof(stepper_rel_command_t));
@@ -744,7 +744,7 @@ void stepper_chess_entry(command_t* command)
     }
 
     // Z-axis
-    if (p_stepper_command->piece != PIECE_ERROR)
+    if (p_stepper_command->piece != EMPTY_PIECE)
     {
         stepper_enable_motor(p_stepper_motor_z);
 

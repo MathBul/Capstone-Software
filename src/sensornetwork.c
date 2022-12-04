@@ -12,7 +12,7 @@
 
 // Private functions
 void sensornetwork_select_tile(chess_file_t file, chess_rank_t rank);
-static uint64_t sensornetwork_shift_assign();
+static uint64_t sensornetwork_shift_assign(void);
 
 // Declare the sensor lines
 sensornetwork_line_t sensor_lines[NUMBER_OF_SENSOR_ROW_SELECTS + NUMBER_OF_SENSOR_COL_SELECTS];
@@ -30,7 +30,7 @@ static sensornetwork_state_t* p_sensors = (&sensors);
 /**
  * @brief Initialize the sensor select and data lines
  */
-void sensornetwork_init()
+void sensornetwork_init(void)
 {
     // Configure sensor row selects
     gpio_set_as_output(SENSOR_ROW_SELECT_0_PORT, SENSOR_ROW_SELECT_0_PIN);
@@ -194,7 +194,7 @@ void sensornetwork_select_tile(chess_file_t file, chess_rank_t rank)
  * 
  * @return uint64_t The sensor readings
  */
-uint64_t sensornetwork_get_reading()
+uint64_t sensornetwork_get_reading(void)
 {
     return p_sensors->current_inputs;
 }
@@ -206,7 +206,7 @@ uint64_t sensornetwork_get_reading()
  * 
  * @return The reassigned value for the sensors locally
  */
-static uint64_t sensornetwork_shift_assign()
+static uint64_t sensornetwork_shift_assign(void)
 {
     // Loop through all tiles
     int i = 0;

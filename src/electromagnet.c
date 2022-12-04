@@ -11,9 +11,9 @@
 #include "electromagnet.h"
 
 // Private functions
-void electromagnet_attract();
-void electromagnet_repel();
-void electromagnet_disengage();
+void electromagnet_attract(void);
+void electromagnet_repel(void);
+void electromagnet_disengage(void);
 
 // Declare the electromagnet
 electromagnet_t electromagnet;
@@ -22,7 +22,7 @@ static electromagnet_t* p_electromagnet = &electromagnet;
 /**
  * @brief Initialize the electromagnet
  */
-void electromagnet_init()
+void electromagnet_init(void)
 {
     // Start with magnet off
     gpio_set_as_output(ELECTROMAGNET_IN2_PORT, ELECTROMAGNET_IN2_PIN);
@@ -40,7 +40,7 @@ void electromagnet_init()
 /**
  * @brief Turn the electromagnet on with attraction
  */
-void electromagnet_attract()
+void electromagnet_attract(void)
 {
     gpio_set_output_low(p_electromagnet->in2_port, p_electromagnet->in2_pin);
     gpio_set_output_high(p_electromagnet->in1_port, p_electromagnet->in1_pin);
@@ -49,7 +49,7 @@ void electromagnet_attract()
 /**
  * @brief Turn the electromagnet on with repulsion
  */
-void electromagnet_repel()
+void electromagnet_repel(void)
 {
     gpio_set_output_high(p_electromagnet->in2_port, p_electromagnet->in2_pin);
     gpio_set_output_low(p_electromagnet->in1_port, p_electromagnet->in1_pin);
@@ -58,7 +58,7 @@ void electromagnet_repel()
 /**
  * @brief Turn the electromagnet off
  */
-void electromagnet_disengage()
+void electromagnet_disengage(void)
 {
     gpio_set_output_low(p_electromagnet->in2_port, p_electromagnet->in2_pin);
     gpio_set_output_low(p_electromagnet->in1_port, p_electromagnet->in1_pin);

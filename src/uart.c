@@ -26,11 +26,11 @@ static fifo8_t* uart_6_rx = &fifo8s[UART6_RX_ID];
 static fifo8_t* uart_6_tx = &fifo8s[UART6_TX_ID];
 
 // Private functions
-static void uart0_init();
-static void uart1_init();
-static void uart2_init();
-static void uart3_init();
-static void uart6_init();
+static void uart0_init(void);
+static void uart1_init(void);
+static void uart2_init(void);
+static void uart3_init(void);
+static void uart6_init(void);
 static void uart_copy_hardware_to_software(uint8_t uart_channel);
 static void uart_copy_software_to_hardware(uint8_t uart_channel);
 static void uart_interrupt_activity(uint8_t uart_channel);
@@ -73,7 +73,7 @@ void uart_init(uint8_t uart_channel)
 /**
  * @brief Configure UART on channel 0
  */
-void uart0_init()
+void uart0_init(void)
 {
     // Initialize the software FIFOS
     fifo8_init(uart_0_rx);
@@ -111,7 +111,7 @@ void uart0_init()
 /**
  * @brief Configure UART on channel 1
  */
-void uart1_init()
+void uart1_init(void)
 {
     // Initialize the software FIFOS
     fifo8_init(uart_1_rx);
@@ -149,7 +149,7 @@ void uart1_init()
 /**
  * @brief Configure UART on channel 2
  */
-void uart2_init()
+void uart2_init(void)
 {
     // Initialize the software FIFOS
     fifo8_init(uart_2_rx);
@@ -187,7 +187,7 @@ void uart2_init()
 /**
  * @brief Configure UART on channel 3
  */
-void uart3_init()
+void uart3_init(void)
 {
     // Initialize the software FIFOS
     fifo8_init(uart_3_rx);
@@ -225,7 +225,7 @@ void uart3_init()
 /**
  * @brief Configure UART on channel 6
  */
-void uart6_init()
+void uart6_init(void)
 {
     // Initialize the software FIFOS
     fifo8_init(uart_6_rx);

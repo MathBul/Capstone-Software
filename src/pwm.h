@@ -16,7 +16,7 @@
 #include "gpio.h"
 
 // Function declarations
-void pwm_init();
+void pwm_init(void);
 
 
 #endif /* PWM_H_ */

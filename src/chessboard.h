@@ -33,6 +33,15 @@ typedef struct {
     char board_pieces[8][8];
 } chess_board_t;
 
+// Board changes struct
+typedef struct board_changes_t {
+    uint8_t num_changes;
+    uint8_t presence_change_index_1;
+    uint8_t presence_change_index_2;
+    uint8_t presence_change_index_3;
+    uint8_t presence_change_index_4;
+} board_changes_t;
+
 // Rank and file defines for indexing into the board_pieces 2D array
 #define FIRST_RANK                          (0)
 #define SECOND_RANK                         (1)
@@ -52,9 +61,12 @@ typedef struct {
 #define H_FILE                              (7)
 
 // Public functions
-void chessboard_init();
-void chessboard_reset_all();
-bool chessboard_get_move(chess_board_t* previous, chess_board_t* current, char move[5]);
-void chessboard_update_robot_move(char move[5]);
+void chessboard_init(void);
+void chessboard_reset_all(void);
+chess_piece_t chessboard_get_piece_at_position(chess_file_t file, chess_rank_t rank);
+bool chessboard_update_intermediate_board_from_presence(uint64_t board_reading, char move[5]);
+bool chessboard_update_current_board_from_presence(uint64_t board_reading, char move[5], bool capture);
+void chessboard_update_previous_board_from_current_board(void);
+void chessboard_update_previous_board_from_move(char move[5]);
 
 #endif /* CHESSBOARD_H_ */

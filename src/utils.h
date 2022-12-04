@@ -11,6 +11,17 @@
 #ifndef UTILS_H_
 #define UTILS_H_
 
+// Debug mode select
+//#define UART_DEBUG
+//#define PERIPHERALS_ENABLED
+//#define STEPPER_DEBUG
+
+// Game mode select (define at most one at a time)
+//#define USER_MODE                 // User, through UART0 terminal, sends moves to MSP directly
+//#define THREE_PARTY_MODE          // User sends moves to MSP, which sends moves to RPi, which sends moves back
+#define FINAL_IMPLEMENTATION_MODE // Ideally, final implementation w/board reading
+
+
 // Notes on vports: 
 //  - A virtual port (vport) is a means of accessing a physical port via imaging and a bitfield
 //  - An image is a snapshot of the port's data register
@@ -20,6 +31,7 @@
 //  - For an example use case, see switch.c/switch.h
 
 #include "msp.h"
+#include "command_queue.h"
 #include "uart.h"
 #include <stdint.h>
 #include <stdbool.h>
@@ -166,9 +178,14 @@ typedef union utils_vport64_t {
 } utils_vport64_t;
 
 // Tracks move type
-typedef enum chess_move_type {
-    IDLE, MOVE, CAPTURE, PROMOTION, EN_PASSENT, CASTLING
-} chess_move_type;
+typedef enum chess_move_type_t {
+    IDLE, 
+    MOVE, 
+    CAPTURE, 
+    PROMOTION, 
+    EN_PASSENT, 
+    CASTLING,
+} chess_move_type_t;
 
 // Translates file on the board to distance in mm
 typedef enum chess_file_t {
@@ -181,6 +198,7 @@ typedef enum chess_file_t {
     G            = SQUARE_X_INITIAL - 1*SQUARE_CENTER_TO_CENTER,
     H            = SQUARE_X_INITIAL,
     CAPTURE_FILE = CAPTURE_X,
+    QUEEN_FILE   = CAPTURE_X,
     FILE_ERROR   = 0,
 } chess_file_t;
 
@@ -195,19 +213,20 @@ typedef enum chess_rank_t {
     SEVENTH      = SQUARE_Y_INITIAL + 6*SQUARE_CENTER_TO_CENTER,
     EIGHTH       = SQUARE_Y_INITIAL + 7*SQUARE_CENTER_TO_CENTER,
     CAPTURE_RANK = CAPTURE_Y,
+    QUEEN_RANK   = CAPTURE_Y,
     RANK_ERROR   = 0,
 } chess_rank_t;
 
 // Translates piece type to distance to lower rack in mm
 //  TODO: FIll in once measured
 typedef enum chess_piece_t {
-    KING         = -10,
-    QUEEN        = -20,
-    ROOK         = -30,
-    BISHOP       = -40,
-    KNIGHT       = -50,
-    PAWN         = -60,
-    PIECE_ERROR  = 0,
+    KING        = -10,
+    QUEEN       = -20,
+    ROOK        = -30,
+    BISHOP      = -40,
+    KNIGHT      = -50,
+    PAWN        = -60,
+    EMPTY_PIECE = 0,
 } chess_piece_t;
 
 // Tracks whether a peripheral is enabled or disabled
@@ -215,22 +234,13 @@ typedef enum peripheral_state_t {
     disabled, enabled
 } peripheral_state_t;
 
-// Tracks board state changes
-typedef struct board_changes_t {
-    uint8_t num_changes;
-    uint8_t index1;
-    uint8_t index2;
-    uint8_t index3;
-    uint8_t index4;
-} board_changes_t;
-
 // GPIO, interrupt, and empty utils
 void utils_gpio_clock_enable(GPIO_Type* port);
 void utils_uart_clock_enable(uint8_t uart_channel);
 void utils_timer_clock_enable(TIMER0_Type* timer);
 void utils_delay(uint32_t ticks);
 void utils_set_nvic(uint8_t interrupt_num, uint8_t priority);
-void utils_empty_function();
+void utils_empty_function(command_t* command);
 
 // Math and bit manipulation utils
 uint16_t utils_bound(uint16_t value, uint16_t lower_bound, uint16_t upper_bound);
@@ -249,8 +259,7 @@ chess_rank_t utils_index_to_rank(uint8_t index);
 chess_file_t utils_index_to_file(uint8_t index);
 chess_file_t utils_byte_to_file(uint8_t byte);
 chess_rank_t utils_byte_to_rank(uint8_t byte);
-chess_move_type utils_byte_to_move_type(uint8_t byte);
-void utils_get_board_changes(uint64_t changes_in_presence, board_changes_t *board_changes);
-void utils_copy_array(char arr1[8][8], char arr2[8][8]);
+chess_move_type_t utils_byte_to_move_type(uint8_t byte);
+chess_piece_t utils_byte_to_piece_type(uint8_t byte);
 
 #endif /* UTILS_H_ */

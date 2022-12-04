@@ -48,13 +48,11 @@
 #include <stdlib.h>
 #include <math.h>
 
-// Debugging
-//#define STEPPER_DEBUG
+// Debugging motion profiling
 #ifdef STEPPER_DEBUG
 #define PROFILING_CHANNEL               (UART_CHANNEL_0)
 #include <stdio.h>
 #endif
-
 
 // General stepper defines
 #define NUMBER_OF_STEPPER_MOTORS            (3)
@@ -185,20 +183,20 @@ typedef struct stepper_chess_command_t {
 } stepper_chess_command_t;
 
 // Public functions
-void stepper_init_motors();
-void stepper_x_stop();
-void stepper_y_stop();
-void stepper_z_stop();
-bool stepper_x_has_fault();
-bool stepper_y_has_fault();
-bool stepper_z_has_fault();
+void stepper_init_motors(void);
+void stepper_x_stop(void);
+void stepper_y_stop(void);
+void stepper_z_stop(void);
+bool stepper_x_has_fault(void);
+bool stepper_y_has_fault(void);
+bool stepper_z_has_fault(void);
 
 // Command Functions
 stepper_rel_command_t* stepper_build_rel_command(int16_t rel_x, int16_t rel_y, int16_t rel_z, uint16_t v_x, uint16_t v_y, uint16_t v_z);
 stepper_chess_command_t* stepper_build_chess_xy_command(chess_file_t file, chess_rank_t rank, uint16_t v_x, uint16_t v_y);
 stepper_chess_command_t* stepper_build_chess_z_command(chess_piece_t piece, uint16_t v_z);
-stepper_rel_command_t* stepper_build_home_xy_command();
-stepper_rel_command_t* stepper_build_home_z_command();
+stepper_rel_command_t* stepper_build_home_xy_command(void);
+stepper_rel_command_t* stepper_build_home_z_command(void);
 void stepper_rel_entry(command_t* command);
 void stepper_chess_entry(command_t* command);
 void stepper_home_entry(command_t* command);

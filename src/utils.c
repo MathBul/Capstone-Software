@@ -227,7 +227,7 @@ void utils_set_nvic(uint8_t interrupt_num, uint8_t priority)
 /**
  * @brief A general purpose empty function for a command {entry, action, exit} that does nothing
  */
-void utils_empty_function()
+void utils_empty_function(command_t* command)
 {
     return;
 }
@@ -712,9 +712,9 @@ chess_rank_t utils_byte_to_rank(uint8_t byte)
  * @param byte Represents the move (e.g., as a char)
  * @return One of the possible enum moves
  */
-chess_move_type utils_byte_to_move_type(uint8_t byte)
+chess_move_type_t utils_byte_to_move_type(uint8_t byte)
 {
-    chess_move_type type = IDLE;
+    chess_move_type_t type = IDLE;
     switch (byte)
     {
         case '_':
@@ -746,67 +746,70 @@ chess_move_type utils_byte_to_move_type(uint8_t byte)
 }
 
 /**
- * @brief Get the difference in board state between two bit boards
+ * @brief Converts a given byte to a chess piece
  * 
- * @param changes_in_presence The XOR of two bit boards
- * @param board_changes_t Where the indices that changed will be stored
+ * @param byte Represents the move (e.g., as a char)
+ * @return One of the possible enum moves
  */
-void utils_get_board_changes(uint64_t changes_in_presence, board_changes_t *board_changes)
+chess_piece_t utils_byte_to_piece_type(uint8_t byte)
 {
-    // Initialize the struct
-    board_changes->num_changes = 0;
-    board_changes->index1 = 0xFF;
-    board_changes->index2 = 0xFF;
-    board_changes->index3 = 0xFF;
-    board_changes->index4 = 0xFF;
-
-    // Find set bits in the changed presence
-    int i = 0;
-    for (i = 0; i < 64; i++)
+    chess_piece_t piece = EMPTY_PIECE;
+    switch (byte)
     {
-        // If a set bit is found in some bit position i, store its index
-        if ((changes_in_presence >> i) & 0x01)
-        {
-            board_changes->num_changes += 1;
+        case 'p':
+            piece = PAWN;
+        break;
 
-            // On the first set bit seen, store in index1
-            if (board_changes->num_changes == 1)
-            {
-                board_changes->index1 = i;
-            }
-            else if (board_changes->num_changes == 2)
-            {
-                board_changes->index2 = i;
-            }
-            else if (board_changes->num_changes == 3)
-            {
-                board_changes->index3 = i;
-            }
-            else if (board_changes->num_changes == 4)
-            {
-                board_changes->index4 = i;
-            }
-        }
-    }
-}
+        case 'P':
+            piece = PAWN;
+        break;
 
-/**
- * @brief Copies source array into dest array
- *
- * @param source The array to be copied
- * @param dest The array to copy into
- */
-void utils_copy_array(char source[8][8], char dest[8][8])
-{
-    int i = 0;
-    int j = 0;
-    for (i = 0; i < 8; i++)
-    {
-        for (j = 0; j < 8; j++)
-        {
-            dest[i][j] = source[i][j];
-        }
+        case 'q':
+            piece = QUEEN;
+        break;
+
+        case 'Q':
+            piece = QUEEN;
+        break;
+
+        case 'k':
+            piece = KING;
+        break;
+
+        case 'K':
+            piece = KING;
+        break;
+
+        case 'n':
+            piece = KNIGHT;
+        break;
+
+        case 'N':
+            piece = KNIGHT;
+        break;
+
+        case 'r':
+            piece = ROOK;
+        break;
+
+        case 'R':
+            piece = ROOK;
+        break;
+
+        case 'b':
+            piece = BISHOP;
+        break;
+
+        case 'B':
+            piece = BISHOP;
+        break;
+
+        default:
+            piece = EMPTY_PIECE;
+        break;
     }
+
+    return piece;
 }
 
 /* End utils.c */

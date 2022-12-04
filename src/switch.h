@@ -108,8 +108,8 @@ typedef struct {
 union utils_vport16_t switch_vport;
 
 // Public functions
-void switch_init();
-uint16_t switch_get_reading();
+void switch_init(void);
+uint16_t switch_get_reading(void);
 void switch_test(uint16_t mask);
 
 #endif /* SWITCHES_H_ */

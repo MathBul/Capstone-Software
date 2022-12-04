@@ -58,15 +58,15 @@
 #define TIMER_7C_INTERRUPT_NUM                  TIMER7A_IRQn
 
 // Function definitions
-void clock_sys_init();
-void clock_timer0a_init();                           // X Stepper
-void clock_timer1a_init();                           // Y Stepper
-void clock_timer2a_init();                           // Z Stepper
-void clock_timer3a_init();                           // Switches
-void clock_timer4a_init();                           // Gantry
-void clock_timer5a_init();                           // Delay
-void clock_timer6a_init();                           // Sensor Network
-void clock_timer7c_init();                           // Communication Timeout
+void clock_sys_init(void);
+void clock_timer0a_init(void);                       // X Stepper
+void clock_timer1a_init(void);                       // Y Stepper
+void clock_timer2a_init(void);                       // Z Stepper
+void clock_timer3a_init(void);                       // Switches
+void clock_timer4a_init(void);                       // Gantry
+void clock_timer5a_init(void);                       // Delay
+void clock_timer6a_init(void);                       // Sensor Network
+void clock_timer7c_init(void);                       // Communication Timeout
 
 void clock_clear_interrupt(TIMER0_Type* timer);
 void clock_stop_timer(TIMER0_Type* timer);

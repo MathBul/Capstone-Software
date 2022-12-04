@@ -11,7 +11,7 @@
 #include "switch.h"
 
 // Private functions
-static uint16_t switch_shift_assign();
+static uint16_t switch_shift_assign(void);
 
 // Declare the switches
 static switch_state_t switches;
@@ -20,7 +20,7 @@ static switch_state_t* p_switches = (&switches);
 /**
  * @brief Initialize all buttons
  */
-void switch_init()
+void switch_init(void)
 {
     // Configure GPIO for all buttons
     gpio_set_as_input(BUTTON_START_PORT, BUTTON_START_PIN);
@@ -49,7 +49,7 @@ void switch_init()
  *
  * @return The switch readings
  */
-uint16_t switch_get_reading()
+uint16_t switch_get_reading(void)
 {
     return p_switches->current_inputs;
 }
@@ -79,7 +79,7 @@ void switch_test(uint16_t mask)
  * 
  * @return The reassigned value for the switch locally
  */
-static uint16_t switch_shift_assign()
+static uint16_t switch_shift_assign(void)
 {
     uint16_t switch_reassigned = 0;
     switch_reassigned |= (gpio_read_input(BUTTON_START_PORT, BUTTON_START_PIN)          << BUTTON_START_SHIFT);

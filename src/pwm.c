@@ -10,7 +10,7 @@
 
 #include "pwm.h"
 
-void pwm_init()
+void pwm_init(void)
 {
     // Enable the PWM clock
     SYSCTL->RCGCPWM |= SYSCTL_RCGCPWM_R0;
