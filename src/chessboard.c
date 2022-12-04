@@ -615,9 +615,9 @@ static void chessboard_copy_board(chess_board_t* p_source_board, chess_board_t* 
     // Copy the pices
     uint8_t i = 0;
     uint8_t j = 0;
-    for (i = 0; i < 64; i++)
+    for (i = 0; i < 8; i++)
     {
-        for (j = 0; j < 64; j++)
+        for (j = 0; j < 8; j++)
         {
             p_dest_board->board_pieces[i][j] = p_source_board->board_pieces[i][j];
         }
