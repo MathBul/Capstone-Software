@@ -43,7 +43,7 @@
 #define TIMER_4A_INTERRUPT_NUM                  TIMER4A_IRQn
 
 // Timer 5 defines
-#define TIMER_5A_PERIOD                         23999       // TODO: Calculate
+#define TIMER_5A_PERIOD                         119999      // Period: 1s @ 120MHz
 #define TIMER_5A_RELOAD_VALUE                   (TIMER_5A_PERIOD << NVIC_ST_RELOAD_S)
 #define TIMER_5A_INTERRUPT_NUM                  TIMER5A_IRQn
 
@@ -53,7 +53,7 @@
 #define TIMER_6A_INTERRUPT_NUM                  TIMER6A_IRQn
 
 // Timer 7 defines
-#define TIMER_7C_PERIOD                         600000000  // Period: 5 s @ 120 MHz
+#define TIMER_7C_PERIOD                         600000000  // Period: 5s @ 120MHz
 #define TIMER_7C_RELOAD_VALUE                   (TIMER_7C_PERIOD << NVIC_ST_RELOAD_S)
 #define TIMER_7C_INTERRUPT_NUM                  TIMER7A_IRQn
 

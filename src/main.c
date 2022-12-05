@@ -23,11 +23,17 @@ int main(void)
     {
         uart_out_string(UART_CHANNEL_0, "Hello world!\n", 14);
     }
-#elif defined(STEPPER_DEBUG)
+
+#elif defined(STEPPER_DEBUG) || defined(GANTRY_DEBUG)
+    // Test a chess movement
     command_queue_push((command_t*) delay_build_command(2000));
-    command_queue_push((command_t*) stepper_build_rel_command(100, 100, 40, 1, 1, 1));
+    gantry_home();
+    command_queue_push((command_t*) gantry_robot_build_command());
+
+    // Test a switch
     gpio_set_as_output(SWITCH_TEST_PORT, SWITCH_TEST_PIN);
     gpio_set_output_high(SWITCH_TEST_PORT, SWITCH_TEST_PIN);
+
 #else
     gantry_reset();
 #endif
@@ -37,8 +43,6 @@ int main(void)
 
     while (1)
     {
-        switch_test(BUTTON_HOME_MASK);
-
         // Run the entry function
         if (!command_queue_pop(&p_current_command))
         {
@@ -58,6 +62,9 @@ int main(void)
                     break;
                 }
                 p_current_command->p_action(p_current_command);
+#ifdef GANTRY_DEBUG
+                switch_test(LIMIT_X_MASK);
+#endif
             }
 
             // Run the exit function

@@ -15,26 +15,13 @@ void electromagnet_attract(void);
 void electromagnet_repel(void);
 void electromagnet_disengage(void);
 
-// Declare the electromagnet
-electromagnet_t electromagnet;
-static electromagnet_t* p_electromagnet = &electromagnet;
-
 /**
  * @brief Initialize the electromagnet
  */
 void electromagnet_init(void)
 {
-    // Start with magnet off
-    gpio_set_as_output(ELECTROMAGNET_IN2_PORT, ELECTROMAGNET_IN2_PIN);
-    gpio_set_as_output(ELECTROMAGNET_IN1_PORT, ELECTROMAGNET_IN1_PIN);
-    gpio_set_output_low(ELECTROMAGNET_IN2_PORT, ELECTROMAGNET_IN2_PIN);
-    gpio_set_output_low(ELECTROMAGNET_IN1_PORT, ELECTROMAGNET_IN1_PIN);
-
-    // Configure the magnet struct
-    p_electromagnet->in2_port = ELECTROMAGNET_IN2_PORT;
-    p_electromagnet->in2_pin  = ELECTROMAGNET_IN2_PIN;
-    p_electromagnet->in1_port = ELECTROMAGNET_IN1_PORT;
-    p_electromagnet->in1_pin  = ELECTROMAGNET_IN1_PIN;
+    // Initialize both PWM pins; set IN1=ON, IN2=OFF
+    pwm_init(0, 0);
 }
 
 /**
@@ -42,8 +29,9 @@ void electromagnet_init(void)
  */
 void electromagnet_attract(void)
 {
-    gpio_set_output_low(p_electromagnet->in2_port, p_electromagnet->in2_pin);
-    gpio_set_output_high(p_electromagnet->in1_port, p_electromagnet->in1_pin);
+    // IN1=OFF, IN2=ON
+    pwm_set_duty_pk4(0);
+    pwm_set_duty_pk5(30);
 }
 
 /**
@@ -51,8 +39,9 @@ void electromagnet_attract(void)
  */
 void electromagnet_repel(void)
 {
-    gpio_set_output_high(p_electromagnet->in2_port, p_electromagnet->in2_pin);
-    gpio_set_output_low(p_electromagnet->in1_port, p_electromagnet->in1_pin);
+    // IN1=ON, IN2=OFF
+    pwm_set_duty_pk4(30);
+    pwm_set_duty_pk5(0);
 }
 
 /**
@@ -60,8 +49,9 @@ void electromagnet_repel(void)
  */
 void electromagnet_disengage(void)
 {
-    gpio_set_output_low(p_electromagnet->in2_port, p_electromagnet->in2_pin);
-    gpio_set_output_low(p_electromagnet->in1_port, p_electromagnet->in1_pin);
+    // IN1=OFF, IN2=OFF
+    pwm_set_duty_pk4(0);
+    pwm_set_duty_pk5(0);
 }
 
 /* Command Functions */

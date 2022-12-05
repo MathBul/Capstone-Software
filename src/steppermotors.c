@@ -15,10 +15,11 @@
 #endif
 
 // Private functions
+static void stepper_set_microstep(uint8_t ms_level);
 static void stepper_set_direction_clockwise(stepper_motors_t *stepper_motor);
 static void stepper_set_direction_counterclockwise(stepper_motors_t *stepper_motor);
 static void stepper_edge_transition(stepper_motors_t *stepper_motor);
-static uint16_t stepper_distance_to_transitions(int16_t distance);
+static uint32_t stepper_distance_to_transitions(int16_t distance);
 static uint32_t stepper_velocity_to_timer_period(uint16_t velocity);
 static void stepper_disable_motor(stepper_motors_t *stepper_motor);
 static void stepper_disable_all_motors(void);
@@ -36,6 +37,9 @@ stepper_motors_t stepper_motors[NUMBER_OF_STEPPER_MOTORS];
 static stepper_motors_t* p_stepper_motor_x = &stepper_motors[STEPPER_X_ID];
 static stepper_motors_t* p_stepper_motor_y = &stepper_motors[STEPPER_Y_ID];
 static stepper_motors_t* p_stepper_motor_z = &stepper_motors[STEPPER_Z_ID];
+
+// Flags
+static bool stepper_is_homing = false;
 
 /**
  * @brief Initialize all stepper motors
@@ -145,21 +149,8 @@ void stepper_init_motors(void)
 #endif
 
     /* Common Stepper GPIO */
-    // Configure XY motors for 1/8 stepping
-    gpio_set_as_output(STEPPER_XY_MS0_PORT, STEPPER_XY_MS0_PIN);
-    gpio_set_as_output(STEPPER_XY_MS1_PORT, STEPPER_XY_MS1_PIN);
-    gpio_set_as_output(STEPPER_XY_MS2_PORT, STEPPER_XY_MS2_PIN);
-    gpio_set_output_low(STEPPER_XY_MS2_PORT, STEPPER_XY_MS2_PIN);
-    gpio_set_output_high(STEPPER_XY_MS1_PORT, STEPPER_XY_MS1_PIN);
-    gpio_set_output_high(STEPPER_XY_MS0_PORT, STEPPER_XY_MS0_PIN);
-
-    // Configure Z motor for 1/8 stepping
-    gpio_set_as_output(STEPPER_Z_MS0_PORT, STEPPER_Z_MS0_PIN);
-    gpio_set_as_output(STEPPER_Z_MS1_PORT, STEPPER_Z_MS1_PIN);
-    gpio_set_as_output(STEPPER_Z_MS2_PORT, STEPPER_Z_MS2_PIN);
-    gpio_set_output_low(STEPPER_Z_MS2_PORT, STEPPER_Z_MS2_PIN);
-    gpio_set_output_high(STEPPER_Z_MS1_PORT, STEPPER_Z_MS1_PIN);
-    gpio_set_output_high(STEPPER_Z_MS0_PORT, STEPPER_Z_MS0_PIN);
+    // Configure all motors for 1/8 stepping
+    stepper_set_microstep(MICROSTEP_LEVEL);
 
     // Disable the common reset/sleep
     gpio_set_as_output(STEPPER_XYZ_NRESET_PORT, STEPPER_XYZ_NRESET_PIN);
@@ -170,6 +161,81 @@ void stepper_init_motors(void)
 #ifdef STEPPER_DEBUG
     uart_init(PROFILING_CHANNEL);
 #endif
+}
+
+/**
+ * @brief Sets the microstep level on all motors
+ *
+ * @param ms_level The microstepping level, one of {1,2,4,8,16,32}
+ */
+static void stepper_set_microstep(uint8_t ms_level)
+{
+    switch (ms_level)
+    {
+        case 1:
+            // Full step
+            gpio_set_output_low(STEPPER_XY_MS2_PORT, STEPPER_XY_MS2_PIN);
+            gpio_set_output_low(STEPPER_XY_MS1_PORT, STEPPER_XY_MS1_PIN);
+            gpio_set_output_low(STEPPER_XY_MS0_PORT, STEPPER_XY_MS0_PIN);
+            gpio_set_output_low(STEPPER_Z_MS2_PORT, STEPPER_Z_MS2_PIN);
+            gpio_set_output_low(STEPPER_Z_MS1_PORT, STEPPER_Z_MS1_PIN);
+            gpio_set_output_low(STEPPER_Z_MS0_PORT, STEPPER_Z_MS0_PIN);
+        break;
+
+        case 2:
+            // 1/2 step
+            gpio_set_output_low(STEPPER_XY_MS2_PORT, STEPPER_XY_MS2_PIN);
+            gpio_set_output_low(STEPPER_XY_MS1_PORT, STEPPER_XY_MS1_PIN);
+            gpio_set_output_high(STEPPER_XY_MS0_PORT, STEPPER_XY_MS0_PIN);
+            gpio_set_output_low(STEPPER_Z_MS2_PORT, STEPPER_Z_MS2_PIN);
+            gpio_set_output_low(STEPPER_Z_MS1_PORT, STEPPER_Z_MS1_PIN);
+            gpio_set_output_high(STEPPER_Z_MS0_PORT, STEPPER_Z_MS0_PIN);
+        break;
+
+        case 4:
+            // 1/4 step
+            gpio_set_output_low(STEPPER_XY_MS2_PORT, STEPPER_XY_MS2_PIN);
+            gpio_set_output_high(STEPPER_XY_MS1_PORT, STEPPER_XY_MS1_PIN);
+            gpio_set_output_low(STEPPER_XY_MS0_PORT, STEPPER_XY_MS0_PIN);
+            gpio_set_output_low(STEPPER_Z_MS2_PORT, STEPPER_Z_MS2_PIN);
+            gpio_set_output_high(STEPPER_Z_MS1_PORT, STEPPER_Z_MS1_PIN);
+            gpio_set_output_low(STEPPER_Z_MS0_PORT, STEPPER_Z_MS0_PIN);
+        break;
+
+        case 8:
+            // 1/8 step
+            gpio_set_output_low(STEPPER_XY_MS2_PORT, STEPPER_XY_MS2_PIN);
+            gpio_set_output_high(STEPPER_XY_MS1_PORT, STEPPER_XY_MS1_PIN);
+            gpio_set_output_high(STEPPER_XY_MS0_PORT, STEPPER_XY_MS0_PIN);
+            gpio_set_output_low(STEPPER_Z_MS2_PORT, STEPPER_Z_MS2_PIN);
+            gpio_set_output_high(STEPPER_Z_MS1_PORT, STEPPER_Z_MS1_PIN);
+            gpio_set_output_high(STEPPER_Z_MS0_PORT, STEPPER_Z_MS0_PIN);
+        break;
+
+        case 16:
+            // 1/16 step
+            gpio_set_output_high(STEPPER_XY_MS2_PORT, STEPPER_XY_MS2_PIN);
+            gpio_set_output_low(STEPPER_XY_MS1_PORT, STEPPER_XY_MS1_PIN);
+            gpio_set_output_low(STEPPER_XY_MS0_PORT, STEPPER_XY_MS0_PIN);
+            gpio_set_output_high(STEPPER_Z_MS2_PORT, STEPPER_Z_MS2_PIN);
+            gpio_set_output_low(STEPPER_Z_MS1_PORT, STEPPER_Z_MS1_PIN);
+            gpio_set_output_low(STEPPER_Z_MS0_PORT, STEPPER_Z_MS0_PIN);
+        break;
+
+        case 32:
+            // 1/16 step
+            gpio_set_output_high(STEPPER_XY_MS2_PORT, STEPPER_XY_MS2_PIN);
+            gpio_set_output_high(STEPPER_XY_MS1_PORT, STEPPER_XY_MS1_PIN);
+            gpio_set_output_high(STEPPER_XY_MS0_PORT, STEPPER_XY_MS0_PIN);
+            gpio_set_output_high(STEPPER_Z_MS2_PORT, STEPPER_Z_MS2_PIN);
+            gpio_set_output_high(STEPPER_Z_MS1_PORT, STEPPER_Z_MS1_PIN);
+            gpio_set_output_high(STEPPER_Z_MS0_PORT, STEPPER_Z_MS0_PIN);
+        break;
+
+        default:
+            // Invalid microstep level provided, do nothing
+        break;
+    }
 }
 
 /**
@@ -210,7 +276,7 @@ static void stepper_edge_transition(stepper_motors_t *p_stepper_motor)
  * @param distance The distance to travel
  * @return The number of edge transitions to travel that distance
  */
-static uint16_t stepper_distance_to_transitions(int16_t distance)
+static uint32_t stepper_distance_to_transitions(int16_t distance)
 {
     if (distance < 0)
     {
@@ -581,7 +647,7 @@ stepper_rel_command_t* stepper_build_home_xy_command(void)
 
     // Functions
     p_command->command.p_entry   = &stepper_home_entry;
-    p_command->command.p_action  = &stepper_home_action;
+    p_command->command.p_action  = &utils_empty_function;
     p_command->command.p_exit    = &stepper_exit;
     p_command->command.p_is_done = &stepper_is_done;
 
@@ -608,14 +674,14 @@ stepper_rel_command_t* stepper_build_home_z_command(void)
 
     // Functions
     p_command->command.p_entry   = &stepper_home_entry;
-    p_command->command.p_action  = &stepper_home_action;
+    p_command->command.p_action  = &utils_empty_function;
     p_command->command.p_exit    = &stepper_exit;
     p_command->command.p_is_done = &stepper_is_done;
 
     // Data
     p_command->rel_x = 0;
     p_command->rel_y = 0;
-    p_command->rel_z = -STEPPER_HOME_DISTANCE;
+    p_command->rel_z = STEPPER_HOME_DISTANCE;
     p_command->v_x   = 0;
     p_command->v_y   = 0;
     p_command->v_z   = STEPPER_HOME_VELOCITY;
@@ -835,17 +901,24 @@ void stepper_home_entry(command_t* command)
 
     // Update the velocities (max acceleration of zero prevents the speed from changing)
     stepper_update_velocities(p_stepper_command->v_x, p_stepper_command->v_y, p_stepper_command->v_z, 0, 0, 0);
+
+    // Set the homing flag
+    stepper_is_homing = true;
 }
 
 /**
- * @brief Makes sure no limit switch has been pressed
- *
- * @param command The stepper command being run
+ * @brief Stops a given motor if its limit switch is pressedMakes sure no limit switch has been pressed
  */
-void stepper_home_action(command_t* command)
+void stepper_home_activity()
 {
+    // Make sure we are homing
+    if (!stepper_is_homing)
+    {
+        return;
+    }
+
     // Check the current switch readings
-    uint8_t switch_data = switch_get_reading();
+    uint16_t switch_data = switch_get_reading();
 
     // If a limit switch was pressed, disable the appropriate motor
     if (switch_data & LIMIT_X_MASK)
@@ -876,6 +949,9 @@ void stepper_exit(command_t* command)
     clock_stop_timer(STEPPER_X_TIMER);
     clock_stop_timer(STEPPER_Y_TIMER);
     clock_stop_timer(STEPPER_Z_TIMER);
+
+    // Clear the homing flag
+    stepper_is_homing = false;
 }
 
 /**
@@ -956,6 +1032,9 @@ static void stepper_interrupt_activity(stepper_motors_t* p_stepper_motor)
         // Disable the motor
         stepper_disable_motor(p_stepper_motor);
     }
+
+    // Stop a motor if its limit switch is pressed
+    stepper_home_activity();
 }
 
 /**

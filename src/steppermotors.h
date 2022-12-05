@@ -50,13 +50,14 @@
 
 // Debugging motion profiling
 #ifdef STEPPER_DEBUG
-#define PROFILING_CHANNEL               (UART_CHANNEL_0)
 #include <stdio.h>
+
+#define PROFILING_CHANNEL                   (UART_CHANNEL_0)
 #endif
 
 // General stepper defines
 #define NUMBER_OF_STEPPER_MOTORS            (3)
-#define MICROSTEP_LEVEL                     (8)
+#define MICROSTEP_LEVEL                     (4)
 #define TRANSITIONS_PER_MM                  (10 * MICROSTEP_LEVEL)
 #define STEPPER_HOME_DISTANCE               (999)
 #define STEPPER_HOME_VELOCITY               (1)
@@ -149,12 +150,12 @@ typedef struct {
     GPIO_Type*             nhome_port;                 // Port used by the stepper when home
     uint8_t                nhome_pin;                  // Pin used by the stepper when home
     peripheral_state_t     current_state;              // Whether the motor is enabled/disabled
-    uint16_t               transitions_to_desired_pos; // (2)*(#periods to desired position)
+    uint32_t               transitions_to_desired_pos; // (2)*(#periods to desired position)
     int8_t                 dir;                        // +/- 1 to indicate direction
     int16_t                current_pos;                // Distance (in transitions) along the axis, from home position
     uint16_t               current_vel;                // Velocity (in CCR values) at the present moment
-    int16_t                x_1;                        // Point where the speed plateaus (in transitions)
-    int16_t                x_2;                        // Point where the speed starts decreasing (in transitions)
+    int32_t                x_1;                        // Point where the speed plateaus (in transitions)
+    int32_t                x_2;                        // Point where the speed starts decreasing (in transitions)
     uint16_t               max_accel;                  // Max value to adjust the clock period to accel/deccel
 #ifdef STEPPER_DEBUG
     uint32_t               time_elapsed;
@@ -200,7 +201,6 @@ stepper_rel_command_t* stepper_build_home_z_command(void);
 void stepper_rel_entry(command_t* command);
 void stepper_chess_entry(command_t* command);
 void stepper_home_entry(command_t* command);
-void stepper_home_action(command_t* command);
 void stepper_exit(command_t* command);
 bool stepper_is_done(command_t* command);
 

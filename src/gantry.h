@@ -5,7 +5,6 @@
  * @version 0.1
  * @date 2022-10-19
  * 
- * @copyright Copyright (c) 2022
  */
 
 #ifndef GANTRY_H_
@@ -81,6 +80,8 @@ typedef struct gantry_comm_command_t {
 // Public functions
 void gantry_init(void);
 void gantry_reset(void);
+void gantry_home(void);
+void gantry_robot_move_piece(chess_file_t initial_file, chess_rank_t initial_rank, chess_file_t final_file, chess_rank_t final_rank, chess_piece_t piece);
 
 // Command Functions (reading user input)
 gantry_command_t* gantry_human_build_command(void);

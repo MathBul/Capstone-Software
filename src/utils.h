@@ -14,6 +14,7 @@
 // Debug mode select
 //#define UART_DEBUG
 //#define PERIPHERALS_ENABLED
+#define GANTRY_DEBUG
 //#define STEPPER_DEBUG
 
 // Game mode select (define at most one at a time)
@@ -39,7 +40,7 @@
 
 // General utility macros
 #define BITS8_MASK(shift)                   ((uint8_t) (1 << shift))
-#define BITS16_MASK(shift)                  ((uint16_t) (1 << shift))
+#define BITS16_MASK(shift)                  ((uint16_t) (0x0001 << shift))
 #define BITS64_MASK(shift)                  ((uint64_t) (1ULL << shift))
 
 // Chess-specific macros

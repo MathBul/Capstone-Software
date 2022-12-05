@@ -20,8 +20,8 @@
  *   PK4: M0PWM6, sources from pwm3A'
  *   PK5: M0PWM7, sources from pwm3B'
  *
- * @param duty1 an integer 0 - 100
- * @param duty2 an integer 0 - 100
+ * @param duty1 Duty cycle for PK4, an integer [0..100]
+ * @param duty2 Duty cycle for PK5, an integer [0..100]
  */
 void pwm_init(uint8_t duty_pk4, uint8_t duty_pk5)
 {
@@ -29,11 +29,11 @@ void pwm_init(uint8_t duty_pk4, uint8_t duty_pk5)
     SYSCTL->RCGCPWM |= SYSCTL_RCGCPWM_R0;
 
     // Enable the GPIOK clock
-    SYSCTL->RCGCGPIO |= SYSCTL_RCGCGPIO_R9;
+    utils_gpio_clock_enable(PWM_PORT);
 
     // Enable PWM as alternate function on PK4 and PK5
-    gpio_select_alternate_function(GPIOK, GPIO_PIN_4, 6);
-    gpio_select_alternate_function(GPIOK, GPIO_PIN_5, 6);
+    gpio_select_alternate_function(PWM_PORT, PWM_A_PIN, 6);
+    gpio_select_alternate_function(PWM_PORT, PWM_B_PIN, 6);
 
     // Use 120 MHz system clock, divide by 8 for 15 MHz
     PWM0->CC |= (PWM_CC_USEPWM | PWM_CC_PWMDIV_8);

@@ -11,10 +11,8 @@
 #include "gantry.h"
 
 // Private functions
-void gantry_home(void);
-void gantry_reset(void);
-void gantry_kill(void);
-static void gantry_robot_move_piece(chess_file_t initial_file, chess_rank_t initial_rank, chess_file_t final_file, chess_rank_t final_rank, chess_piece_t piece);
+static void gantry_kill(void);
+//void gantry_robot_move_piece(chess_file_t initial_file, chess_rank_t initial_rank, chess_file_t final_file, chess_rank_t final_rank, chess_piece_t piece);
 
 // Stores the board readings, which are read in an interrupt and used in various commands
 uint64_t board_reading_current      = 0;
@@ -49,14 +47,14 @@ void gantry_init(void)
     // System level initialization of all other modules
     chessboard_init();
     command_queue_init();
+    led_init();
     rpi_init();
-    sensornetwork_init();
     stepper_init_motors();
     switch_init();
 
 #ifdef PERIPHERALS_ENABLED
-   electromagnet_init();
-   led_init();
+    sensornetwork_init();
+    electromagnet_init();
 #endif
 
 #ifdef THREE_PARTY_MODE
@@ -134,7 +132,7 @@ void gantry_reset(void)
 /**
  * @brief Hard stops the gantry system. Kills (but does not home) motors, sets sys_fault flag
  */
-void gantry_kill(void)
+static void gantry_kill(void)
 {
     // Disable all motors
     stepper_x_stop();
@@ -187,6 +185,7 @@ gantry_command_t* gantry_human_build_command(void)
  */
 void gantry_human_action(command_t* command)
 {
+#ifdef THREE_PARTY_MODE
     gantry_robot_command_t* p_gantry_command = (gantry_robot_command_t*) command;
 
     char message[9];
@@ -256,6 +255,7 @@ void gantry_human_action(command_t* command)
     message[8] = check_bytes[1];
     rpi_transmit(message, 9);
     human_move_done = true;
+#endif
 }
 
 /**
@@ -457,12 +457,43 @@ void gantry_robot_entry(command_t* command)
 void gantry_robot_action(command_t* command)
 {
     gantry_robot_command_t* p_gantry_command = (gantry_robot_command_t*) command;
-    char message[8];
+    uint8_t status_after_human = 0;
+    uint8_t status_after_robot = 0;
     char move[5];
+
+#ifdef GANTRY_DEBUG
+
+    // Hard-code a message
+    move[0] = 'e';
+    move[1] = '2';
+    move[2] = 'c';
+    move[3] = '6';
+    move[4] = '_';
+
+    // Continue the game
+    status_after_human = GAME_ONGOING;
+    status_after_robot = GAME_ONGOING;
+    human_move_legal = true;
+
+#elif defined(USER_MODE)
+
+    // Read the MOVE bytes
+    msg_status = rpi_receive(move, 5);
+    if (!msg_status)
+    {
+        return;
+    }
+
+    // Continue the game
+    status_after_human = GAME_ONGOING;
+    status_after_robot = GAME_ONGOING;
+    human_move_legal = true;
+
+#else
+
+    char message[8];
     char check_bytes[2];
     bool msg_status = false;
-
-#if defined(FINAL_IMPLEMENTATION_MODE) || defined(THREE_PARTY_MODE)
     // Read the START byte
     msg_status = rpi_receive(&message[0], 1);
     if ((!msg_status) || (message[0] != START_BYTE))
@@ -534,8 +565,10 @@ void gantry_robot_action(command_t* command)
 
     // To reduce the number of transmissions, game_status holds the status after the last human move and (possibly) the resulting robot move
     char game_status = message[7];
-    uint8_t status_after_human = (game_status >> 4);
-    uint8_t status_after_robot = (game_status & 0x0F);
+    status_after_human = (game_status >> 4);
+    status_after_robot = (game_status & 0x0F);
+
+#endif
 
     // Record the UCI move
     p_gantry_command->move_uci[0] = move[0];
@@ -587,34 +620,6 @@ void gantry_robot_action(command_t* command)
         p_gantry_command->move.dest_rank   = utils_byte_to_rank(move[3]);
         p_gantry_command->move.move_type   = utils_byte_to_move_type(move[4]);
     }
-#endif
-
-#ifdef USER_MODE
-    /*
-    * Dev notes:
-    *  RPi could send any of {ROBOT_MOVE, ILLEGAL_MOVE, GAME_STATUS}. Only the first two should be possible here. GAME_STATUS will only be sent in response to a legal move
-    *  Order of operations: (if timeout at any point reset)
-    *   1. Wait for start byte
-    *   2. Once start sequence is received, read the order and assign to variables
-    *   3. Calculate checksum
-    *   4. If checksum passes, send an ack and return the move struct
-    *   4b. If checksum fails, send a bad ack and goto step 1.
-    */
-
-    // Read the MOVE bytes
-    msg_status = rpi_receive(move, 5);
-    if (!msg_status)
-    {
-        return;
-    }
-    // Proceed as usual
-    p_gantry_command->game_status      = ONGOING;
-    p_gantry_command->move.source_file = utils_byte_to_file(move[0]);
-    p_gantry_command->move.source_rank = utils_byte_to_rank(move[1]);
-    p_gantry_command->move.dest_file   = utils_byte_to_file(move[2]);
-    p_gantry_command->move.dest_rank   = utils_byte_to_rank(move[3]);
-    p_gantry_command->move.move_type   = utils_byte_to_move_type(move[4]);
-#endif /* USER_MODE */
 
     robot_is_done = true;
 }
@@ -628,13 +633,13 @@ void gantry_robot_action(command_t* command)
  * @param final_rank The final position rank
  * @param piece The piece being moved
  */
-static void gantry_robot_move_piece(chess_file_t initial_file, chess_rank_t initial_rank, chess_file_t final_file, chess_rank_t final_rank, chess_piece_t piece)
+void gantry_robot_move_piece(chess_file_t initial_file, chess_rank_t initial_rank, chess_file_t final_file, chess_rank_t final_rank, chess_piece_t piece)
 {
     // Check for errors
     if ((initial_file == FILE_ERROR) || (initial_rank == RANK_ERROR) || (final_file == FILE_ERROR) || (final_rank == RANK_ERROR))
     {
         // TODO: Turn on the sys_fault flag? Turn on the error LED? Kill the gantry?
-        gantry_kill();
+//        gantry_kill();
         return;
     }
 
@@ -649,7 +654,7 @@ static void gantry_robot_move_piece(chess_file_t initial_file, chess_rank_t init
     command_queue_push((command_t*) electromagnet_build_command(enabled));
 #else 
     // Temporary wait
-    command_queue_push((command_t*) delay_build_command(1000));
+    command_queue_push((command_t*) delay_build_command(2000));
 #endif
 
     // Raise the magnet
@@ -692,7 +697,9 @@ void gantry_robot_exit(command_t* command)
     }
     
     // Load commands based on the move that the RPi sent
+    chess_move_t rook_move;
     chess_piece_t moving_piece;
+
     switch (p_gantry_command->move.move_type)
     {
         case MOVE:
@@ -773,7 +780,7 @@ void gantry_robot_exit(command_t* command)
             );
 
             // UCI notation gives us the king's move, determine the rook's move
-            chess_move_t rook_move = rpi_castle_get_rook_move(&p_gantry_command->move);
+            rook_move = rpi_castle_get_rook_move(&p_gantry_command->move);
 
             // Move the rook
             moving_piece = ROOK;
@@ -924,7 +931,7 @@ __interrupt void GANTRY_HANDLER(void)
     // If the emergency stop button was pressed, kill everything
     if (switch_data & FUTURE_PROOF_1_MASK)
     {
-        // gantry_kill();
+    //    gantry_kill();
     }
 
     // If a limit switch was pressed, and the system is not homing, kill everything

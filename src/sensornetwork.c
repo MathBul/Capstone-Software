@@ -239,7 +239,7 @@ __interrupt void SENSOR_NETWORK_HANDLER(void)
     clock_clear_interrupt(SENSOR_NETWORK_TIMER);
 
     // Read the sensors into the vport image
-    sensor_vport.image         = sensornetwork_shift_assign();
+//    sensor_vport.image         = sensornetwork_shift_assign();
 
     // Update the sensor transition information
     p_sensors->current_inputs  = sensor_vport.image;

@@ -19,7 +19,7 @@ led_t leds[NUMBER_OF_LEDS];
 static led_t* p_led_error         = &leds[0];
 static led_t* p_led_robot_move    = &leds[1];
 static led_t* p_led_human_move    = &leds[2];
-static led_t* p_led_system_status = &leds[2];
+static led_t* p_led_system_status = &leds[3];
 
 /**
  * @brief Initialize all LEDs
@@ -42,7 +42,7 @@ void led_init(void)
     p_led_human_move->enable_port = RGB_GREEN_PORT;
     p_led_human_move->enable_pin  = RGB_GREEN_PIN;
 
-    // System sttattus LEDs
+    // System status LEDs
     gpio_set_as_output(SIGNAL_LIGHT_PORT, SIGNAL_LIGHT_PIN);
     gpio_set_output_low(SIGNAL_LIGHT_PORT, SIGNAL_LIGHT_PIN);
     p_led_system_status->enable_port = SIGNAL_LIGHT_PORT;

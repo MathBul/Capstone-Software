@@ -76,6 +76,7 @@ void switch_test(uint16_t mask)
 
 /**
  * @brief Shifts all switch-related bits to a local ordering
+ *  Note: FUTURE_PROOF_3 is currently used as LIMIT_X
  * 
  * @return The reassigned value for the switch locally
  */
@@ -87,13 +88,13 @@ static uint16_t switch_shift_assign(void)
     switch_reassigned |= (gpio_read_input(BUTTON_HOME_PORT, BUTTON_HOME_PIN)            << BUTTON_HOME_SHIFT);
     switch_reassigned |= (gpio_read_input(BUTTON_NEXT_TURN_PORT, BUTTON_NEXT_TURN_PIN)  << BUTTON_NEXT_TURN_SHIFT);
     switch_reassigned |= (gpio_read_input(COLOR_PORT, COLOR_PIN)                        << TOGGLE_COLOR_SHIFT);
-    switch_reassigned |= (gpio_read_input(LIMIT_PORT, LIMIT_X_PIN)                      << LIMIT_X_SHIFT);
+    switch_reassigned |= (gpio_read_input(FUTURE_PROOF_PORT, FUTURE_PROOF_3_PIN)        << LIMIT_X_SHIFT);
     switch_reassigned |= (gpio_read_input(LIMIT_PORT, LIMIT_Y_PIN)                      << LIMIT_Y_SHIFT);
     switch_reassigned |= (gpio_read_input(LIMIT_PORT, LIMIT_Z_PIN)                      << LIMIT_Z_SHIFT);
     switch_reassigned |= (gpio_read_input(CAPTURE_PORT, CAPTURE_PIN)                    << SWITCH_CAPTURE_SHIFT);
     switch_reassigned |= (gpio_read_input(FUTURE_PROOF_PORT, FUTURE_PROOF_1_PIN)        << FUTURE_PROOF_1_SHIFT);
     switch_reassigned |= (gpio_read_input(FUTURE_PROOF_PORT, FUTURE_PROOF_2_PIN)        << FUTURE_PROOF_2_SHIFT);
-    switch_reassigned |= (gpio_read_input(FUTURE_PROOF_PORT, FUTURE_PROOF_3_PIN)        << FUTURE_PROOF_3_SHIFT);
+    switch_reassigned |= (gpio_read_input(LIMIT_PORT, LIMIT_X_PIN)                      << FUTURE_PROOF_3_SHIFT);
 
     // Apply an inversion mask to the active-low switches
     return (switch_reassigned ^ SWITCH_MASK);
@@ -110,17 +111,12 @@ __interrupt void SWITCH_HANDLER(void)
     // Read the switches into the vport image so we can model the switches as a physical port with a custom bit ordering
     switch_vport.image          = switch_shift_assign();
 
-    // TODO: Remove this once all limit switches are in play
-    switch_vport.image          = (switch_vport.image & ~(LIMIT_Z_MASK || LIMIT_Y_MASK || LIMIT_X_MASK));
-
     // Update the switch transition information
     p_switches->current_inputs  = switch_vport.image;
     p_switches->edges           = (p_switches->current_inputs ^ p_switches->previous_inputs);
     p_switches->pos_transitions = (p_switches->current_inputs & p_switches->edges);
     p_switches->neg_transitions = ((~p_switches->current_inputs) & p_switches->edges);
     p_switches->previous_inputs = p_switches->current_inputs;
-
-
 }
 
 /* End buttons.c */

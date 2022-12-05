@@ -53,7 +53,7 @@ typedef struct {
 } led_t;
 
 // Public functions
-void leds_init(void);
+void led_init(void);
 void led_on(led_indicator_t indicator);
 void led_off(led_indicator_t indicator);
 void led_all_on(void);

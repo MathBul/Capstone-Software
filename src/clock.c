@@ -61,7 +61,7 @@ void clock_timer0a_init(void)
     TIMER0->IMR  |=  (TIMER_IMR_TATOIM);                    // Set the interrupt mask
 
     // Configure the interrupt in the NVIC
-    utils_set_nvic(TIMER_0A_INTERRUPT_NUM, 1);
+    utils_set_nvic(TIMER_0A_INTERRUPT_NUM, 5);
 }
 
 /**
@@ -80,7 +80,7 @@ void clock_timer1a_init(void)
     TIMER1->IMR  |=  (TIMER_IMR_TATOIM);                    // Set the interrupt mask
 
     // Configure the interrupt in the NVIC
-    utils_set_nvic(TIMER_1A_INTERRUPT_NUM, 1);
+    utils_set_nvic(TIMER_1A_INTERRUPT_NUM, 5);
 }
 
 /**
@@ -99,7 +99,7 @@ void clock_timer2a_init(void)
     TIMER2->IMR  |=  (TIMER_IMR_TATOIM);                    // Set the interrupt mask
 
     // Configure the interrupt in the NVIC
-    utils_set_nvic(TIMER_2A_INTERRUPT_NUM, 1);
+    utils_set_nvic(TIMER_2A_INTERRUPT_NUM, 5);
 }
 
 /**
@@ -137,7 +137,7 @@ void clock_timer4a_init(void)
     TIMER4->IMR  |=  (TIMER_IMR_TATOIM);                    // Set the interrupt mask
 
     // Configure the interrupt in the NVIC
-    utils_set_nvic(TIMER_4A_INTERRUPT_NUM, 1);
+    utils_set_nvic(TIMER_4A_INTERRUPT_NUM, 2);
 }
 
 /**
@@ -156,7 +156,7 @@ void clock_timer5a_init(void)
     TIMER5->IMR  |=  (TIMER_IMR_TATOIM);                    // Set the interrupt mask
 
     // Configure the interrupt in the NVIC
-    utils_set_nvic(TIMER_5A_INTERRUPT_NUM, 1);
+    utils_set_nvic(TIMER_5A_INTERRUPT_NUM, 5);
 }
 
 /**
@@ -175,7 +175,7 @@ void clock_timer6a_init(void)
     TIMER6->IMR  |=  (TIMER_IMR_TATOIM);                    // Set the interrupt mask
 
     // Configure the interrupt in the NVIC
-    utils_set_nvic(TIMER_6A_INTERRUPT_NUM, 1);
+    utils_set_nvic(TIMER_6A_INTERRUPT_NUM, 3);
 }
 
 /**
@@ -194,7 +194,7 @@ void clock_timer7c_init(void)
     TIMER7->IMR  |=  (TIMER_IMR_TATOIM);                    // Set the interrupt mask
 
     // Configure the interrupt in the NVIC
-    utils_set_nvic(TIMER_7C_INTERRUPT_NUM, 1);
+    utils_set_nvic(TIMER_7C_INTERRUPT_NUM, 5);
 }
 
 /**
