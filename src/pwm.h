@@ -15,8 +15,14 @@
 #include "msp.h"
 #include "gpio.h"
 
+#define PWM_CLOCK_FREQ   15000000
+#define PWM_FREQ         10000
+#define PWM_LOAD_VAL     1499
+
 // Function declarations
-void pwm_init(void);
+void pwm_init(uint8_t duty_pk4, uint8_t duty_pk5);
+void pwm_set_duty_pk4(uint8_t duty);
+void pwm_set_duty_pk5(uint8_t duty);
 
 
 #endif /* PWM_H_ */
