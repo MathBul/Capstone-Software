@@ -61,7 +61,7 @@
 extern bool sys_fault;
 
 // Gantry command structs
-typedef struct gantry_command_t {
+typedef struct gantry_command_t { // WHY DOES THIS EXIST?!?!?!
     command_t command;
 } gantry_command_t;
 

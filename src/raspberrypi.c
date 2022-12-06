@@ -78,16 +78,15 @@ static void rpi_checksum(char *data, uint8_t size)
  */
 bool rpi_transmit_reset(void)
 {
-    uint8_t msg_length = 4;
-    char message[msg_length];
+    char message[RESET_INSTR_LENGTH];
 
     // Build the message
     message[0] = START_BYTE;
     message[1] = RESET_INSTR_AND_LEN;
-    rpi_checksum(message, msg_length-2);
+    rpi_checksum(message, RESET_INSTR_LENGTH-2);
 
     // Transmit
-    return rpi_transmit(message, msg_length);
+    return rpi_transmit(message, RESET_INSTR_LENGTH);
 }
 
 /**
@@ -98,8 +97,7 @@ bool rpi_transmit_reset(void)
  */
 bool rpi_transmit_start(char color)
 {
-    uint8_t msg_length = 4;
-    char message[msg_length];
+    char message[START_INSTR_LENGTH];
 
     // Build the message
     message[0] = START_BYTE;
@@ -108,10 +106,10 @@ bool rpi_transmit_start(char color)
     {
         message[1] = START_B_INSTR_AND_LEN;
     }
-    rpi_checksum(message, msg_length-2);
+    rpi_checksum(message, START_INSTR_LENGTH-2);
 
     // Transmit
-    return rpi_transmit(message, msg_length);
+    return rpi_transmit(message, START_INSTR_LENGTH);
 }
 
 /**
@@ -122,8 +120,7 @@ bool rpi_transmit_start(char color)
  */
 bool rpi_transmit_human_move(char move[5])
 {
-    uint8_t msg_length = 9;
-    char message[msg_length];
+    char message[HUMAN_MOVE_INSTR_LENGTH];
 
     // Build the message
     message[0] = START_BYTE;
@@ -133,10 +130,10 @@ bool rpi_transmit_human_move(char move[5])
     message[4] = move[2];
     message[5] = move[3];
     message[6] = move[4];
-    rpi_checksum(message, msg_length-2);
+    rpi_checksum(message, HUMAN_MOVE_INSTR_LENGTH-2);
 
     // Transmit
-    return rpi_transmit(message, msg_length);
+    return rpi_transmit(message, HUMAN_MOVE_INSTR_LENGTH);
 }
 
 /**

@@ -45,13 +45,14 @@ void gantry_init(void)
     clock_start_timer(GANTRY_TIMER);
 
     // System level initialization of all other modules
-    chessboard_init();
     command_queue_init();
     led_init();
     rpi_init();
+#ifdef FINAL_IMPLEMENTATION_MODE
+    chessboard_init();
     stepper_init_motors();
     switch_init();
-
+#endif
 #ifdef PERIPHERALS_ENABLED
     sensornetwork_init();
     electromagnet_init();
@@ -126,6 +127,10 @@ void gantry_reset(void)
 
 #elif defined(THREE_PARTY_MODE)
     uart_reset(USER_CHANNEL);
+    // User is always white, start in gantry_human
+    char user_color = 'W';
+    rpi_transmit_start(user_color);
+    command_queue_push((command_t*) gantry_human_build_command());
 #endif
 }
 
@@ -186,7 +191,7 @@ gantry_command_t* gantry_human_build_command(void)
 void gantry_human_action(command_t* command)
 {
 #ifdef THREE_PARTY_MODE
-    gantry_robot_command_t* p_gantry_command = (gantry_robot_command_t*) command;
+    gantry_robot_command_t* p_gantry_command = (gantry_robot_command_t*) command; // WHY IS THIS A ROBOT COMMAND!?!?!
 
     char message[9];
     char move[5];
@@ -294,10 +299,10 @@ void gantry_human_exit(command_t* command)
     }
 
 #elif defined(THREE_PARTY_MODE)
-    gantry_command_t* p_gantry_command = (gantry_command_t*) command;
+    gantry_robot_command_t* p_gantry_command = (gantry_robot_command_t*) command;
 
     // Place the gantry_comm command on the queue to send the message
-    command_queue_push((command_t*) gantry_comm_build_command(p_gantry_command->move_to_send));
+    command_queue_push((command_t*) gantry_comm_build_command(p_gantry_command->move_uci));
     msg_ready_to_send = true;
 #endif
 

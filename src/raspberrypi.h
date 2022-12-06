@@ -68,6 +68,11 @@
 #define GAME_CHECKMATE                      (0x02)
 #define GAME_STALEMATE                      (0x03)
 
+// Misc
+#define START_INSTR_LENGTH                   (4)
+#define RESET_INSTR_LENGTH                   (4)
+#define HUMAN_MOVE_INSTR_LENGTH              (9)
+
 // Information from the PI for making a chess move
 // Use '\0' for undefined file and 0 for undefined rank
 typedef struct chess_move_t {

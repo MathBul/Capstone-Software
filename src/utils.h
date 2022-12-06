@@ -14,13 +14,13 @@
 // Debug mode select
 //#define UART_DEBUG
 //#define PERIPHERALS_ENABLED
-#define GANTRY_DEBUG
+//#define GANTRY_DEBUG
 //#define STEPPER_DEBUG
 
 // Game mode select (define at most one at a time)
 //#define USER_MODE                 // User, through UART0 terminal, sends moves to MSP directly
-//#define THREE_PARTY_MODE          // User sends moves to MSP, which sends moves to RPi, which sends moves back
-#define FINAL_IMPLEMENTATION_MODE // Ideally, final implementation w/board reading
+#define THREE_PARTY_MODE          // User sends moves to MSP, which sends moves to RPi, which sends moves back
+//#define FINAL_IMPLEMENTATION_MODE // Ideally, final implementation w/board reading
 
 
 // Notes on vports: 
