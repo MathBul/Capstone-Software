@@ -48,11 +48,9 @@ void gantry_init(void)
     command_queue_init();
     led_init();
     rpi_init();
-#ifdef FINAL_IMPLEMENTATION_MODE
     chessboard_init();
     stepper_init_motors();
     switch_init();
-#endif
 #ifdef PERIPHERALS_ENABLED
     sensornetwork_init();
     electromagnet_init();

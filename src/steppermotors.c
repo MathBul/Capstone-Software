@@ -150,6 +150,16 @@ void stepper_init_motors(void)
 
     /* Common Stepper GPIO */
     // Configure all motors for 1/8 stepping
+
+    // Set all as output
+    gpio_set_as_output(STEPPER_XY_MS2_PORT, STEPPER_XY_MS2_PIN);
+    gpio_set_as_output(STEPPER_XY_MS1_PORT, STEPPER_XY_MS1_PIN);
+    gpio_set_as_output(STEPPER_XY_MS0_PORT, STEPPER_XY_MS0_PIN);
+    gpio_set_as_output(STEPPER_Z_MS2_PORT, STEPPER_Z_MS2_PIN);
+    gpio_set_as_output(STEPPER_Z_MS1_PORT, STEPPER_Z_MS1_PIN);
+    gpio_set_as_output(STEPPER_Z_MS0_PORT, STEPPER_Z_MS0_PIN);
+
+    // Set the desired combo
     stepper_set_microstep(MICROSTEP_LEVEL);
 
     // Disable the common reset/sleep
