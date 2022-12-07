@@ -116,7 +116,7 @@ void gpio_select_alternate_function(GPIO_Type* port, uint8_t pin, uint8_t multip
 {
     port->AFSEL |= pin;
     uint8_t lsb_shift = utils_bits8_get_lsb_shift(pin);
-    port->PCTL  |= (multiplex_val << (lsb_shift << 2));
+    port->PCTL  |= (multiplex_val << (lsb_shift << 2)); // Shifts the desired value into the pin's lsb * 4
 }
 
 /* End gpio.c */

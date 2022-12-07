@@ -18,6 +18,15 @@ int main(void)
     gantry_init();
 
     // Add commands to the queue
+#ifdef E_MAG_DEBUG
+    electromagnet_init();
+
+    electromagnet_repel();
+
+    // No exiting main
+    while(1){}
+
+#else
 #ifdef UART_DEBUG
     while (1)
     {
@@ -74,6 +83,7 @@ int main(void)
             free(p_current_command);
         }
     }
+#endif // End E_MAG_DEBUG
 }
 
 /* End main.c */

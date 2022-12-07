@@ -14,6 +14,7 @@
 #include "msp.h"
 #include "command_queue.h"
 #include "pwm.h"
+#include "utils.h"
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -37,5 +38,11 @@ void electromagnet_init(void);
 electromagnet_command_t* electromagnet_build_command(peripheral_state_t desired_state);
 void electromagnet_entry(command_t* command);
 bool electromagnet_is_done(command_t* command);
+
+#ifdef E_MAG_DEBUG
+void electromagnet_attract(void);
+void electromagnet_repel(void);
+void electromagnet_disengage(void);
+#endif
 
 #endif /* ELECTROMAGNET_H_ */
