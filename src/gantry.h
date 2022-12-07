@@ -74,7 +74,8 @@ typedef struct gantry_robot_command_t {
 
 typedef struct gantry_comm_command_t {
     command_t command;
-    char move_to_send[5];           // The human's move in UCI notation
+    char message[16];           // The message
+    uint8_t message_length;     // Length of the message
 } gantry_comm_command_t;
 
 // Public functions
@@ -91,7 +92,7 @@ void gantry_human_exit(command_t* command);
 bool gantry_human_is_done(command_t* command);
 
 // Command Functions (sending the user's move, verifying transmission)
-gantry_comm_command_t* gantry_comm_build_command(char move[5]);
+gantry_comm_command_t* gantry_comm_build_command(char* message, uint8_t message_length);
 void gantry_comm_entry(command_t* command);
 void gantry_comm_action(command_t* command);
 void gantry_comm_exit(command_t* command);

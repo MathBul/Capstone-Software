@@ -72,33 +72,29 @@ static void rpi_checksum(char *data, uint8_t size)
 }
 
 /**
- * @brief Send a RESET instruction from the MSP432 to the Raspberry Pi
+ * @brief Builds a RESET instruction from the MSP432 to the Raspberry Pi
  *
- * @return Whether the transmission was successful
+ * @return Pointer to the message
  */
-bool rpi_transmit_reset(void)
+char* rpi_build_reset_msg(char message[RESET_INSTR_LENGTH])
 {
-    char message[RESET_INSTR_LENGTH];
-
     // Build the message
     message[0] = START_BYTE;
     message[1] = RESET_INSTR_AND_LEN;
     rpi_checksum(message, RESET_INSTR_LENGTH-2);
 
     // Transmit
-    return rpi_transmit(message, RESET_INSTR_LENGTH);
+    return message;
 }
 
 /**
- * @brief Send a START_W or START_B instruction from the MSP432 to the Raspberry Pi
+ * @brief Builds a START_W or START_B instruction from the MSP432 to the Raspberry Pi
  * 
  * @param color The color the human player is playing as
- * @return Whether the transmission was successful
+ * @return Pointer to the message
  */
-bool rpi_transmit_start(char color)
+char* rpi_build_start_msg(char color, char message[START_INSTR_LENGTH])
 {
-    char message[START_INSTR_LENGTH];
-
     // Build the message
     message[0] = START_BYTE;
     message[1] = START_W_INSTR_AND_LEN;
@@ -108,22 +104,19 @@ bool rpi_transmit_start(char color)
     }
     rpi_checksum(message, START_INSTR_LENGTH-2);
 
-    // Transmit
-    return rpi_transmit(message, START_INSTR_LENGTH);
+    return message;
 }
 
 
 
 /**
- * @brief Send a HUMAN_MOVE instruction from the MSP432 to the Raspberry Pi
+ * @brief Builds a HUMAN_MOVE instruction from the MSP432 to the Raspberry Pi
  * 
  * @param move A 4-5 character array containing the human's move in UCI notation, padded with '_'
- * @return Whether the transmission was successful
+ * @return Pointer to the message
  */
-bool rpi_transmit_human_move(char move[5])
+bool rpi_build_human_move_msg(char move[5], char message[HUMAN_MOVE_INSTR_LENGTH])
 {
-    char message[HUMAN_MOVE_INSTR_LENGTH];
-
     // Build the message
     message[0] = START_BYTE;
     message[1] = HUMAN_MOVE_INSTR_AND_LEN;
@@ -134,8 +127,7 @@ bool rpi_transmit_human_move(char move[5])
     message[6] = move[4];
     rpi_checksum(message, HUMAN_MOVE_INSTR_LENGTH-2);
 
-    // Transmit
-    return rpi_transmit(message, HUMAN_MOVE_INSTR_LENGTH);
+    return message;
 }
 
 /**

@@ -97,7 +97,7 @@ void gantry_reset(void)
     command_queue_clear();
 
     // Home the motors
-    //gantry_home();
+    gantry_home();
 
     // Reset the chess board
     chessboard_reset_all();
@@ -114,21 +114,34 @@ void gantry_reset(void)
     {
         // User is black, start in gantry_robot
         user_color = 'B';
-        rpi_transmit_start(user_color);
+
+        char message[START_INSTR_LENGTH];
+        rpi_build_start_msg(user_color, message);
+        command_queue_push((command_t*) gantry_comm_build_command(message, START_INSTR_LENGTH));
+
         command_queue_push((command_t*) gantry_robot_build_command());
     } else {
         // User is white, start in gantry_human
         user_color = 'W';
-        rpi_transmit_start(user_color);
+
+        char message[START_INSTR_LENGTH];
+        rpi_build_start_msg(user_color, message);
+        command_queue_push((command_t*) gantry_comm_build_command(message, START_INSTR_LENGTH));
+
         command_queue_push((command_t*) gantry_human_build_command());
     }
 
 #elif defined(THREE_PARTY_MODE)
     uart_reset(USER_CHANNEL);
+
     // User is always white, start in gantry_human
     char user_color = 'W';
-    command_queue_push((command_t*) gantry_comm_build_command()());
-    rpi_transmit_start(user_color);
+
+    char message[START_INSTR_LENGTH];
+    rpi_build_start_msg(user_color, message);
+    command_queue_push((command_t*) gantry_comm_build_command(message, START_INSTR_LENGTH));
+
+    // After receiving an ACK, goto human command
     command_queue_push((command_t*) gantry_human_build_command());
 #endif
 }
@@ -170,9 +183,10 @@ gantry_command_t* gantry_human_build_command(void)
     gantry_command_t* p_command = (gantry_command_t*) malloc(sizeof(gantry_command_t));
 
     p_command->command.p_entry   = &utils_empty_function;
-    p_command->command.p_action  = &utils_empty_function;
+    p_command->command.p_action  = &gantry_human_action;
     p_command->command.p_exit    = &gantry_human_exit;
     p_command->command.p_is_done = &gantry_human_is_done;
+
 #elif defined(THREE_PARTY_MODE)
     // The thing to return
     gantry_robot_command_t* p_command = (gantry_robot_command_t*) malloc(sizeof(gantry_robot_command_t));
@@ -202,12 +216,16 @@ gantry_command_t* gantry_human_build_command(void)
 }
 
 /*
- * @brief Reads the move the human has made until the human hits the "end turn" button. Only used in three-party mode
+ * @brief Reads the move the human has made until the human hits the "end turn" button
  *
  * @param command The gantry command being run
  */
 void gantry_human_action(command_t* command)
 {
+    // Set the human moving LED
+    led_all_off();
+    led_on(led_human_move);
+
 #ifdef THREE_PARTY_MODE
     gantry_robot_command_t* p_gantry_command = (gantry_robot_command_t*) command; // WHY IS THIS A ROBOT COMMAND!?!?!
 
@@ -311,7 +329,11 @@ void gantry_human_exit(command_t* command)
     if (human_move_legal)
     {
         // Place the gantry_comm command on the queue to send the message
-        command_queue_push((command_t*) gantry_comm_build_command(move));
+        char message[HUMAN_MOVE_INSTR_LENGTH];
+        rpi_build_human_move_msg(move, message);
+        command_queue_push((command_t*) gantry_comm_build_command(message, HUMAN_MOVE_INSTR_LENGTH));
+        command_queue_push((command_t*) gantry_robot_build_command());
+
         msg_ready_to_send = true;
     }
     else
@@ -327,8 +349,16 @@ void gantry_human_exit(command_t* command)
 #elif defined(THREE_PARTY_MODE)
     gantry_robot_command_t* p_gantry_command = (gantry_robot_command_t*) command;
 
+    // Update the local board state
+    chessboard_update_previous_board_from_move(p_gantry_command->move_uci);
+
     // Place the gantry_comm command on the queue to send the message
-    command_queue_push((command_t*) gantry_comm_build_command(p_gantry_command->move_uci));
+    char message[HUMAN_MOVE_INSTR_LENGTH];
+    rpi_build_human_move_msg(p_gantry_command->move_uci, message);
+    command_queue_push((command_t*) gantry_comm_build_command(message, HUMAN_MOVE_INSTR_LENGTH));
+    command_queue_push((command_t*) gantry_robot_build_command());
+
+    human_move_legal = true;
     msg_ready_to_send = true;
 #endif
 
@@ -355,7 +385,7 @@ bool gantry_human_is_done(command_t* command)
  *
  * @returns Pointer to the dynamically-allocated command
  */
-gantry_comm_command_t* gantry_comm_build_command(char move[5])
+gantry_comm_command_t* gantry_comm_build_command(char* message, uint8_t message_length)
 {
     // The thing to return
     gantry_comm_command_t* p_command = (gantry_comm_command_t*) malloc(sizeof(gantry_comm_command_t));
@@ -367,17 +397,18 @@ gantry_comm_command_t* gantry_comm_build_command(char move[5])
     p_command->command.p_is_done = &gantry_comm_is_done;
 
     // The move to be sent
-    p_command->move_to_send[0] = move[0];
-    p_command->move_to_send[1] = move[1];
-    p_command->move_to_send[2] = move[2];
-    p_command->move_to_send[3] = move[3];
-    p_command->move_to_send[4] = move[4];
+    uint8_t i = 0;
+    for (i = 0; i < message_length; i++)
+    {
+        p_command->message[i] = message[i];
+    }
+    p_command->message_length = message_length;
 
     return p_command;
 }
 
 /*
- * @brief Sends the supplied move (every 5 seconds) until an ACK is received from the RPi
+ * @brief Sends the supplied message (every 5 seconds) until an ACK is received from the RPi
  *
  * @param command The gantry command being run
  */
@@ -388,8 +419,8 @@ void gantry_comm_action(command_t* command)
     // Message is ready for first try and every 5 seconds after
     if (msg_ready_to_send)
     {
-        // Send the human move
-        rpi_transmit_human_move(p_gantry_command->move_to_send);
+        // Send the message
+        rpi_transmit(p_gantry_command->message, p_gantry_command->message_length);
 
         // Do not resend the message until the interrupt sets send_msg
         msg_ready_to_send = false;
@@ -409,9 +440,6 @@ void gantry_comm_exit(command_t* command)
     // Stop and reset the timer
     clock_stop_timer(COMM_TIMER);
     clock_reset_timer_value(COMM_TIMER);
-
-    // The communication was verified, so push a robot command onto the queue
-    command_queue_push((command_t*) gantry_robot_build_command());
 }
 
 /**
@@ -531,6 +559,10 @@ void gantry_robot_action(command_t* command)
     char message[8];
     char check_bytes[2];
     bool msg_status = false;
+
+    // TODO: Remove
+    utils_delay(1000000);
+
     // Read the START byte
     msg_status = rpi_receive(&message[0], 1);
     if ((!msg_status) || (message[0] != START_BYTE))
@@ -731,6 +763,7 @@ void gantry_robot_exit(command_t* command)
         led_all_off();
         led_on(led_error);
         command_queue_push((command_t*) gantry_human_build_command());
+        return;
     }
     
     // Load commands based on the move that the RPi sent
@@ -875,10 +908,6 @@ void gantry_robot_exit(command_t* command)
     {
         case ONGOING:
             command_queue_push((command_t*) gantry_human_build_command());
-        
-            // Set the human moving LED
-            led_all_off();
-            led_on(led_human_move);
         break;
 
         case HUMAN_WIN:

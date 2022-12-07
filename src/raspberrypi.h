@@ -97,9 +97,9 @@ bool rpi_receive(char *data, uint8_t size);
 void rpi_reset_uart(void);
 
 // Raspberry Pi instruction functions
-bool rpi_transmit_reset(void);
-bool rpi_transmit_start(char color);
-bool rpi_transmit_human_move(char *move);
+char* rpi_build_reset_msg(char message[RESET_INSTR_LENGTH]);
+char* rpi_build_start_msg(char color, char message[START_INSTR_LENGTH]);
+bool rpi_build_human_move_msg(char move[5], char message[HUMAN_MOVE_INSTR_LENGTH]);
 bool rpi_transmit_ack(void);
 chess_move_t rpi_castle_get_rook_move(chess_move_t *king_move);
 
