@@ -456,7 +456,7 @@ bool uart_read_string(uint8_t uart_channel, char *data, uint8_t size)
 
     // Read one byte at a time
     uint8_t i = 0;
-    for (i = 0; (i < size) && (status) && (data[i] != '\0'); i++)
+    for (i = 0; (i < size) && (status); i++)
     {
         status &= uart_read_byte(uart_channel, (uint8_t*) &data[i]);
     }

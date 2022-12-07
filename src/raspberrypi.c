@@ -112,6 +112,8 @@ bool rpi_transmit_start(char color)
     return rpi_transmit(message, START_INSTR_LENGTH);
 }
 
+
+
 /**
  * @brief Send a HUMAN_MOVE instruction from the MSP432 to the Raspberry Pi
  * 

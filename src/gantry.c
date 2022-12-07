@@ -127,6 +127,7 @@ void gantry_reset(void)
     uart_reset(USER_CHANNEL);
     // User is always white, start in gantry_human
     char user_color = 'W';
+    command_queue_push((command_t*) gantry_comm_build_command()());
     rpi_transmit_start(user_color);
     command_queue_push((command_t*) gantry_human_build_command());
 #endif
@@ -225,7 +226,7 @@ void gantry_human_action(command_t* command)
     // Read the INSTRUCTION byte
     msg_status = uart_read_byte(USER_CHANNEL, (uint8_t*) &message[1]);
     uint8_t instruction = message[1] >> 4;                          // Shift to remove the LENGTH portion from this section of this message
-    if ((!msg_status) || (instruction != ROBOT_MOVE_INSTR))
+    if ((!msg_status) || (instruction != HUMAN_MOVE_INSTR))
     {
         // If the RPi responded "illegal move", receive the rest of the message, then short circuit to robot_is_done
         if (instruction == ILLEGAL_MOVE_INSTR)
@@ -327,11 +328,8 @@ void gantry_human_exit(command_t* command)
     gantry_robot_command_t* p_gantry_command = (gantry_robot_command_t*) command;
 
     // Place the gantry_comm command on the queue to send the message
-    if (human_move_legal)
-    {
-        command_queue_push((command_t*) gantry_comm_build_command(p_gantry_command->move_uci));
-        msg_ready_to_send = true;
-    }
+    command_queue_push((command_t*) gantry_comm_build_command(p_gantry_command->move_uci));
+    msg_ready_to_send = true;
 #endif
 
     // Reset the flags
