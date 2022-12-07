@@ -31,7 +31,7 @@ void electromagnet_attract(void)
 {
     // IN1=OFF, IN2=ON
     pwm_set_duty_pk4(0);
-    pwm_set_duty_pk5(30);
+    pwm_set_duty_pk5(E_MAG_DUTY_CYCLE);
 }
 
 /**
@@ -40,7 +40,7 @@ void electromagnet_attract(void)
 void electromagnet_repel(void)
 {
     // IN1=ON, IN2=OFF
-    pwm_set_duty_pk4(30);
+    pwm_set_duty_pk4(E_MAG_DUTY_CYCLE);
     pwm_set_duty_pk5(0);
 }
 

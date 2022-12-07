@@ -77,7 +77,14 @@ void pwm_init(uint8_t duty_pk4, uint8_t duty_pk5)
  */
 void pwm_set_duty_pk4(uint8_t duty)
 {
-    PWM0->_3_CMPA = (uint32_t) (PWM_LOAD_VAL*(100 - duty))/100;
+    if (duty == 0)
+    {
+        PWM0->_3_CMPA = PWM_LOAD_VAL-1;
+    }
+    else
+    {
+        PWM0->_3_CMPA = (uint32_t) (PWM_LOAD_VAL*(100 - duty))/100;
+    }
 }
 
 /*
@@ -87,5 +94,12 @@ void pwm_set_duty_pk4(uint8_t duty)
  */
 void pwm_set_duty_pk5(uint8_t duty)
 {
-    PWM0->_3_CMPB = (uint32_t) (PWM_LOAD_VAL*(100 - duty))/100;
+    if (duty == 0)
+    {
+        PWM0->_3_CMPB = PWM_LOAD_VAL-1;
+    }
+    else
+    {
+        PWM0->_3_CMPB = (uint32_t) (PWM_LOAD_VAL*(100 - duty))/100;
+    }
 }
