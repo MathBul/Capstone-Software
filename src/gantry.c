@@ -97,7 +97,7 @@ void gantry_reset(void)
     command_queue_clear();
 
     // Home the motors
-    gantry_home();
+    //gantry_home();
 
     // Reset the chess board
     chessboard_reset_all();
@@ -162,23 +162,42 @@ static void gantry_kill(void)
  */
 gantry_command_t* gantry_human_build_command(void)
 {
-    // The thing to return
-    gantry_command_t* p_command = (gantry_command_t*) malloc(sizeof(gantry_command_t));
 
     // Functions
 #ifdef FINAL_IMPLEMENTATION_MODE
+    // The thing to return
+    gantry_command_t* p_command = (gantry_command_t*) malloc(sizeof(gantry_command_t));
+
     p_command->command.p_entry   = &utils_empty_function;
     p_command->command.p_action  = &utils_empty_function;
     p_command->command.p_exit    = &gantry_human_exit;
     p_command->command.p_is_done = &gantry_human_is_done;
 #elif defined(THREE_PARTY_MODE)
+    // The thing to return
+    gantry_robot_command_t* p_command = (gantry_robot_command_t*) malloc(sizeof(gantry_robot_command_t));
+
+    // Functions
     p_command->command.p_entry   = &utils_empty_function;
     p_command->command.p_action  = &gantry_human_action;
     p_command->command.p_exit    = &gantry_human_exit;
     p_command->command.p_is_done = &gantry_human_is_done;
+
+    // Data
+    p_command->move.source_file = FILE_ERROR;
+    p_command->move.source_rank = RANK_ERROR;
+    p_command->move.dest_file   = FILE_ERROR;
+    p_command->move.dest_rank   = RANK_ERROR;
+    p_command->move.move_type   = IDLE;
+    p_command->game_status      = ONGOING;
+
+    p_command->move_uci[0] = 0;
+    p_command->move_uci[1] = 0;
+    p_command->move_uci[2] = 0;
+    p_command->move_uci[3] = 0;
+    p_command->move_uci[4] = 0;
 #endif
 
-    return p_command;
+    return (gantry_command_t*) p_command;
 }
 
 /*
@@ -256,7 +275,15 @@ void gantry_human_action(command_t* command)
     // At this point, the full message was received properly. Copy the check bytes and transmit to the RPi    
     message[7] = check_bytes[0];
     message[8] = check_bytes[1];
-    rpi_transmit(message, 9);
+
+    // Store the UCI for the Comm command
+    p_gantry_command->move_uci[0] = move[0];
+    p_gantry_command->move_uci[1] = move[1];
+    p_gantry_command->move_uci[2] = move[2];
+    p_gantry_command->move_uci[3] = move[3];
+    p_gantry_command->move_uci[4] = move[4];
+
+    // Move to exit
     human_move_done = true;
 #endif
 }
@@ -300,8 +327,11 @@ void gantry_human_exit(command_t* command)
     gantry_robot_command_t* p_gantry_command = (gantry_robot_command_t*) command;
 
     // Place the gantry_comm command on the queue to send the message
-    command_queue_push((command_t*) gantry_comm_build_command(p_gantry_command->move_uci));
-    msg_ready_to_send = true;
+    if (human_move_legal)
+    {
+        command_queue_push((command_t*) gantry_comm_build_command(p_gantry_command->move_uci));
+        msg_ready_to_send = true;
+    }
 #endif
 
     // Reset the flags
@@ -426,6 +456,12 @@ gantry_robot_command_t* gantry_robot_build_command(void)
     p_command->move.dest_rank   = RANK_ERROR;
     p_command->move.move_type   = IDLE;
     p_command->game_status      = ONGOING;
+
+    p_command->move_uci[0] = 0;
+    p_command->move_uci[1] = 0;
+    p_command->move_uci[2] = 0;
+    p_command->move_uci[3] = 0;
+    p_command->move_uci[4] = 0;
 
     return p_command;
 }
