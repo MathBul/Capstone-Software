@@ -391,7 +391,7 @@ gantry_comm_command_t* gantry_comm_build_command(char* message, uint8_t message_
     gantry_comm_command_t* p_command = (gantry_comm_command_t*) malloc(sizeof(gantry_comm_command_t));
 
     // Functions
-    p_command->command.p_entry   = &utils_empty_function;
+    p_command->command.p_entry   = &gantry_comm_entry;
     p_command->command.p_action  = &gantry_comm_action;
     p_command->command.p_exit    = &gantry_comm_exit;
     p_command->command.p_is_done = &gantry_comm_is_done;
@@ -405,6 +405,25 @@ gantry_comm_command_t* gantry_comm_build_command(char* message, uint8_t message_
     p_command->message_length = message_length;
 
     return p_command;
+}
+
+/*
+ * @brief Sends the supplied message once to guarantee it sends
+ *
+ * @param command The gantry command being run
+ */
+void gantry_comm_entry(command_t* command)
+{
+    gantry_comm_command_t* p_gantry_command = (gantry_comm_command_t*) command;
+
+    // Send the message
+    rpi_transmit(p_gantry_command->message, p_gantry_command->message_length);
+
+    // Do not resend the message until the interrupt sets send_msg
+    msg_ready_to_send = false;
+
+    // Start the timer
+    clock_start_timer(COMM_TIMER);
 }
 
 /*
@@ -559,9 +578,6 @@ void gantry_robot_action(command_t* command)
     char message[8];
     char check_bytes[2];
     bool msg_status = false;
-
-    // TODO: Remove
-    utils_delay(1000000);
 
     // Read the START byte
     msg_status = rpi_receive(&message[0], 1);
@@ -721,13 +737,16 @@ void gantry_robot_move_piece(chess_file_t initial_file, chess_rank_t initial_ran
 #ifdef PERIPHERALS_ENABLED
     // Engage the magnet
     command_queue_push((command_t*) electromagnet_build_command(enabled));
+
+    // Wait
+    command_queue_push((command_t*) delay_build_command(3000));
 #else 
     // Temporary wait
     command_queue_push((command_t*) delay_build_command(2000));
 #endif
 
     // Raise the magnet
-    command_queue_push((command_t*) stepper_build_chess_z_command(-piece, MOTORS_MOVE_V_Z));
+    command_queue_push((command_t*) stepper_build_chess_z_command(HOME_PIECE, MOTORS_MOVE_V_Z));
 
     // Go to the destination tile
     command_queue_push((command_t*) stepper_build_chess_xy_command(final_file, final_rank, MOTORS_MOVE_V_X, MOTORS_MOVE_V_Y));
@@ -738,13 +757,16 @@ void gantry_robot_move_piece(chess_file_t initial_file, chess_rank_t initial_ran
 #ifdef PERIPHERALS_ENABLED
     // Disengage the magnet
     command_queue_push((command_t*) electromagnet_build_command(disabled));
+
+    // Wait
+    command_queue_push((command_t*) delay_build_command(3000));
 #else 
     // Temporary wait
     command_queue_push((command_t*) delay_build_command(1000));
 #endif
 
     // Raise the magnet
-    command_queue_push((command_t*) stepper_build_chess_z_command(-piece, MOTORS_MOVE_V_Z));
+    command_queue_push((command_t*) stepper_build_chess_z_command(HOME_PIECE, MOTORS_MOVE_V_Z));
 }
 
 /**

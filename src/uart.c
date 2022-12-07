@@ -206,7 +206,7 @@ void uart3_init(void)
     // Disable the UART module
     UART3->CTL &= ~UART_CTL_UARTEN;
 
-    // Configure baude rate to be 9600 bits/sec
+    // Configure baud rate to be 9600 bits/sec
     UART3->IBRD |= (UART3_DIVINT  << UART_IBRD_DIVINT_S);        // Sets DIVINT to 104
     UART3->FBRD |= (UART3_DIVFRAC << UART_FBRD_DIVFRAC_S);       // Sets DIVFRAC to 11
     UART3->LCRH |= (UART_LCRH_FEN);                              // Enables the hardware FIFOs
@@ -410,34 +410,44 @@ bool uart_read_byte(uint8_t uart_channel, uint8_t* byte)
 {
     bool status = false;
 
-    // Read the appropriate channel
-    switch (uart_channel)
+    // Short circuits if a fault occurs
+    if (sys_fault)
     {
-        case UART_CHANNEL_0:
-            status = fifo8_pop(uart_0_rx, byte);
-        break;
-
-        case UART_CHANNEL_1:
-            status = fifo8_pop(uart_1_rx, byte);
-        break;
-
-        case UART_CHANNEL_2:
-            status = fifo8_pop(uart_2_rx, byte);
-        break;
-
-        case UART_CHANNEL_3:
-            status = fifo8_pop(uart_3_rx, byte);
-        break;
-
-        case UART_CHANNEL_6:
-            status = fifo8_pop(uart_6_rx, byte);
-        break;
-
-        default:
-            // Invalid channel provided, do nothing
-            status = false;
-        break;
+        return false;
     }
+
+    // Read the appropriate channel
+    while (!status)
+    {
+        switch (uart_channel)
+        {
+            case UART_CHANNEL_0:
+                status = fifo8_pop(uart_0_rx, byte);
+            break;
+
+            case UART_CHANNEL_1:
+                status = fifo8_pop(uart_1_rx, byte);
+            break;
+
+            case UART_CHANNEL_2:
+                status = fifo8_pop(uart_2_rx, byte);
+            break;
+
+            case UART_CHANNEL_3:
+                status = fifo8_pop(uart_3_rx, byte);
+            break;
+
+            case UART_CHANNEL_6:
+                status = fifo8_pop(uart_6_rx, byte);
+            break;
+
+            default:
+                // Invalid channel provided, do nothing
+                status = false;
+            break;
+        }
+    }
+
 
     return status;
 }

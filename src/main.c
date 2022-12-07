@@ -19,9 +19,8 @@ int main(void)
 
     // Add commands to the queue
 #ifdef E_MAG_DEBUG
-    electromagnet_init();
-
-    electromagnet_repel();
+    gpio_set_as_output(GPIOL, GPIO_PIN_2);
+    gpio_set_output_high(GPIOL, GPIO_PIN_2);
 
     // No exiting main
     while(1){}

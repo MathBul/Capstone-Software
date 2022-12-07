@@ -18,7 +18,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#define E_MAG_DUTY_CYCLE        (10)
+#define E_MAG_DUTY_CYCLE        (65)
 
 // Input mode table:
 //  IN2 | IN1

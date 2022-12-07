@@ -13,10 +13,10 @@
 
 // Debug mode select
 //#define UART_DEBUG
-//#define PERIPHERALS_ENABLED
+#define PERIPHERALS_ENABLED
 //#define GANTRY_DEBUG
 //#define STEPPER_DEBUG
-#define E_MAG_DEBUG
+//#define E_MAG_DEBUG
 
 // Game mode select (define at most one at a time)
 //#define USER_MODE                 // User, through UART0 terminal, sends moves to MSP directly
@@ -54,11 +54,14 @@
 // Motor-specific macros
 #define HOMING_X_BACKOFF                    (-6)        // mm
 #define HOMING_Y_BACKOFF                    (6)         // mm
-#define HOMING_Z_BACKOFF                    (0)         // mm
+#define HOMING_Z_BACKOFF                    (-6)        // mm
 #define HOMING_X_VELOCITY                   (1)         // mm
 #define HOMING_Y_VELOCITY                   (1)         // mm
-#define HOMING_Z_VELOCITY                   (0)         // mm
+#define HOMING_Z_VELOCITY                   (1)         // mm
 #define HOMING_DELAY_MS                     (100)       // ms
+
+// Shared flags
+extern bool sys_fault;
 
 // Bitfield for peripheral imaging (accessing 8-bit volatile memory)
 typedef struct utils_bits8_tutils_bits8_t {
@@ -201,7 +204,8 @@ typedef enum chess_file_t {
     H            = SQUARE_X_INITIAL,
     CAPTURE_FILE = CAPTURE_X,
     QUEEN_FILE   = CAPTURE_X,
-    FILE_ERROR   = 0,
+    HOME_FILE    = HOMING_X_BACKOFF,
+    FILE_ERROR   = 1,
 } chess_file_t;
 
 // Translates rank on the board to distance in mm
@@ -216,7 +220,8 @@ typedef enum chess_rank_t {
     EIGHTH       = SQUARE_Y_INITIAL + 7*SQUARE_CENTER_TO_CENTER,
     CAPTURE_RANK = CAPTURE_Y,
     QUEEN_RANK   = CAPTURE_Y,
-    RANK_ERROR   = 0,
+    HOME_RANK    = HOMING_Y_BACKOFF,
+    RANK_ERROR   = 1,
 } chess_rank_t;
 
 // Translates piece type to distance to lower rack in mm
@@ -228,7 +233,8 @@ typedef enum chess_piece_t {
     BISHOP      = -40,
     KNIGHT      = -50,
     PAWN        = -60,
-    EMPTY_PIECE = 0,
+    HOME_PIECE  = HOMING_Z_BACKOFF,
+    EMPTY_PIECE = 1,
 } chess_piece_t;
 
 // Tracks whether a peripheral is enabled or disabled

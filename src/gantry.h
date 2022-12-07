@@ -57,9 +57,6 @@
 #define MOTORS_MOVE_V_Y                     (1)
 #define MOTORS_MOVE_V_Z                     (1)
 
-// Shared flags
-extern bool sys_fault;
-
 // Gantry command structs
 typedef struct gantry_command_t { // WHY DOES THIS EXIST?!?!?!
     command_t command;

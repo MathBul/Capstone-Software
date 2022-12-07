@@ -772,9 +772,9 @@ void stepper_rel_entry(command_t* command)
  */
 void stepper_chess_entry(command_t* command)
 {
-    int16_t rel_move_x;
-    int16_t rel_move_y;
-    int16_t rel_move_z;
+    int16_t rel_move_x = 0;
+    int16_t rel_move_y = 0;
+    int16_t rel_move_z = 0;
     int16_t current_x = stepper_get_current_pos_mm(p_stepper_motor_x);
     int16_t current_y = stepper_get_current_pos_mm(p_stepper_motor_y);
     int16_t current_z = stepper_get_current_pos_mm(p_stepper_motor_z);
