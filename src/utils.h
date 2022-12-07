@@ -232,7 +232,7 @@ typedef enum chess_piece_t {
     ROOK        = -30,
     BISHOP      = -40,
     KNIGHT      = -50,
-    PAWN        = -60,
+    PAWN        = -92,
     HOME_PIECE  = HOMING_Z_BACKOFF,
     EMPTY_PIECE = 1,
 } chess_piece_t;

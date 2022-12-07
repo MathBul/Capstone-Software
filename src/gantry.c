@@ -134,6 +134,9 @@ void gantry_reset(void)
 #elif defined(THREE_PARTY_MODE)
     uart_reset(USER_CHANNEL);
 
+    // Indicate that the Pi's not up yet
+    led_on(led_robot_move);
+
     // User is always white, start in gantry_human
     char user_color = 'W';
 
@@ -739,7 +742,7 @@ void gantry_robot_move_piece(chess_file_t initial_file, chess_rank_t initial_ran
     command_queue_push((command_t*) electromagnet_build_command(enabled));
 
     // Wait
-    command_queue_push((command_t*) delay_build_command(3000));
+    command_queue_push((command_t*) delay_build_command(500));
 #else 
     // Temporary wait
     command_queue_push((command_t*) delay_build_command(2000));
@@ -759,7 +762,7 @@ void gantry_robot_move_piece(chess_file_t initial_file, chess_rank_t initial_ran
     command_queue_push((command_t*) electromagnet_build_command(disabled));
 
     // Wait
-    command_queue_push((command_t*) delay_build_command(3000));
+    command_queue_push((command_t*) delay_build_command(500));
 #else 
     // Temporary wait
     command_queue_push((command_t*) delay_build_command(1000));

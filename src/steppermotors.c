@@ -995,7 +995,7 @@ bool stepper_is_done(command_t* command)
 static uint64_t stepper_get_period_shift(stepper_motors_t* p_stepper_motor)
 {
     // This computes the [at] term from the kinematic equation [v_f = v_i + at]. The coefficient [80/9] was determined by trial-and-error
-//    return 80*(uint64_t)(p_stepper_motor->max_accel * clock_get_timer_period(p_stepper_motor->timer)) / (9*SYSCLOCK_FREQUENCY);
+    // return 80*(uint64_t)(p_stepper_motor->max_accel * clock_get_timer_period(p_stepper_motor->timer)) / (9*SYSCLOCK_FREQUENCY);
     return 0;
 }
 
