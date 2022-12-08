@@ -102,6 +102,9 @@ void gantry_reset(void)
     // Reset the chess board
     chessboard_reset_all();
 
+    // Indicate that the Pi's not up yet
+    led_on(led_robot_move);
+
     // Reset the rpi
     rpi_reset_uart();
 
@@ -133,9 +136,6 @@ void gantry_reset(void)
 
 #elif defined(THREE_PARTY_MODE)
     uart_reset(USER_CHANNEL);
-
-    // Indicate that the Pi's not up yet
-    led_on(led_robot_move);
 
     // User is always white, start in gantry_human
     char user_color = 'W';

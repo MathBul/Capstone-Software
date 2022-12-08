@@ -48,7 +48,7 @@
 #define TIMER_5A_INTERRUPT_NUM                  TIMER5A_IRQn
 
 // Timer 6 defines
-#define TIMER_6A_PERIOD                         23999       // TODO: Calculate
+#define TIMER_6A_PERIOD                         47999       // TODO: Calculate
 #define TIMER_6A_RELOAD_VALUE                   (TIMER_6A_PERIOD << NVIC_ST_RELOAD_S)
 #define TIMER_6A_INTERRUPT_NUM                  TIMER6A_IRQn
 

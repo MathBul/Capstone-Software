@@ -18,15 +18,11 @@ int main(void)
     gantry_init();
 
     // Add commands to the queue
-#ifdef E_MAG_DEBUG
-    gpio_set_as_output(GPIOL, GPIO_PIN_2);
-    gpio_set_output_high(GPIOL, GPIO_PIN_2);
-
+#ifdef SENSOR_NETWORK_DEBUG
     // No exiting main
     while(1){}
 
-#else
-#ifdef UART_DEBUG
+#elif defined(UART_DEBUG)
     while (1)
     {
         uart_out_string(UART_CHANNEL_0, "Hello world!\n", 14);
@@ -82,7 +78,6 @@ int main(void)
             free(p_current_command);
         }
     }
-#endif // End E_MAG_DEBUG
 }
 
 /* End main.c */

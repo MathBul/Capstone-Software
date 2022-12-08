@@ -16,7 +16,7 @@
 #define PERIPHERALS_ENABLED
 //#define GANTRY_DEBUG
 //#define STEPPER_DEBUG
-//#define E_MAG_DEBUG
+#define SENSOR_NETWORK_DEBUG
 
 // Game mode select (define at most one at a time)
 //#define USER_MODE                 // User, through UART0 terminal, sends moves to MSP directly

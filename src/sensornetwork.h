@@ -38,22 +38,22 @@
 #define SENSOR_ROW_SELECT_2_PIN             (GPIO_PIN_2)
 
 // Sensor cols
-#define SENSOR_COL_SELECT_0_PORT            (GPIOA)
-#define SENSOR_COL_SELECT_0_PIN             (GPIO_PIN_7)
-#define SENSOR_COL_SELECT_1_PORT            (GPIOP)
-#define SENSOR_COL_SELECT_1_PIN             (GPIO_PIN_5)
-#define SENSOR_COL_SELECT_2_PORT            (GPIOM)
-#define SENSOR_COL_SELECT_2_PIN             (GPIO_PIN_7)
-
-// Data line(s)
-#define SENSOR_DATA_PORT                    (GPIOG)
-#define SENSOR_DATA_PIN                     (GPIO_PIN_1)
-
-// Sensor line struct (used for select and data lines)
-typedef struct {
-    GPIO_Type* line_port;     // Port for the sensor
-    uint8_t    line_pin;      // Pin for the sensor
-} sensornetwork_line_t;
+#define SENSOR_COL_DATA_0_PORT              (GPIOL)
+#define SENSOR_COL_DATA_0_PIN               (GPIO_PIN_4)
+#define SENSOR_COL_DATA_1_PORT              (GPIOL)
+#define SENSOR_COL_DATA_1_PIN               (GPIO_PIN_5)
+#define SENSOR_COL_DATA_2_PORT              (GPIOL)
+#define SENSOR_COL_DATA_2_PIN               (GPIO_PIN_0)
+#define SENSOR_COL_DATA_3_PORT              (GPIOL)
+#define SENSOR_COL_DATA_3_PIN               (GPIO_PIN_1)
+#define SENSOR_COL_DATA_4_PORT              (GPIOL)
+#define SENSOR_COL_DATA_4_PIN               (GPIO_PIN_2)
+#define SENSOR_COL_DATA_5_PORT              (GPIOL)
+#define SENSOR_COL_DATA_5_PIN               (GPIO_PIN_3)
+#define SENSOR_COL_DATA_6_PORT              (GPIOP)
+#define SENSOR_COL_DATA_6_PIN               (GPIO_PIN_2)
+#define SENSOR_COL_DATA_7_PORT              (GPIOH)
+#define SENSOR_COL_DATA_7_PIN               (GPIO_PIN_2)
 
 // Local representation of the sensors
 typedef struct {

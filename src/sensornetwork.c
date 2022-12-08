@@ -11,17 +11,8 @@
 #include "sensornetwork.h"
 
 // Private functions
-void sensornetwork_select_tile(chess_file_t file, chess_rank_t rank);
+uint8_t sensornetwork_read_tile(chess_file_t file, chess_rank_t rank);
 static uint64_t sensornetwork_shift_assign(void);
-
-// Declare the sensor lines
-sensornetwork_line_t sensor_lines[NUMBER_OF_SENSOR_ROW_SELECTS + NUMBER_OF_SENSOR_COL_SELECTS];
-static sensornetwork_line_t* sensor_row_select_1 = &sensor_lines[0];
-static sensornetwork_line_t* sensor_row_select_2 = &sensor_lines[1];
-static sensornetwork_line_t* sensor_row_select_3 = &sensor_lines[2];
-static sensornetwork_line_t* sensor_col_select_1 = &sensor_lines[3];
-static sensornetwork_line_t* sensor_col_select_2 = &sensor_lines[4];
-static sensornetwork_line_t* sensor_col_select_3 = &sensor_lines[5];
 
 // Declare the sensor that holds the readings
 static sensornetwork_state_t sensors;
@@ -40,92 +31,80 @@ void sensornetwork_init(void)
     gpio_set_output_low(SENSOR_ROW_SELECT_1_PORT, SENSOR_ROW_SELECT_1_PIN);
     gpio_set_output_low(SENSOR_ROW_SELECT_2_PORT, SENSOR_ROW_SELECT_2_PIN);
 
-    sensor_row_select_1->line_port = SENSOR_ROW_SELECT_0_PORT;
-    sensor_row_select_1->line_pin  = SENSOR_ROW_SELECT_0_PIN;
-    sensor_row_select_2->line_port = SENSOR_ROW_SELECT_1_PORT;
-    sensor_row_select_2->line_pin  = SENSOR_ROW_SELECT_1_PIN;
-    sensor_row_select_3->line_port = SENSOR_ROW_SELECT_2_PORT;
-    sensor_row_select_3->line_pin  = SENSOR_ROW_SELECT_2_PIN;
-
-    // Configure sensor column selects
-    gpio_set_as_output(SENSOR_COL_SELECT_0_PORT, SENSOR_COL_SELECT_0_PIN);
-    gpio_set_as_output(SENSOR_COL_SELECT_1_PORT, SENSOR_COL_SELECT_1_PIN);
-    gpio_set_as_output(SENSOR_COL_SELECT_2_PORT, SENSOR_COL_SELECT_2_PIN);
-    gpio_set_output_low(SENSOR_COL_SELECT_0_PORT, SENSOR_COL_SELECT_0_PIN);
-    gpio_set_output_low(SENSOR_COL_SELECT_1_PORT, SENSOR_COL_SELECT_1_PIN);
-    gpio_set_output_low(SENSOR_COL_SELECT_2_PORT, SENSOR_COL_SELECT_2_PIN);
-
-    sensor_col_select_1->line_port = SENSOR_COL_SELECT_0_PORT;
-    sensor_col_select_1->line_pin  = SENSOR_COL_SELECT_0_PIN;
-    sensor_col_select_2->line_port = SENSOR_COL_SELECT_1_PORT;
-    sensor_col_select_2->line_pin  = SENSOR_COL_SELECT_1_PIN;
-    sensor_col_select_3->line_port = SENSOR_COL_SELECT_2_PORT;
-    sensor_col_select_3->line_pin  = SENSOR_COL_SELECT_2_PIN;
-
-    // Configure data lines
-    gpio_set_as_input(SENSOR_DATA_PORT, SENSOR_DATA_PIN);
+    // Configure sensor column lines
+    gpio_set_as_input(SENSOR_COL_DATA_0_PORT, SENSOR_COL_DATA_0_PIN);
+    gpio_set_as_input(SENSOR_COL_DATA_1_PORT, SENSOR_COL_DATA_1_PIN);
+    gpio_set_as_input(SENSOR_COL_DATA_2_PORT, SENSOR_COL_DATA_2_PIN);
+    gpio_set_as_input(SENSOR_COL_DATA_3_PORT, SENSOR_COL_DATA_3_PIN);
+    gpio_set_as_input(SENSOR_COL_DATA_4_PORT, SENSOR_COL_DATA_4_PIN);
+    gpio_set_as_input(SENSOR_COL_DATA_5_PORT, SENSOR_COL_DATA_5_PIN);
+    gpio_set_as_input(SENSOR_COL_DATA_6_PORT, SENSOR_COL_DATA_6_PIN);
+    gpio_set_as_input(SENSOR_COL_DATA_7_PORT, SENSOR_COL_DATA_7_PIN);
 
     // Start the ISR timer
     clock_start_timer(SENSOR_NETWORK_TIMER);
 }
 
 /**
- * @brief Selects a tile to read
+ * @brief Reads a given tile
  * 
  * @param file The column to select
  * @param rank The row to select
+ * @return The reading of the given tile
  */
-void sensornetwork_select_tile(chess_file_t file, chess_rank_t rank)
+uint8_t sensornetwork_read_tile(chess_file_t file, chess_rank_t rank)
 {
+    uint8_t sensor_reading = 0;
+
     // Set the row select lines
     switch (file)
     {
         case A: // Select == 000
-            gpio_set_output_low(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
-            gpio_set_output_low(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
-            gpio_set_output_low(sensor_row_select_1->line_port, sensor_row_select_1->line_pin);
+            gpio_set_output_low(SENSOR_ROW_SELECT_2_PORT, SENSOR_ROW_SELECT_2_PIN);
+            gpio_set_output_low(SENSOR_ROW_SELECT_1_PORT, SENSOR_ROW_SELECT_1_PIN);
+            gpio_set_output_low(SENSOR_ROW_SELECT_0_PORT, SENSOR_ROW_SELECT_0_PIN);
         break;
 
         case B: // Select == 001
-            gpio_set_output_low(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
-            gpio_set_output_low(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
-            gpio_set_output_high(sensor_row_select_1->line_port, sensor_row_select_1->line_pin);
+            gpio_set_output_low(SENSOR_ROW_SELECT_2_PORT, SENSOR_ROW_SELECT_2_PIN);
+            gpio_set_output_low(SENSOR_ROW_SELECT_1_PORT, SENSOR_ROW_SELECT_1_PIN);
+            gpio_set_output_high(SENSOR_ROW_SELECT_0_PORT, SENSOR_ROW_SELECT_0_PIN);
         break;
 
         case C: // Select == 010
-            gpio_set_output_low(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
-            gpio_set_output_high(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
-            gpio_set_output_low(sensor_row_select_1->line_port, sensor_row_select_1->line_pin);
+            gpio_set_output_low(SENSOR_ROW_SELECT_2_PORT, SENSOR_ROW_SELECT_2_PIN);
+            gpio_set_output_high(SENSOR_ROW_SELECT_1_PORT, SENSOR_ROW_SELECT_1_PIN);
+            gpio_set_output_low(SENSOR_ROW_SELECT_0_PORT, SENSOR_ROW_SELECT_0_PIN);
         break;
 
         case D: // Select == 011
-            gpio_set_output_low(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
-            gpio_set_output_high(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
-            gpio_set_output_high(sensor_row_select_1->line_port, sensor_row_select_1->line_pin);
+            gpio_set_output_low(SENSOR_ROW_SELECT_2_PORT, SENSOR_ROW_SELECT_2_PIN);
+            gpio_set_output_high(SENSOR_ROW_SELECT_1_PORT, SENSOR_ROW_SELECT_1_PIN);
+            gpio_set_output_high(SENSOR_ROW_SELECT_0_PORT, SENSOR_ROW_SELECT_0_PIN);
         break;
 
         case E: // Select == 100
-            gpio_set_output_high(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
-            gpio_set_output_low(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
-            gpio_set_output_low(sensor_row_select_1->line_port, sensor_row_select_1->line_pin);
+            gpio_set_output_high(SENSOR_ROW_SELECT_2_PORT, SENSOR_ROW_SELECT_2_PIN);
+            gpio_set_output_low(SENSOR_ROW_SELECT_1_PORT, SENSOR_ROW_SELECT_1_PIN);
+            gpio_set_output_low(SENSOR_ROW_SELECT_0_PORT, SENSOR_ROW_SELECT_0_PIN);
         break;
 
         case F: // Select == 101
-            gpio_set_output_high(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
-            gpio_set_output_low(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
-            gpio_set_output_high(sensor_row_select_1->line_port, sensor_row_select_1->line_pin);
+            gpio_set_output_high(SENSOR_ROW_SELECT_2_PORT, SENSOR_ROW_SELECT_2_PIN);
+            gpio_set_output_low(SENSOR_ROW_SELECT_1_PORT, SENSOR_ROW_SELECT_1_PIN);
+            gpio_set_output_high(SENSOR_ROW_SELECT_0_PORT, SENSOR_ROW_SELECT_0_PIN);
         break;
 
         case G: // Select == 110
-            gpio_set_output_high(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
-            gpio_set_output_high(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
-            gpio_set_output_low(sensor_row_select_1->line_port, sensor_row_select_1->line_pin);
+            gpio_set_output_high(SENSOR_ROW_SELECT_2_PORT, SENSOR_ROW_SELECT_2_PIN);
+            gpio_set_output_high(SENSOR_ROW_SELECT_1_PORT, SENSOR_ROW_SELECT_1_PIN);
+            gpio_set_output_low(SENSOR_ROW_SELECT_0_PORT, SENSOR_ROW_SELECT_0_PIN);
         break;
 
         case H: // Select == 111
-            gpio_set_output_high(sensor_row_select_3->line_port, sensor_row_select_3->line_pin);
-            gpio_set_output_high(sensor_row_select_2->line_port, sensor_row_select_2->line_pin);
-            gpio_set_output_high(sensor_row_select_1->line_port, sensor_row_select_1->line_pin);
+            gpio_set_output_high(SENSOR_ROW_SELECT_2_PORT, SENSOR_ROW_SELECT_2_PIN);
+            gpio_set_output_high(SENSOR_ROW_SELECT_1_PORT, SENSOR_ROW_SELECT_1_PIN);
+            gpio_set_output_high(SENSOR_ROW_SELECT_0_PORT, SENSOR_ROW_SELECT_0_PIN);
         break;
 
         default: // ??
@@ -136,57 +115,42 @@ void sensornetwork_select_tile(chess_file_t file, chess_rank_t rank)
     switch (rank)
     {
         case FIRST: // Select == 000
-            gpio_set_output_low(sensor_col_select_3->line_port, sensor_col_select_3->line_pin);
-            gpio_set_output_low(sensor_col_select_2->line_port, sensor_col_select_2->line_pin);
-            gpio_set_output_low(sensor_col_select_1->line_port, sensor_col_select_1->line_pin);
+            sensor_reading = gpio_read_input(SENSOR_COL_DATA_0_PORT, SENSOR_COL_DATA_0_PIN);
         break;
 
         case SECOND: // Select == 001
-            gpio_set_output_low(sensor_col_select_3->line_port, sensor_col_select_3->line_pin);
-            gpio_set_output_low(sensor_col_select_2->line_port, sensor_col_select_2->line_pin);
-            gpio_set_output_high(sensor_col_select_1->line_port, sensor_col_select_1->line_pin);
+            sensor_reading = gpio_read_input(SENSOR_COL_DATA_1_PORT, SENSOR_COL_DATA_1_PIN);
         break;
 
         case THIRD: // Select == 010
-            gpio_set_output_low(sensor_col_select_3->line_port, sensor_col_select_3->line_pin);
-            gpio_set_output_high(sensor_col_select_2->line_port, sensor_col_select_2->line_pin);
-            gpio_set_output_low(sensor_col_select_1->line_port, sensor_col_select_1->line_pin);
+            sensor_reading = gpio_read_input(SENSOR_COL_DATA_2_PORT, SENSOR_COL_DATA_2_PIN);
         break;
 
         case FOURTH: // Select == 011
-            gpio_set_output_low(sensor_col_select_3->line_port, sensor_col_select_3->line_pin);
-            gpio_set_output_high(sensor_col_select_2->line_port, sensor_col_select_2->line_pin);
-            gpio_set_output_high(sensor_col_select_1->line_port, sensor_col_select_1->line_pin);
+            sensor_reading = gpio_read_input(SENSOR_COL_DATA_3_PORT, SENSOR_COL_DATA_3_PIN);
         break;
 
         case FIFTH: // Select == 100
-            gpio_set_output_high(sensor_col_select_3->line_port, sensor_col_select_3->line_pin);
-            gpio_set_output_low(sensor_col_select_2->line_port, sensor_col_select_2->line_pin);
-            gpio_set_output_low(sensor_col_select_1->line_port, sensor_col_select_1->line_pin);
+            sensor_reading = gpio_read_input(SENSOR_COL_DATA_4_PORT, SENSOR_COL_DATA_4_PIN);
         break;
 
         case SIXTH: // Select == 101
-            gpio_set_output_high(sensor_col_select_3->line_port, sensor_col_select_3->line_pin);
-            gpio_set_output_low(sensor_col_select_2->line_port, sensor_col_select_2->line_pin);
-            gpio_set_output_high(sensor_col_select_1->line_port, sensor_col_select_1->line_pin);
+            sensor_reading = gpio_read_input(SENSOR_COL_DATA_5_PORT, SENSOR_COL_DATA_5_PIN);
         break;
 
         case SEVENTH: // Select == 110
-            gpio_set_output_high(sensor_col_select_3->line_port, sensor_col_select_3->line_pin);
-            gpio_set_output_high(sensor_col_select_2->line_port, sensor_col_select_2->line_pin);
-            gpio_set_output_low(sensor_col_select_1->line_port, sensor_col_select_1->line_pin);
+            sensor_reading = gpio_read_input(SENSOR_COL_DATA_6_PORT, SENSOR_COL_DATA_6_PIN);
         break;
 
         case EIGHTH: // Select == 111
-            gpio_set_output_high(sensor_col_select_3->line_port, sensor_col_select_3->line_pin);
-            gpio_set_output_high(sensor_col_select_2->line_port, sensor_col_select_2->line_pin);
-            gpio_set_output_high(sensor_col_select_1->line_port, sensor_col_select_1->line_pin);
+            sensor_reading = gpio_read_input(SENSOR_COL_DATA_7_PORT, SENSOR_COL_DATA_7_PIN);
         break;
 
         default: // ??
         break;
     }
 
+    return sensor_reading;
 }
 
 /**
@@ -208,26 +172,25 @@ uint64_t sensornetwork_get_reading(void)
  */
 static uint64_t sensornetwork_shift_assign(void)
 {
+    uint64_t sensor_reading = 0;
+
     // Loop through all tiles
     int i = 0;
     int j = 0;
-    sensor_vport.image = 0;
-
     for (i = 0; i < NUMBER_OF_ROWS; i++)
     {
         for (j = 0; j < NUMBER_OF_COLS; j++)
         {
-            // Select the tile to read
+            // Select the tile
             chess_rank_t rank = utils_index_to_rank(i);
             chess_file_t file = utils_index_to_file(j);
-            sensornetwork_select_tile(file, rank);
 
-            // Read the sensor into the vport image
-            sensor_vport.image |= (gpio_read_input(SENSOR_DATA_PORT, SENSOR_DATA_PIN) << utils_tile_to_index(file, rank));
+            // Read the tile
+            sensor_reading |= (sensornetwork_read_tile(file, rank) << utils_tile_to_index(file, rank));
         }
     }
 
-    return sensor_vport.image;
+    return sensor_reading;
 }
 
 /**
@@ -239,7 +202,7 @@ __interrupt void SENSOR_NETWORK_HANDLER(void)
     clock_clear_interrupt(SENSOR_NETWORK_TIMER);
 
     // Read the sensors into the vport image
-//    sensor_vport.image         = sensornetwork_shift_assign();
+    sensor_vport.image         = sensornetwork_shift_assign();
 
     // Update the sensor transition information
     p_sensors->current_inputs  = sensor_vport.image;
