@@ -355,8 +355,9 @@ void gantry_human_exit(command_t* command)
 #elif defined(THREE_PARTY_MODE)
     gantry_robot_command_t* p_gantry_command = (gantry_robot_command_t*) command;
 
-    // Update the local board state
-    chessboard_update_previous_board_from_move(p_gantry_command->move_uci);
+    // Update local board state
+    chessboard_update_current_board_from_previous_board();
+    chessboard_update_current_board_from_move(p_gantry_command->move_uci);
 
     // Place the gantry_comm command on the queue to send the message
     char message[HUMAN_MOVE_INSTR_LENGTH];
@@ -750,10 +751,10 @@ void gantry_robot_move_piece(chess_file_t initial_file, chess_rank_t initial_ran
 
     // Lower the magnet
     command_queue_push((command_t*) stepper_build_chess_z_command(piece, MOTORS_MOVE_V_Z));
-
+#ifdef PERIPHERALS_ENABLED
     // Engage the magnet
     command_queue_push((command_t*) electromagnet_build_command(enabled));
-
+#endif
     // Wait
     command_queue_push((command_t*) delay_build_command(500));
 
@@ -765,10 +766,10 @@ void gantry_robot_move_piece(chess_file_t initial_file, chess_rank_t initial_ran
 
     // Lower the magnet
     command_queue_push((command_t*) stepper_build_chess_z_command(piece, MOTORS_MOVE_V_Z));
-
+#ifdef PERIPHERALS_ENABLED
     // Disengage the magnet
     command_queue_push((command_t*) electromagnet_build_command(disabled));
-
+#endif
     // Wait
     command_queue_push((command_t*) delay_build_command(500));
 

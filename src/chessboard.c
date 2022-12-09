@@ -694,6 +694,14 @@ void chessboard_update_previous_board_from_current_board(void)
 }
 
 /**
+ * @brief Public function to update the current board before it is legal
+ */
+void chessboard_update_current_board_from_previous_board(void)
+{
+    chessboard_copy_board(p_prev_board, p_curr_board);
+}
+
+/**
  * @brief Public function to update the previous board once the robot move is complete
  * 
  * @param move The move in UCI notation (4-5 characters)
@@ -702,5 +710,16 @@ void chessboard_update_previous_board_from_move(char move[5])
 {
     chessboard_update_from_move(p_prev_board, move);
 }
+
+/**
+ * @brief Public function to update the current board
+ *
+ * @param move The move in UCI notation (4-5 characters)
+ */
+void chessboard_update_current_board_from_move(char move[5])
+{
+    chessboard_update_from_move(p_curr_board, move);
+}
+
 
 /* End chessboard.c */

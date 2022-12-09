@@ -67,6 +67,9 @@ chess_piece_t chessboard_get_piece_at_position(chess_file_t file, chess_rank_t r
 bool chessboard_update_intermediate_board_from_presence(uint64_t board_reading, char move[5]);
 bool chessboard_update_current_board_from_presence(uint64_t board_reading, char move[5], bool capture);
 void chessboard_update_previous_board_from_current_board(void);
+void chessboard_update_current_board_from_previous_board(void);
 void chessboard_update_previous_board_from_move(char move[5]);
+void chessboard_update_current_board_from_move(char move[5]);
+
 
 #endif /* CHESSBOARD_H_ */
