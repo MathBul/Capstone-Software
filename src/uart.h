@@ -101,7 +101,9 @@
 void uart_init(uint8_t uart_channel);
 bool uart_out_byte(uint8_t uart_channel, uint8_t byte);
 bool uart_read_byte(uint8_t uart_channel, uint8_t* byte);
+bool uart_read_byte_unblocked(uint8_t uart_channel, uint8_t* byte);
 bool uart_read_string(uint8_t uart_channel, char *data, uint8_t num_chars);
+bool uart_read_string_unblocked(uint8_t uart_channel, char *data, uint8_t size);
 bool uart_out_string(uint8_t uart_channel, char* string, uint8_t size);
 bool uart_out_int16_t(uint8_t uart_channel, int16_t value);
 bool uart_out_uint32_t(uint8_t uart_channel, uint32_t value);

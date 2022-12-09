@@ -454,6 +454,59 @@ bool uart_read_byte(uint8_t uart_channel, uint8_t* byte)
 }
 
 /**
+ * @brief Reads the oldest byte in the Rx FIFO. May not be the oldest byte received by the hardware
+ *  Returns immediately
+ *
+ * @param uart_channel One of UART_CHANNEL_X for X={0,1,2,3,6}
+ * @param byte A pointer to where the byte will be stored
+ * @return Whether reading was successful
+ */
+bool uart_read_byte_unblocked(uint8_t uart_channel, uint8_t* byte)
+{
+    bool status = false;
+
+    // Read the appropriate channel
+
+    // Short circuit if a fault occurs
+    if (sys_fault)
+    {
+        return false;
+    }
+
+    // Try to read a byte
+    switch (uart_channel)
+    {
+        case UART_CHANNEL_0:
+            status = fifo8_pop(uart_0_rx, byte);
+        break;
+
+        case UART_CHANNEL_1:
+            status = fifo8_pop(uart_1_rx, byte);
+        break;
+
+        case UART_CHANNEL_2:
+            status = fifo8_pop(uart_2_rx, byte);
+        break;
+
+        case UART_CHANNEL_3:
+            status = fifo8_pop(uart_3_rx, byte);
+        break;
+
+        case UART_CHANNEL_6:
+            status = fifo8_pop(uart_6_rx, byte);
+        break;
+
+        default:
+            // Invalid channel provided, do nothing
+            status = false;
+        break;
+    }
+
+
+    return status;
+}
+
+/**
  * @brief Uses UART to read data from any UART channel to the MSP
  *
  * @param uart_channel One of UART_CHANNEL_X for X={0,1,2,3,6}
@@ -470,6 +523,28 @@ bool uart_read_string(uint8_t uart_channel, char *data, uint8_t size)
     for (i = 0; (i < size) && (status); i++)
     {
         status &= uart_read_byte(uart_channel, (uint8_t*) &data[i]);
+    }
+
+    return status;
+}
+
+/**
+ * @brief Uses UART to read data from any UART channel to the MSP
+ *
+ * @param uart_channel One of UART_CHANNEL_X for X={0,1,2,3,6}
+ * @param data Character buffer to read into
+ * @param size Number of characters to read (unless a null-terminator is reacher)
+ * @return Whether transmission was successful
+ */
+bool uart_read_string_unblocked(uint8_t uart_channel, char *data, uint8_t size)
+{
+    bool status = true;
+
+    // Read one byte at a time
+    uint8_t i = 0;
+    for (i = 0; (i < size) && (status); i++)
+    {
+        status &= uart_read_byte_unblocked(uart_channel, (uint8_t*) &data[i]);
     }
 
     return status;

@@ -43,7 +43,8 @@ typedef enum {
     led_error, 
     led_robot_move, 
     led_human_move, 
-    led_system_status
+    led_system_status,
+    led_waiting_for_msg
 } led_indicator_t;
 
 // LED structure

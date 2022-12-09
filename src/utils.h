@@ -13,8 +13,8 @@
 
 // Debug mode select
 //#define UART_DEBUG
-#define PERIPHERALS_ENABLED
-#define GANTRY_DEBUG
+//#define PERIPHERALS_ENABLED
+//#define GANTRY_DEBUG
 //#define STEPPER_DEBUG
 //#define SENSOR_NETWORK_DEBUG
 

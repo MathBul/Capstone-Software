@@ -94,6 +94,7 @@ typedef enum game_status_t {
 void rpi_init(void);
 bool rpi_transmit(char* data, uint8_t size);
 bool rpi_receive(char *data, uint8_t size);
+bool rpi_receive_unblocked(char *data, uint8_t size);
 void rpi_reset_uart(void);
 
 // Raspberry Pi instruction functions

@@ -92,6 +92,11 @@ void led_on(led_indicator_t indicator)
             led_enable(p_led_system_status);
         break;
 
+        case led_waiting_for_msg:
+            led_enable(p_led_robot_move);
+            led_enable(p_led_error);
+        break;
+
         default:
             // Invalid LED indicator provided, do nothing
         break;

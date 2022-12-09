@@ -210,11 +210,11 @@ gantry_command_t* gantry_human_build_command(void)
     p_command->move.move_type   = IDLE;
     p_command->game_status      = ONGOING;
 
-    p_command->move_uci[0] = 0;
-    p_command->move_uci[1] = 0;
-    p_command->move_uci[2] = 0;
-    p_command->move_uci[3] = 0;
-    p_command->move_uci[4] = 0;
+    p_command->move_uci[0] = 255;
+    p_command->move_uci[1] = 255;
+    p_command->move_uci[2] = 255;
+    p_command->move_uci[3] = 255;
+    p_command->move_uci[4] = 255;
 #endif
 
     return (gantry_command_t*) p_command;
@@ -423,6 +423,10 @@ void gantry_comm_entry(command_t* command)
 {
     gantry_comm_command_t* p_gantry_command = (gantry_comm_command_t*) command;
 
+    // Indicate we're talking to the pi
+    led_all_off();
+    led_on(led_waiting_for_msg);
+
     // Send the message
     rpi_transmit(p_gantry_command->message, p_gantry_command->message_length);
 
@@ -466,6 +470,9 @@ void gantry_comm_exit(command_t* command)
     // Stop and reset the timer
     clock_stop_timer(COMM_TIMER);
     clock_reset_timer_value(COMM_TIMER);
+
+    // Reset the LED
+    led_all_off();
 }
 
 /**
@@ -476,13 +483,16 @@ void gantry_comm_exit(command_t* command)
  */
 bool gantry_comm_is_done(command_t* command)
 {
-    char ack_byte;
+
+    gantry_comm_command_t* p_gantry_command = (gantry_comm_command_t*) command;
+    char ack_byte = '\0';
+    bool got_byte = false;
 
     // Read from the Pi
-    rpi_receive(&ack_byte, 1);
+    got_byte = rpi_receive_unblocked(&ack_byte, 1);
 
     // If we get an ACK, we are done
-    return (ack_byte == ACK_BYTE);
+    return (ack_byte == ACK_BYTE) && got_byte;
 }
 
 /**
@@ -1044,12 +1054,14 @@ __interrupt void GANTRY_HANDLER(void)
         human_move_capture = true;
     }
 
+#ifdef FINAL_IMPLEMENTATION_MODE
     // Store the current reading if the human hit the "end turn"" tile
     if ((!human_move_done) && (switch_data & BUTTON_NEXT_TURN_MASK))
     {
         board_reading_current = sensornetwork_get_reading();
         human_move_done = true;
     }
+#endif
 }
 
 /**

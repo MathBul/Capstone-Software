@@ -56,6 +56,19 @@ bool rpi_receive(char *data, uint8_t size)
     return uart_read_string(RPI_UART_CHANNEL, data, size);
 }
 
+
+/**
+ * @brief Uses UART to read data from the the Raspberry Pi to the MSP432
+ *
+ * @param data Character buffer to be sent
+ * @param size Number of characters to transmit (unless a null-terminator is reacher)
+ * @return Whether the read was successful
+ */
+bool rpi_receive_unblocked(char *data, uint8_t size)
+{
+    return uart_read_string_unblocked(RPI_UART_CHANNEL, data, size);
+}
+
 /**
  * @brief Attaches a checksum to a UART message
  * 
