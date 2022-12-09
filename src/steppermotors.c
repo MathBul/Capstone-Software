@@ -426,7 +426,7 @@ bool stepper_z_has_fault(void)
 /**
  * @brief Pause all motors and their ISR clocks, can resume from this point later
  */
-void stepper_pause_all_motors(void)
+static void stepper_pause_all_motors(void)
 {
     clock_stop_timer(STEPPER_X_TIMER);
     clock_stop_timer(STEPPER_Y_TIMER);
@@ -437,7 +437,7 @@ void stepper_pause_all_motors(void)
 /**
  * @brief Resume all motors and their ISR clocks from a previously paused state
  */
-void stepper_resume_all_motors(void)
+static void stepper_resume_all_motors(void)
 {
     stepper_enable_all_motors();
     clock_start_timer(STEPPER_X_TIMER);

@@ -46,14 +46,14 @@
 #define SENSOR_COL_DATA_2_PIN               (GPIO_PIN_0)
 #define SENSOR_COL_DATA_3_PORT              (GPIOL)
 #define SENSOR_COL_DATA_3_PIN               (GPIO_PIN_1)
-#define SENSOR_COL_DATA_4_PORT              (GPIOL)
-#define SENSOR_COL_DATA_4_PIN               (GPIO_PIN_2)
-#define SENSOR_COL_DATA_5_PORT              (GPIOL)
+#define SENSOR_COL_DATA_4_PORT              (GPIOQ)
+#define SENSOR_COL_DATA_4_PIN               (GPIO_PIN_3)
+#define SENSOR_COL_DATA_5_PORT              (GPIOP)
 #define SENSOR_COL_DATA_5_PIN               (GPIO_PIN_3)
-#define SENSOR_COL_DATA_6_PORT              (GPIOP)
-#define SENSOR_COL_DATA_6_PIN               (GPIO_PIN_2)
-#define SENSOR_COL_DATA_7_PORT              (GPIOH)
-#define SENSOR_COL_DATA_7_PIN               (GPIO_PIN_2)
+#define SENSOR_COL_DATA_6_PORT              (GPIOQ)
+#define SENSOR_COL_DATA_6_PIN               (GPIO_PIN_1)
+#define SENSOR_COL_DATA_7_PORT              (GPIOM)
+#define SENSOR_COL_DATA_7_PIN               (GPIO_PIN_6)
 
 // Local representation of the sensors
 typedef struct {

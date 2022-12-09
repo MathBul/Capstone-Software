@@ -84,7 +84,7 @@
 #define LIMIT_Z_MASK                        (BITS16_MASK(LIMIT_Z_SHIFT))
 #define SWITCH_CAPTURE_MASK                 (BITS16_MASK(SWITCH_CAPTURE_SHIFT))
 #define FUTURE_PROOF_1_MASK                 (BITS16_MASK(FUTURE_PROOF_1_SHIFT))
-#define FUTURE_PROOF_2_MASK                 (BITS16_MASK(FUTURE_PROOF_2_SHIFT))
+#define E_STOP_MASK                         (BITS16_MASK(FUTURE_PROOF_2_SHIFT))
 #define FUTURE_PROOF_3_MASK                 (BITS16_MASK(FUTURE_PROOF_3_SHIFT))
 
 // Inversion masks
@@ -92,7 +92,7 @@
 #define LIMIT_MASK                          (LIMIT_X_MASK | LIMIT_Y_MASK | LIMIT_Z_MASK)
 #define TOGGLE_MASK                         (TOGGLE_COLOR_MASK)
 #define CAPTURE_MASK                        (SWITCH_CAPTURE_MASK)
-#define FUTURE_PROOF_MASK                   (FUTURE_PROOF_1_MASK | FUTURE_PROOF_2_MASK | FUTURE_PROOF_3_MASK)
+#define FUTURE_PROOF_MASK                   (FUTURE_PROOF_1_MASK | E_STOP_MASK | FUTURE_PROOF_3_MASK)
 #define SWITCH_MASK                         (BUTTON_MASK | LIMIT_MASK | TOGGLE_MASK | CAPTURE_MASK | FUTURE_PROOF_MASK)
 
 // Local representation of the switches

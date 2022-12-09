@@ -31,8 +31,8 @@ int main(void)
 #elif defined(STEPPER_DEBUG) || defined(GANTRY_DEBUG)
     // Test a chess movement
     command_queue_push((command_t*) delay_build_command(2000));
-    gantry_home();
-    command_queue_push((command_t*) gantry_robot_build_command());
+//    gantry_home();
+//    command_queue_push((command_t*) gantry_robot_build_command());
 
     // Test a switch
     gpio_set_as_output(SWITCH_TEST_PORT, SWITCH_TEST_PIN);
@@ -66,9 +66,6 @@ int main(void)
                     break;
                 }
                 p_current_command->p_action(p_current_command);
-#ifdef GANTRY_DEBUG
-                switch_test(LIMIT_X_MASK);
-#endif
             }
 
             // Run the exit function
@@ -77,6 +74,10 @@ int main(void)
             // Free the command memory
             free(p_current_command);
         }
+
+#ifdef GANTRY_DEBUG
+        switch_test(E_STOP_MASK);
+#endif
     }
 }
 

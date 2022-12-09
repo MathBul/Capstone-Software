@@ -11,12 +11,17 @@
 #include "sensornetwork.h"
 
 // Private functions
-uint8_t sensornetwork_read_tile(chess_file_t file, chess_rank_t rank);
+static void sensornetwork_select_file(chess_file_t file);
+static uint8_t sensornetwork_read_rank(chess_rank_t rank);
 static uint64_t sensornetwork_shift_assign(void);
 
 // Declare the sensor that holds the readings
 static sensornetwork_state_t sensors;
 static sensornetwork_state_t* p_sensors = (&sensors);
+
+// Private variables
+static uint64_t sensor_reading = 0;
+static uint8_t column = 0;
 
 /**
  * @brief Initialize the sensor select and data lines
@@ -46,16 +51,12 @@ void sensornetwork_init(void)
 }
 
 /**
- * @brief Reads a given tile
+ * @brief Selects a given tile to read
  * 
  * @param file The column to select
- * @param rank The row to select
- * @return The reading of the given tile
  */
-uint8_t sensornetwork_read_tile(chess_file_t file, chess_rank_t rank)
+static void sensornetwork_select_file(chess_file_t file)
 {
-    uint8_t sensor_reading = 0;
-
     // Set the row select lines
     switch (file)
     {
@@ -110,6 +111,17 @@ uint8_t sensornetwork_read_tile(chess_file_t file, chess_rank_t rank)
         default: // ??
         break;
     }
+}
+
+/**
+ * @brief Reads a given row
+ *
+ * @param rank The row to select
+ * @return The reading of the given tile
+ */
+static uint8_t sensornetwork_read_rank(chess_rank_t rank)
+{
+    uint8_t sensor_reading = 0;
 
     // Set the column select lines
     switch (rank)
@@ -172,22 +184,26 @@ uint64_t sensornetwork_get_reading(void)
  */
 static uint64_t sensornetwork_shift_assign(void)
 {
-    uint64_t sensor_reading = 0;
+    // Reset the sensor reading every loop of the board
+    if (column == 0)
+    {
+        sensor_reading = 0;
+    }
+    else if (column == 3)
+    {
+        // The following code is modified to prevent issues with propogation timing. Power is held for too long when transitioning from column 2 to 3
+        utils_delay(100);
+    }
 
-    // Loop through all tiles
+    // Loop through all ranks
     int i = 0;
-    int j = 0;
     for (i = 0; i < NUMBER_OF_ROWS; i++)
     {
-        for (j = 0; j < NUMBER_OF_COLS; j++)
-        {
-            // Select the tile
-            chess_rank_t rank = utils_index_to_rank(i);
-            chess_file_t file = utils_index_to_file(j);
+        chess_file_t file = utils_index_to_file(column);
+        chess_rank_t rank = utils_index_to_rank(i);
 
-            // Read the tile
-            sensor_reading |= (sensornetwork_read_tile(file, rank) << utils_tile_to_index(file, rank));
-        }
+        // Read the rank
+        sensor_reading |= (sensornetwork_read_rank(rank) << utils_tile_to_index(file, rank));
     }
 
     return sensor_reading;
@@ -201,8 +217,22 @@ __interrupt void SENSOR_NETWORK_HANDLER(void)
     // Clear the interrupt flag
     clock_clear_interrupt(SENSOR_NETWORK_TIMER);
 
-    // Read the sensors into the vport image
-    sensor_vport.image         = sensornetwork_shift_assign();
+    // Select a column, scan all the rows
+    chess_file_t file = utils_index_to_file(column);
+    sensornetwork_select_file(file);
+    sensornetwork_shift_assign();
+
+    // Read the switches into the vport image once the last column has been scanned
+    if (column == (NUMBER_OF_COLS-1))
+    {
+        sensor_vport.image = sensor_reading;
+    }
+
+    // Prepare the next column to scan
+    column += 1;
+    if (column >= NUMBER_OF_COLS) {
+        column -= NUMBER_OF_COLS;
+    }
 
     // Update the sensor transition information
     p_sensors->current_inputs  = sensor_vport.image;

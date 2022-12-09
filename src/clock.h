@@ -33,12 +33,12 @@
 #define TIMER_2A_INTERRUPT_NUM                  TIMER2A_IRQn
 
 // Timer 3 defines
-#define TIMER_3A_PERIOD                         23999       // TODO: Calculate
+#define TIMER_3A_PERIOD                         23999       // Chosen through trial-and-error
 #define TIMER_3A_RELOAD_VALUE                   (TIMER_3A_PERIOD << NVIC_ST_RELOAD_S)
 #define TIMER_3A_INTERRUPT_NUM                  TIMER3A_IRQn
 
 // Timer 4 defines
-#define TIMER_4A_PERIOD                         23999       // TODO: Calculate
+#define TIMER_4A_PERIOD                         23999       // Chosen through trial-and-error
 #define TIMER_4A_RELOAD_VALUE                   (TIMER_4A_PERIOD << NVIC_ST_RELOAD_S)
 #define TIMER_4A_INTERRUPT_NUM                  TIMER4A_IRQn
 
@@ -48,7 +48,7 @@
 #define TIMER_5A_INTERRUPT_NUM                  TIMER5A_IRQn
 
 // Timer 6 defines
-#define TIMER_6A_PERIOD                         47999       // TODO: Calculate
+#define TIMER_6A_PERIOD                         23999       // Chosen through trial-and-error
 #define TIMER_6A_RELOAD_VALUE                   (TIMER_6A_PERIOD << NVIC_ST_RELOAD_S)
 #define TIMER_6A_INTERRUPT_NUM                  TIMER6A_IRQn
 

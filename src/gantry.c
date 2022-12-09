@@ -122,6 +122,7 @@ void gantry_reset(void)
         rpi_build_start_msg(user_color, message);
         command_queue_push((command_t*) gantry_comm_build_command(message, START_INSTR_LENGTH));
 
+        // After receiving an ACK, goto robot command
         command_queue_push((command_t*) gantry_robot_build_command());
     } else {
         // User is white, start in gantry_human
@@ -131,6 +132,7 @@ void gantry_reset(void)
         rpi_build_start_msg(user_color, message);
         command_queue_push((command_t*) gantry_comm_build_command(message, START_INSTR_LENGTH));
 
+        // After receiving an ACK, goto human command
         command_queue_push((command_t*) gantry_human_build_command());
     }
 
@@ -337,6 +339,7 @@ void gantry_human_exit(command_t* command)
         command_queue_push((command_t*) gantry_comm_build_command(message, HUMAN_MOVE_INSTR_LENGTH));
         command_queue_push((command_t*) gantry_robot_build_command());
 
+        // Prepare to send the COMM message
         msg_ready_to_send = true;
     }
     else
@@ -361,6 +364,7 @@ void gantry_human_exit(command_t* command)
     command_queue_push((command_t*) gantry_comm_build_command(message, HUMAN_MOVE_INSTR_LENGTH));
     command_queue_push((command_t*) gantry_robot_build_command());
 
+    // Prepare to send the COMM message
     human_move_legal = true;
     msg_ready_to_send = true;
 #endif
@@ -478,7 +482,7 @@ bool gantry_comm_is_done(command_t* command)
     rpi_receive(&ack_byte, 1);
 
     // If we get an ACK, we are done
-    return ack_byte == ACK_BYTE;
+    return (ack_byte == ACK_BYTE);
 }
 
 /**
@@ -612,8 +616,8 @@ void gantry_robot_action(command_t* command)
             led_on(led_error);
 
             // Mark the humans's move as illegal, the robot's move as done
-            human_move_legal = false;
             p_gantry_command->move.move_type = IDLE;
+            human_move_legal = false;
             robot_is_done = true;
         }
         return;
@@ -737,16 +741,11 @@ void gantry_robot_move_piece(chess_file_t initial_file, chess_rank_t initial_ran
     // Lower the magnet
     command_queue_push((command_t*) stepper_build_chess_z_command(piece, MOTORS_MOVE_V_Z));
 
-#ifdef PERIPHERALS_ENABLED
     // Engage the magnet
     command_queue_push((command_t*) electromagnet_build_command(enabled));
 
     // Wait
     command_queue_push((command_t*) delay_build_command(500));
-#else 
-    // Temporary wait
-    command_queue_push((command_t*) delay_build_command(2000));
-#endif
 
     // Raise the magnet
     command_queue_push((command_t*) stepper_build_chess_z_command(HOME_PIECE, MOTORS_MOVE_V_Z));
@@ -757,16 +756,11 @@ void gantry_robot_move_piece(chess_file_t initial_file, chess_rank_t initial_ran
     // Lower the magnet
     command_queue_push((command_t*) stepper_build_chess_z_command(piece, MOTORS_MOVE_V_Z));
 
-#ifdef PERIPHERALS_ENABLED
     // Disengage the magnet
     command_queue_push((command_t*) electromagnet_build_command(disabled));
 
     // Wait
     command_queue_push((command_t*) delay_build_command(500));
-#else 
-    // Temporary wait
-    command_queue_push((command_t*) delay_build_command(1000));
-#endif
 
     // Raise the magnet
     command_queue_push((command_t*) stepper_build_chess_z_command(HOME_PIECE, MOTORS_MOVE_V_Z));
@@ -1017,10 +1011,10 @@ __interrupt void GANTRY_HANDLER(void)
     clock_clear_interrupt(GANTRY_TIMER);
     
     // Check the current switch readings
-    uint8_t switch_data = switch_get_reading();
+    uint16_t switch_data = switch_get_reading();
 
     // If the emergency stop button was pressed, kill everything
-    if (switch_data & FUTURE_PROOF_1_MASK)
+    if (switch_data & E_STOP_MASK)
     {
     //    gantry_kill();
     }

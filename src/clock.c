@@ -175,7 +175,7 @@ void clock_timer6a_init(void)
     TIMER6->IMR  |=  (TIMER_IMR_TATOIM);                    // Set the interrupt mask
 
     // Configure the interrupt in the NVIC
-    utils_set_nvic(TIMER_6A_INTERRUPT_NUM, 3);
+    utils_set_nvic(TIMER_6A_INTERRUPT_NUM, 5);
 }
 
 /**

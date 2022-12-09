@@ -410,15 +410,16 @@ bool uart_read_byte(uint8_t uart_channel, uint8_t* byte)
 {
     bool status = false;
 
-    // Short circuits if a fault occurs
-    if (sys_fault)
-    {
-        return false;
-    }
-
     // Read the appropriate channel
     while (!status)
     {
+        // Short circuit if a fault occurs
+        if (sys_fault)
+        {
+            return false;
+        }
+        
+        // Try to read a byte
         switch (uart_channel)
         {
             case UART_CHANNEL_0:
