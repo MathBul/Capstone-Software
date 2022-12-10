@@ -33,7 +33,7 @@
 #define BUTTON_START_PORT                   (GPIOF)
 #define BUTTON_START_PIN                    (GPIO_PIN_2)
 #define BUTTON_RESET_PORT                   (GPIOF)
-#define BUTTON_RESET_PIN                    (GPIO_PIN_2)
+#define BUTTON_RESET_PIN                    (GPIO_PIN_1)
 #define BUTTON_HOME_PORT                    (GPIOM)
 #define BUTTON_HOME_PIN                     (GPIO_PIN_3)
 #define BUTTON_NEXT_TURN_PORT               (GPIOE)

@@ -1027,25 +1027,25 @@ __interrupt void GANTRY_HANDLER(void)
     // If the emergency stop button was pressed, kill everything
     if (switch_data & E_STOP_MASK)
     {
-    //    gantry_kill();
+        gantry_kill();
     }
 
     // If a limit switch was pressed, and the system is not homing, kill everything
     if ((!gantry_homing) && (switch_data & LIMIT_MASK))
     {
-    //    gantry_kill();
+        gantry_kill();
     }
 
     // If the start/reset button was pressed, send the appropriate "new game" signal
     if ((switch_data & BUTTON_RESET_MASK) || (switch_data & BUTTON_START_MASK))
     {
-    //    gantry_reset();
+        gantry_reset();
     }
 
     // If the home button was pressed, clear the queue and execute a homing command
     if (switch_data & BUTTON_HOME_MASK)
     {
-    //    gantry_home();
+        gantry_home();
     }
 
     // Store the current reading if the human hit the capture tile
