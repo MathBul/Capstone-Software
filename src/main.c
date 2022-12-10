@@ -19,8 +19,11 @@ int main(void)
 
     // Add commands to the queue
 #ifdef SENSOR_NETWORK_DEBUG
-    // No exiting main
-    while(1){}
+
+    gantry_home();
+    chessboard_reset_all();
+    command_queue_push((command_t*)stepper_build_chess_xy_command(E, FOURTH, 1, 1));
+    command_queue_push((command_t*)stepper_build_chess_z_command(ROOK, 1));
 
 #elif defined(UART_DEBUG)
     while (1)

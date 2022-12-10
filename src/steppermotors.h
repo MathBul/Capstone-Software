@@ -57,7 +57,7 @@
 
 // General stepper defines
 #define NUMBER_OF_STEPPER_MOTORS            (3)
-#define MICROSTEP_LEVEL                     (4)
+#define MICROSTEP_LEVEL                     (8)
 #define TRANSITIONS_PER_MM                  (10 * MICROSTEP_LEVEL)
 #define STEPPER_HOME_DISTANCE               (999)
 #define STEPPER_HOME_VELOCITY               (1)
@@ -69,7 +69,7 @@
 #define STEPPER_XYZ_NRESET_PIN              (GPIO_PIN_0)
 #define STEPPER_XYZ_DECAY_PORT              (GPIOE)
 #define STEPPER_XYZ_DECAY_PIN               (GPIO_PIN_1)
-#define STEPPER_XY_MS0_PORT                 (GPIOA)
+#define STEPPER_XY_MS0_PORT                 (GPIOD)
 #define STEPPER_XY_MS0_PIN                  (GPIO_PIN_6)
 #define STEPPER_XY_MS1_PORT                 (GPIOM)
 #define STEPPER_XY_MS1_PIN                  (GPIO_PIN_4)

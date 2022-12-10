@@ -121,48 +121,48 @@ static void sensornetwork_select_file(chess_file_t file)
  */
 static uint8_t sensornetwork_read_rank(chess_rank_t rank)
 {
-    uint8_t sensor_reading = 0;
+    uint8_t reading = 0;
 
     // Set the column select lines
     switch (rank)
     {
         case FIRST: // Select == 000
-            sensor_reading = gpio_read_input(SENSOR_COL_DATA_0_PORT, SENSOR_COL_DATA_0_PIN);
+            reading = gpio_read_input(SENSOR_COL_DATA_0_PORT, SENSOR_COL_DATA_0_PIN);
         break;
 
         case SECOND: // Select == 001
-            sensor_reading = gpio_read_input(SENSOR_COL_DATA_1_PORT, SENSOR_COL_DATA_1_PIN);
+            reading = gpio_read_input(SENSOR_COL_DATA_1_PORT, SENSOR_COL_DATA_1_PIN);
         break;
 
         case THIRD: // Select == 010
-            sensor_reading = gpio_read_input(SENSOR_COL_DATA_2_PORT, SENSOR_COL_DATA_2_PIN);
+            reading = gpio_read_input(SENSOR_COL_DATA_2_PORT, SENSOR_COL_DATA_2_PIN);
         break;
 
         case FOURTH: // Select == 011
-            sensor_reading = gpio_read_input(SENSOR_COL_DATA_3_PORT, SENSOR_COL_DATA_3_PIN);
+            reading = gpio_read_input(SENSOR_COL_DATA_3_PORT, SENSOR_COL_DATA_3_PIN);
         break;
 
         case FIFTH: // Select == 100
-            sensor_reading = gpio_read_input(SENSOR_COL_DATA_4_PORT, SENSOR_COL_DATA_4_PIN);
+            reading = gpio_read_input(SENSOR_COL_DATA_4_PORT, SENSOR_COL_DATA_4_PIN);
         break;
 
         case SIXTH: // Select == 101
-            sensor_reading = gpio_read_input(SENSOR_COL_DATA_5_PORT, SENSOR_COL_DATA_5_PIN);
+            reading = gpio_read_input(SENSOR_COL_DATA_5_PORT, SENSOR_COL_DATA_5_PIN);
         break;
 
         case SEVENTH: // Select == 110
-            sensor_reading = gpio_read_input(SENSOR_COL_DATA_6_PORT, SENSOR_COL_DATA_6_PIN);
+            reading = gpio_read_input(SENSOR_COL_DATA_6_PORT, SENSOR_COL_DATA_6_PIN);
         break;
 
         case EIGHTH: // Select == 111
-            sensor_reading = gpio_read_input(SENSOR_COL_DATA_7_PORT, SENSOR_COL_DATA_7_PIN);
+            reading = gpio_read_input(SENSOR_COL_DATA_7_PORT, SENSOR_COL_DATA_7_PIN);
         break;
 
         default: // ??
         break;
     }
 
-    return sensor_reading;
+    return reading;
 }
 
 /**
@@ -231,7 +231,7 @@ __interrupt void SENSOR_NETWORK_HANDLER(void)
     // Prepare the next column to scan
     column += 1;
     if (column >= NUMBER_OF_COLS) {
-        column -= NUMBER_OF_COLS;
+        column = 0;
     }
 
     // Update the sensor transition information

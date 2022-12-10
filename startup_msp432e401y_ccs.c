@@ -329,6 +329,7 @@ void Reset_Handler(void)
 /* for examination by a debugger.                                               */
 void Default_Handler(void)
 {
+    static volatile int _Continue = 0; // From https://www.segger.com/downloads/application-notes/AN00016
     /* Fault trap exempt from ULP advisor */
 	#ifdef __TI_ARM__
 		#pragma diag_push
@@ -336,7 +337,7 @@ void Default_Handler(void)
 	#endif
 
 	/* Enter an infinite loop. */
-	while(1)
+	while(_Continue == 0)
 	{
 	}
 

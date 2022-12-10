@@ -1,6 +1,6 @@
 /**
  * @file pwm.c
- * @author Keenan Alchaar (ka5nt@virginia.edu)
+ * @author Keenan Alchaar (ka5nt@virginia.edu) and Eli Jelesko (ebj5hec@virginia.edu)
  * @brief Code for using PWM on the MSP432E401Y
  * @version 0.1
  * @date 2022-12-02

@@ -13,7 +13,7 @@
 
 // Debug mode select
 //#define UART_DEBUG
-//#define PERIPHERALS_ENABLED
+#define PERIPHERALS_ENABLED
 //#define GANTRY_DEBUG
 //#define STEPPER_DEBUG
 //#define SENSOR_NETWORK_DEBUG
@@ -46,7 +46,7 @@
 
 // Chess-specific macros
 #define SQUARE_CENTER_TO_CENTER             (48)        // mm
-#define SQUARE_X_INITIAL                    (-115)      // mm
+#define SQUARE_X_INITIAL                    (-130)      // mm
 #define SQUARE_Y_INITIAL                    (30)        // mm
 #define CAPTURE_X                           (-20)       // mm
 #define CAPTURE_Y                           (SQUARE_Y_INITIAL + 5*SQUARE_CENTER_TO_CENTER)
@@ -227,12 +227,12 @@ typedef enum chess_rank_t {
 // Translates piece type to distance to lower rack in mm
 //  TODO: FIll in once measured
 typedef enum chess_piece_t {
-    KING        = -10,
-    QUEEN       = -20,
-    ROOK        = -30,
-    BISHOP      = -40,
-    KNIGHT      = -50,
-    PAWN        = -92,
+    KING        = -65,
+    QUEEN       = -77,
+    ROOK        = -94,
+    BISHOP      = -82,
+    KNIGHT      = -89,
+    PAWN        = -95,
     HOME_PIECE  = HOMING_Z_BACKOFF,
     EMPTY_PIECE = 1,
 } chess_piece_t;
