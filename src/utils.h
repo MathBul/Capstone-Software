@@ -13,10 +13,10 @@
 
 // Debug mode select
 //#define UART_DEBUG
-#define PERIPHERALS_ENABLED
+//#define PERIPHERALS_ENABLED
 //#define GANTRY_DEBUG
 //#define STEPPER_DEBUG
-//#define SENSOR_NETWORK_DEBUG
+#define SENSOR_NETWORK_DEBUG
 
 // Game mode select (define at most one at a time)
 //#define USER_MODE                 // User, through UART0 terminal, sends moves to MSP directly
@@ -59,6 +59,8 @@
 #define HOMING_Y_VELOCITY                   (1)         // mm
 #define HOMING_Z_VELOCITY                   (1)         // mm
 #define HOMING_DELAY_MS                     (100)       // ms
+
+#define PIECE_HEIGHT_OFFSET                 (18)
 
 // Shared flags
 extern bool sys_fault;
@@ -194,14 +196,14 @@ typedef enum chess_move_type_t {
 
 // Translates file on the board to distance in mm
 typedef enum chess_file_t {
-    A            = SQUARE_X_INITIAL - 7*SQUARE_CENTER_TO_CENTER,
-    B            = SQUARE_X_INITIAL - 6*SQUARE_CENTER_TO_CENTER,
-    C            = SQUARE_X_INITIAL - 5*SQUARE_CENTER_TO_CENTER,
-    D            = SQUARE_X_INITIAL - 4*SQUARE_CENTER_TO_CENTER,
-    E            = SQUARE_X_INITIAL - 3*SQUARE_CENTER_TO_CENTER,
-    F            = SQUARE_X_INITIAL - 2*SQUARE_CENTER_TO_CENTER,
-    G            = SQUARE_X_INITIAL - 1*SQUARE_CENTER_TO_CENTER,
-    H            = SQUARE_X_INITIAL,
+    H            = SQUARE_X_INITIAL - 7*SQUARE_CENTER_TO_CENTER,
+    G            = SQUARE_X_INITIAL - 6*SQUARE_CENTER_TO_CENTER,
+    F            = SQUARE_X_INITIAL - 5*SQUARE_CENTER_TO_CENTER,
+    E            = SQUARE_X_INITIAL - 4*SQUARE_CENTER_TO_CENTER,
+    D            = SQUARE_X_INITIAL - 3*SQUARE_CENTER_TO_CENTER,
+    C            = SQUARE_X_INITIAL - 2*SQUARE_CENTER_TO_CENTER,
+    B            = SQUARE_X_INITIAL - 1*SQUARE_CENTER_TO_CENTER,
+    A            = SQUARE_X_INITIAL,
     CAPTURE_FILE = CAPTURE_X,
     QUEEN_FILE   = CAPTURE_X,
     HOME_FILE    = HOMING_X_BACKOFF,
@@ -210,14 +212,14 @@ typedef enum chess_file_t {
 
 // Translates rank on the board to distance in mm
 typedef enum chess_rank_t {
-    FIRST        = SQUARE_Y_INITIAL,
-    SECOND       = SQUARE_Y_INITIAL + 1*SQUARE_CENTER_TO_CENTER,
-    THIRD        = SQUARE_Y_INITIAL + 2*SQUARE_CENTER_TO_CENTER,
-    FOURTH       = SQUARE_Y_INITIAL + 3*SQUARE_CENTER_TO_CENTER,
-    FIFTH        = SQUARE_Y_INITIAL + 4*SQUARE_CENTER_TO_CENTER,
-    SIXTH        = SQUARE_Y_INITIAL + 5*SQUARE_CENTER_TO_CENTER,
-    SEVENTH      = SQUARE_Y_INITIAL + 6*SQUARE_CENTER_TO_CENTER,
-    EIGHTH       = SQUARE_Y_INITIAL + 7*SQUARE_CENTER_TO_CENTER,
+    EIGHTH        = SQUARE_Y_INITIAL,
+    SEVENTH       = SQUARE_Y_INITIAL + 1*SQUARE_CENTER_TO_CENTER,
+    SIXTH         = SQUARE_Y_INITIAL + 2*SQUARE_CENTER_TO_CENTER,
+    FIFTH         = SQUARE_Y_INITIAL + 3*SQUARE_CENTER_TO_CENTER,
+    FOURTH        = SQUARE_Y_INITIAL + 4*SQUARE_CENTER_TO_CENTER,
+    THIRD         = SQUARE_Y_INITIAL + 5*SQUARE_CENTER_TO_CENTER,
+    SECOND        = SQUARE_Y_INITIAL + 6*SQUARE_CENTER_TO_CENTER,
+    FIRST         = SQUARE_Y_INITIAL + 7*SQUARE_CENTER_TO_CENTER,
     CAPTURE_RANK = CAPTURE_Y,
     QUEEN_RANK   = CAPTURE_Y,
     HOME_RANK    = HOMING_Y_BACKOFF,
@@ -227,12 +229,12 @@ typedef enum chess_rank_t {
 // Translates piece type to distance to lower rack in mm
 //  TODO: FIll in once measured
 typedef enum chess_piece_t {
-    KING        = -65,
-    QUEEN       = -77,
-    ROOK        = -94,
-    BISHOP      = -82,
-    KNIGHT      = -89,
-    PAWN        = -95,
+    KING        = -65 - PIECE_HEIGHT_OFFSET,
+    QUEEN       = -77 - PIECE_HEIGHT_OFFSET,
+    ROOK        = -94 - PIECE_HEIGHT_OFFSET,
+    BISHOP      = -82 - PIECE_HEIGHT_OFFSET,
+    KNIGHT      = -89 - PIECE_HEIGHT_OFFSET,
+    PAWN        = -95 - PIECE_HEIGHT_OFFSET,
     HOME_PIECE  = HOMING_Z_BACKOFF,
     EMPTY_PIECE = 1,
 } chess_piece_t;

@@ -152,7 +152,7 @@ typedef struct {
     peripheral_state_t     current_state;              // Whether the motor is enabled/disabled
     uint32_t               transitions_to_desired_pos; // (2)*(#periods to desired position)
     int8_t                 dir;                        // +/- 1 to indicate direction
-    int16_t                current_pos;                // Distance (in transitions) along the axis, from home position
+    int32_t                current_pos;                // Distance (in transitions) along the axis, from home position
     uint16_t               current_vel;                // Velocity (in CCR values) at the present moment
     int32_t                x_1;                        // Point where the speed plateaus (in transitions)
     int32_t                x_2;                        // Point where the speed starts decreasing (in transitions)

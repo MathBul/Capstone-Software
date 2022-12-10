@@ -55,6 +55,14 @@
 #define SENSOR_COL_DATA_7_PORT              (GPIOM)
 #define SENSOR_COL_DATA_7_PIN               (GPIO_PIN_6)
 
+// Col select (temp)
+#define SENSOR_COL_SELECT_0_PORT            (GPIOA)
+#define SENSOR_COL_SELECT_0_PIN             (GPIO_PIN_7)
+#define SENSOR_COL_SELECT_1_PORT            (GPIOP)
+#define SENSOR_COL_SELECT_1_PIN             (GPIO_PIN_5)
+#define SENSOR_COL_SELECT_2_PORT            (GPIOM)
+#define SENSOR_COL_SELECT_2_PIN             (GPIO_PIN_7)
+
 // Local representation of the sensors
 typedef struct {
     uint64_t current_inputs;

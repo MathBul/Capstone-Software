@@ -26,6 +26,9 @@ static bool human_move_done    = false;
 static bool robot_is_done      = false;
 static bool msg_ready_to_send  = true;
 bool sys_fault                 = false;
+#ifdef THREE_PARTY_MODE
+;//TODO
+#endif
 
 /**
  * @brief Initializes all modules
