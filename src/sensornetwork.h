@@ -29,7 +29,7 @@
 #define SENSOR_NETWORK_TIMER                (TIMER6)
 #define SENSOR_NETWORK_HANDLER              (TIMER6A_IRQHandler)
 
-// Sensor rows
+// Sensor cols
 #define SENSOR_COL_SELECT_0_PORT            (GPIOD)
 #define SENSOR_COL_SELECT_0_PIN             (GPIO_PIN_1)
 #define SENSOR_COL_SELECT_1_PORT            (GPIOD)
@@ -37,23 +37,23 @@
 #define SENSOR_COL_SELECT_2_PORT            (GPION)
 #define SENSOR_COL_SELECT_2_PIN             (GPIO_PIN_2)
 
-// Sensor cols
-#define SENSOR_ROW_DATA_0_PORT              (GPIOL)
-#define SENSOR_ROW_DATA_0_PIN               (GPIO_PIN_3)
+// Sensor rows
 #define SENSOR_ROW_DATA_1_PORT              (GPIOH)
 #define SENSOR_ROW_DATA_1_PIN               (GPIO_PIN_2)
-#define SENSOR_ROW_DATA_2_PORT              (GPIOH)
+#define SENSOR_ROW_DATA_2_PORT              (GPIOL)
 #define SENSOR_ROW_DATA_2_PIN               (GPIO_PIN_3)
 #define SENSOR_ROW_DATA_3_PORT              (GPIOL)
 #define SENSOR_ROW_DATA_3_PIN               (GPIO_PIN_2)
-#define SENSOR_ROW_DATA_4_PORT              (GPIOL)
-#define SENSOR_ROW_DATA_4_PIN               (GPIO_PIN_1)
+#define SENSOR_ROW_DATA_4_PORT              (GPIOH)
+#define SENSOR_ROW_DATA_4_PIN               (GPIO_PIN_3)
 #define SENSOR_ROW_DATA_5_PORT              (GPIOL)
 #define SENSOR_ROW_DATA_5_PIN               (GPIO_PIN_4)
 #define SENSOR_ROW_DATA_6_PORT              (GPIOL)
-#define SENSOR_ROW_DATA_6_PIN               (GPIO_PIN_0)
+#define SENSOR_ROW_DATA_6_PIN               (GPIO_PIN_1)
 #define SENSOR_ROW_DATA_7_PORT              (GPIOL)
-#define SENSOR_ROW_DATA_7_PIN               (GPIO_PIN_5)
+#define SENSOR_ROW_DATA_7_PIN               (GPIO_PIN_0)
+#define SENSOR_ROW_DATA_8_PORT              (GPIOL)
+#define SENSOR_ROW_DATA_8_PIN               (GPIO_PIN_5)
 
 // Local representation of the sensors
 typedef struct {

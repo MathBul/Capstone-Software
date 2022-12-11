@@ -117,7 +117,7 @@ void gantry_reset(void)
     if (switch_data & TOGGLE_MASK)
     {
         // User is black, start in gantry_robot
-        user_color = 'B';
+        user_color = 'W';
 
         char message[START_INSTR_LENGTH];
         rpi_build_start_msg(user_color, message);
@@ -127,7 +127,7 @@ void gantry_reset(void)
         command_queue_push((command_t*) gantry_robot_build_command());
     } else {
         // User is white, start in gantry_human
-        user_color = 'W';
+        user_color = 'B';
 
         char message[START_INSTR_LENGTH];
         rpi_build_start_msg(user_color, message);

@@ -19,34 +19,13 @@ int main(void)
 
     // Add commands to the queue
 #ifdef SENSOR_NETWORK_DEBUG
+    while(1) {};
 
     gantry_home();
-    chessboard_reset_all();
-    command_queue_push((command_t*)stepper_build_chess_xy_command(A, FIFTH, 1, 1));
+//    chessboard_reset_all();
+//    command_queue_push((command_t*)stepper_build_chess_xy_command(A, FIFTH, 1, 1));
 //    command_queue_push((command_t*)delay_build_command(1000));
-//    command_queue_push((command_t*)stepper_build_chess_xy_command(F, SIXTH, 1, 1));
-    command_queue_push((command_t*)stepper_build_chess_z_command(PAWN, 1));
-
-//    gpio_set_as_output(SENSOR_ROW_SELECT_0_PORT, SENSOR_ROW_SELECT_0_PIN);
-//    gpio_set_as_output(SENSOR_ROW_SELECT_1_PORT, SENSOR_ROW_SELECT_1_PIN);
-//    gpio_set_as_output(SENSOR_ROW_SELECT_2_PORT, SENSOR_ROW_SELECT_2_PIN);
-//    gpio_set_as_output(SENSOR_COL_SELECT_0_PORT, SENSOR_COL_SELECT_0_PIN);
-//    gpio_set_as_output(SENSOR_COL_SELECT_1_PORT, SENSOR_COL_SELECT_1_PIN);
-//    gpio_set_as_output(SENSOR_COL_SELECT_2_PORT, SENSOR_COL_SELECT_2_PIN);
-//
-//    gpio_set_output_high(SENSOR_ROW_SELECT_0_PORT, SENSOR_ROW_SELECT_0_PIN);
-//    gpio_set_output_high(SENSOR_ROW_SELECT_1_PORT, SENSOR_ROW_SELECT_1_PIN);
-//    gpio_set_output_high(SENSOR_ROW_SELECT_2_PORT, SENSOR_ROW_SELECT_2_PIN);
-//    gpio_set_output_high(SENSOR_COL_SELECT_0_PORT, SENSOR_COL_SELECT_0_PIN);
-//    gpio_set_output_high(SENSOR_COL_SELECT_1_PORT, SENSOR_COL_SELECT_1_PIN);
-//    gpio_set_output_high(SENSOR_COL_SELECT_2_PORT, SENSOR_COL_SELECT_2_PIN);
-//
-//    gpio_set_as_input(GPIOG, GPIO_PIN_1);
-//    uint8_t read_value;
-//
-//    while (1) {
-//        read_value = gpio_read_input(GPIOG, GPIO_PIN_1);
-//    }
+//    command_queue_push((command_t*)stepper_build_chess_z_command(PAWN, 1));
 
 #elif defined(UART_DEBUG)
     while (1)
@@ -102,7 +81,7 @@ int main(void)
         }
 
 #ifdef GANTRY_DEBUG
-        switch_test(E_STOP_MASK);
+        switch_test(LIMIT_X_MASK);
 #endif
     }
 }
