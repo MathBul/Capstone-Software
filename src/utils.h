@@ -13,10 +13,10 @@
 
 // Debug mode select
 //#define UART_DEBUG
-//#define PERIPHERALS_ENABLED
+#define PERIPHERALS_ENABLED
 //#define GANTRY_DEBUG
 //#define STEPPER_DEBUG
-#define SENSOR_NETWORK_DEBUG
+//#define SENSOR_NETWORK_DEBUG
 
 // Game mode select (define at most one at a time)
 //#define USER_MODE                 // User, through UART0 terminal, sends moves to MSP directly
@@ -46,8 +46,8 @@
 
 // Chess-specific macros
 #define SQUARE_CENTER_TO_CENTER             (48)        // mm
-#define SQUARE_X_INITIAL                    (-130)      // mm
-#define SQUARE_Y_INITIAL                    (30)        // mm
+#define SQUARE_X_INITIAL                    (-134)      // mm
+#define SQUARE_Y_INITIAL                    (26)        // mm
 #define CAPTURE_X                           (-20)       // mm
 #define CAPTURE_Y                           (SQUARE_Y_INITIAL + 5*SQUARE_CENTER_TO_CENTER)
 
@@ -60,7 +60,7 @@
 #define HOMING_Z_VELOCITY                   (1)         // mm
 #define HOMING_DELAY_MS                     (100)       // ms
 
-#define PIECE_HEIGHT_OFFSET                 (18)
+#define PIECE_HEIGHT_OFFSET                 (22)
 
 // Shared flags
 extern bool sys_fault;
@@ -196,14 +196,14 @@ typedef enum chess_move_type_t {
 
 // Translates file on the board to distance in mm
 typedef enum chess_file_t {
-    H            = SQUARE_X_INITIAL - 7*SQUARE_CENTER_TO_CENTER,
-    G            = SQUARE_X_INITIAL - 6*SQUARE_CENTER_TO_CENTER,
-    F            = SQUARE_X_INITIAL - 5*SQUARE_CENTER_TO_CENTER,
-    E            = SQUARE_X_INITIAL - 4*SQUARE_CENTER_TO_CENTER,
-    D            = SQUARE_X_INITIAL - 3*SQUARE_CENTER_TO_CENTER,
-    C            = SQUARE_X_INITIAL - 2*SQUARE_CENTER_TO_CENTER,
-    B            = SQUARE_X_INITIAL - 1*SQUARE_CENTER_TO_CENTER,
     A            = SQUARE_X_INITIAL,
+    B            = SQUARE_X_INITIAL - 1*SQUARE_CENTER_TO_CENTER,
+    C            = SQUARE_X_INITIAL - 2*SQUARE_CENTER_TO_CENTER + 2,
+    D            = SQUARE_X_INITIAL - 3*SQUARE_CENTER_TO_CENTER + 2,
+    E            = SQUARE_X_INITIAL - 4*SQUARE_CENTER_TO_CENTER + 3,
+    F            = SQUARE_X_INITIAL - 5*SQUARE_CENTER_TO_CENTER + 3,
+    G            = SQUARE_X_INITIAL - 6*SQUARE_CENTER_TO_CENTER + 4,
+    H            = SQUARE_X_INITIAL - 7*SQUARE_CENTER_TO_CENTER + 4,
     CAPTURE_FILE = CAPTURE_X,
     QUEEN_FILE   = CAPTURE_X,
     HOME_FILE    = HOMING_X_BACKOFF,
@@ -212,14 +212,14 @@ typedef enum chess_file_t {
 
 // Translates rank on the board to distance in mm
 typedef enum chess_rank_t {
-    EIGHTH        = SQUARE_Y_INITIAL,
-    SEVENTH       = SQUARE_Y_INITIAL + 1*SQUARE_CENTER_TO_CENTER,
-    SIXTH         = SQUARE_Y_INITIAL + 2*SQUARE_CENTER_TO_CENTER,
-    FIFTH         = SQUARE_Y_INITIAL + 3*SQUARE_CENTER_TO_CENTER,
-    FOURTH        = SQUARE_Y_INITIAL + 4*SQUARE_CENTER_TO_CENTER,
-    THIRD         = SQUARE_Y_INITIAL + 5*SQUARE_CENTER_TO_CENTER,
+    FIRST         = SQUARE_Y_INITIAL + 7*SQUARE_CENTER_TO_CENTER - 2,
     SECOND        = SQUARE_Y_INITIAL + 6*SQUARE_CENTER_TO_CENTER,
-    FIRST         = SQUARE_Y_INITIAL + 7*SQUARE_CENTER_TO_CENTER,
+    THIRD         = SQUARE_Y_INITIAL + 5*SQUARE_CENTER_TO_CENTER,
+    FOURTH        = SQUARE_Y_INITIAL + 4*SQUARE_CENTER_TO_CENTER,
+    FIFTH         = SQUARE_Y_INITIAL + 3*SQUARE_CENTER_TO_CENTER,
+    SIXTH         = SQUARE_Y_INITIAL + 2*SQUARE_CENTER_TO_CENTER,
+    SEVENTH       = SQUARE_Y_INITIAL + 1*SQUARE_CENTER_TO_CENTER,
+    EIGHTH        = SQUARE_Y_INITIAL,
     CAPTURE_RANK = CAPTURE_Y,
     QUEEN_RANK   = CAPTURE_Y,
     HOME_RANK    = HOMING_Y_BACKOFF,

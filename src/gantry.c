@@ -26,9 +26,7 @@ static bool human_move_done    = false;
 static bool robot_is_done      = false;
 static bool msg_ready_to_send  = true;
 bool sys_fault                 = false;
-#ifdef THREE_PARTY_MODE
-;//TODO
-#endif
+static bool ready_to_read      = false;
 
 /**
  * @brief Initializes all modules
@@ -190,8 +188,8 @@ gantry_command_t* gantry_human_build_command(void)
     // The thing to return
     gantry_command_t* p_command = (gantry_command_t*) malloc(sizeof(gantry_command_t));
 
-    p_command->command.p_entry   = &utils_empty_function;
-    p_command->command.p_action  = &gantry_human_action;
+    p_command->command.p_entry   = &gantry_human_entry;
+    p_command->command.p_action  = &utils_empty_function;
     p_command->command.p_exit    = &gantry_human_exit;
     p_command->command.p_is_done = &gantry_human_is_done;
 
@@ -200,7 +198,7 @@ gantry_command_t* gantry_human_build_command(void)
     gantry_robot_command_t* p_command = (gantry_robot_command_t*) malloc(sizeof(gantry_robot_command_t));
 
     // Functions
-    p_command->command.p_entry   = &utils_empty_function;
+    p_command->command.p_entry   = &gantry_human_entry;
     p_command->command.p_action  = &gantry_human_action;
     p_command->command.p_exit    = &gantry_human_exit;
     p_command->command.p_is_done = &gantry_human_is_done;
@@ -223,6 +221,18 @@ gantry_command_t* gantry_human_build_command(void)
     return (gantry_command_t*) p_command;
 }
 
+void gantry_human_entry(command_t* command)
+{
+    // Set the human moving LED
+    led_all_off();
+    led_on(led_human_move);
+
+    // Reset the flags
+    human_move_capture = false;
+    human_move_done    = false;
+    ready_to_read      = false;
+}
+
 /*
  * @brief Reads the move the human has made until the human hits the "end turn" button
  *
@@ -230,11 +240,11 @@ gantry_command_t* gantry_human_build_command(void)
  */
 void gantry_human_action(command_t* command)
 {
-    // Set the human moving LED
-    led_all_off();
-    led_on(led_human_move);
-
 #ifdef THREE_PARTY_MODE
+    if (!ready_to_read) {
+        return;
+    }
+
     gantry_robot_command_t* p_gantry_command = (gantry_robot_command_t*) command; // WHY IS THIS A ROBOT COMMAND!?!?!
 
     char message[9];
@@ -310,7 +320,6 @@ void gantry_human_action(command_t* command)
     p_gantry_command->move_uci[3] = move[3];
     p_gantry_command->move_uci[4] = move[4];
 
-    // Move to exit
     human_move_done = true;
 #endif
 }
@@ -372,10 +381,6 @@ void gantry_human_exit(command_t* command)
     human_move_legal = true;
     msg_ready_to_send = true;
 #endif
-
-    // Reset the flags
-    human_move_capture = false;
-    human_move_done    = false;
 }
 
 /**
@@ -752,14 +757,16 @@ void gantry_robot_move_piece(chess_file_t initial_file, chess_rank_t initial_ran
     // Go to the source tile
     command_queue_push((command_t*) stepper_build_chess_xy_command(initial_file, initial_rank, MOTORS_MOVE_V_X, MOTORS_MOVE_V_Y));
 
-    // Lower the magnet
-    command_queue_push((command_t*) stepper_build_chess_z_command(piece, MOTORS_MOVE_V_Z));
 #ifdef PERIPHERALS_ENABLED
     // Engage the magnet
     command_queue_push((command_t*) electromagnet_build_command(enabled));
 #endif
+
+    // Lower the magnet
+    command_queue_push((command_t*) stepper_build_chess_z_command(piece, MOTORS_MOVE_V_Z));
+
     // Wait
-    command_queue_push((command_t*) delay_build_command(500));
+    command_queue_push((command_t*) delay_build_command(1000));
 
     // Raise the magnet
     command_queue_push((command_t*) stepper_build_chess_z_command(HOME_PIECE, MOTORS_MOVE_V_Z));
@@ -1064,6 +1071,11 @@ __interrupt void GANTRY_HANDLER(void)
     {
         board_reading_current = sensornetwork_get_reading();
         human_move_done = true;
+    }
+#elif defined(THREE_PARTY_MODE)
+    if ((!human_move_done) && (switch_data & BUTTON_NEXT_TURN_MASK))
+    {
+        ready_to_read = true;
     }
 #endif
 }

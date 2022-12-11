@@ -22,10 +22,10 @@ int main(void)
 
     gantry_home();
     chessboard_reset_all();
-    command_queue_push((command_t*)stepper_build_chess_xy_command(G, EIGHTH, 1, 1));
-    command_queue_push((command_t*)delay_build_command(1000));
-    command_queue_push((command_t*)stepper_build_chess_xy_command(F, SIXTH, 1, 1));
-//    command_queue_push((command_t*)stepper_build_chess_z_command(PAWN, 1));
+    command_queue_push((command_t*)stepper_build_chess_xy_command(A, FIFTH, 1, 1));
+//    command_queue_push((command_t*)delay_build_command(1000));
+//    command_queue_push((command_t*)stepper_build_chess_xy_command(F, SIXTH, 1, 1));
+    command_queue_push((command_t*)stepper_build_chess_z_command(PAWN, 1));
 
 //    gpio_set_as_output(SENSOR_ROW_SELECT_0_PORT, SENSOR_ROW_SELECT_0_PIN);
 //    gpio_set_as_output(SENSOR_ROW_SELECT_1_PORT, SENSOR_ROW_SELECT_1_PIN);
