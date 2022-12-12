@@ -24,7 +24,7 @@ int main(void)
     command_queue_push((command_t*) delay_build_command(1000));
     command_queue_push((command_t*) stepper_build_chess_z_command(PAWN, 1));
     command_queue_push((command_t*) delay_build_command(1000));
-//    command_queue_push((command_t*) stepper_build_chess_z_command(HOME_PIECE, 1));
+    command_queue_push((command_t*) stepper_build_chess_z_command(HOME_PIECE, 1));
 
 #else
     // Play chess
@@ -57,7 +57,7 @@ int main(void)
                     p_bad_command->p_entry(p_bad_command);
                     break;
                 }
-                else if (sys_reset)
+                else if (sys_reset || sys_limit)
                 {
                     // In the case of a reset, skip actions until the the homing or reset button clears
                     break;

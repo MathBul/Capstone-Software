@@ -119,8 +119,6 @@ char* rpi_build_start_msg(char color, char message[START_INSTR_LENGTH])
     return message;
 }
 
-
-
 /**
  * @brief Builds a HUMAN_MOVE instruction from the MSP432 to the Raspberry Pi
  * 

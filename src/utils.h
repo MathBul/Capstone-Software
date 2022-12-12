@@ -62,6 +62,7 @@
 // Shared flags
 extern bool sys_fault;
 extern bool sys_reset;
+extern bool sys_limit;
 
 // Bitfield for peripheral imaging (accessing 8-bit volatile memory)
 typedef struct utils_bits8_tutils_bits8_t {

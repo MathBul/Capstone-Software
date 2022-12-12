@@ -65,10 +65,10 @@
 #define MICROSTEP_LEVEL                     (8)
 #define TRANSITIONS_PER_MM                  (10 * MICROSTEP_LEVEL)
 #define TRANSITIONS_PER_MM_Z                (8 * MICROSTEP_LEVEL)
-#define STEPPER_HOME_DISTANCE               (999)
-#define STEPPER_HOME_VELOCITY               (1)
-#define STEPPER_MIN_SPEED                   (135)      // mm/s
-#define STEPPER_MAX_SPEED                   (250)      // mm/s
+#define STEPPER_HOME_DISTANCE               (999)       // mm (arbitrary large value)
+#define STEPPER_HOME_VELOCITY               (1)         // mm/s
+#define STEPPER_MIN_SPEED                   (135)       // mm/s
+#define STEPPER_MAX_SPEED                   (250)       // mm/s
 
 // Common and microstepping GPIO
 #define STEPPER_XYZ_NRESET_PORT             (GPIOE)

@@ -12,6 +12,7 @@
 
 // Private functions
 static void gantry_kill(void);
+static void gantry_estop(void);
 
 // Stores the board readings, which are read in an interrupt and used in various commands
 uint64_t board_reading_current      = 0;
@@ -20,12 +21,12 @@ uint64_t board_reading_intermediate = 0;
 // Flags
 bool sys_fault                 = false;
 bool sys_reset                 = false;
+bool sys_limit                 = false;
 static bool gantry_homing      = false;
 static bool human_move_legal   = true;
 static bool human_move_capture = false;
 static bool human_move_done    = false;
-static bool first_move         = false;
-static bool initial_valid      = true;
+static bool initial_valid      = false;
 static bool msg_ready_to_send  = true;
 static bool robot_is_done      = false;
 
@@ -96,7 +97,7 @@ void gantry_home(void)
 }
 
 /**
- * @brief Hard stops the gantry system. Kills (but does not home) motors, sets sys_fault flag
+ * @brief Hard stops the gantry system. Kills (but does not home) motors, does NOT set sys_fault flag
  */
 static void gantry_kill(void)
 {
@@ -105,9 +106,6 @@ static void gantry_kill(void)
     stepper_y_stop();
     stepper_z_stop();
 
-    // Set the system fault flag
-    sys_fault = true;
-
     // Turn on the error LED
     led_mode(LED_ERROR);
 
@@ -115,7 +113,97 @@ static void gantry_kill(void)
     command_queue_clear();
 }
 
+/**
+ * @brief Hard stops the gantry system. Kills (but does not home) motors, sets sys_fault flag
+ */
+static void gantry_estop(void)
+{
+    gantry_kill();
+
+    // Set the system fault flag
+    sys_fault = true;
+}
+
 /* Command Functions */
+
+/**
+ * @brief Build a start state validator command
+ *
+ * @returns Pointer to the dynamically-allocated command
+ */
+gantry_command_t* gantry_start_state_build_command(void)
+{
+    // The thing to return
+    gantry_command_t* p_command = (gantry_command_t*) malloc(sizeof(gantry_command_t));
+
+    // Functions
+    p_command->command.p_entry   = &gantry_start_state_entry;
+    p_command->command.p_action  = &gantry_start_state_action;
+    p_command->command.p_exit    = &gantry_start_state_exit;
+    p_command->command.p_is_done = &gantry_start_state_is_done;
+
+    return (gantry_command_t*) p_command;
+}
+
+/**
+ * @brief Done when the start state is valid
+ *
+ * @returns Pointer to the dynamically-allocated command
+ */
+void gantry_start_state_entry(command_t* command)
+{
+    initial_valid = false;
+}
+
+/**
+ * @brief Resets the entire system (motors, stored chess boards, UART, etc.). NOT a system fault
+ *
+ * @returns Pointer to the dynamically-allocated command
+ */
+void gantry_start_state_action(command_t* command)
+{
+    // Read the board's initial state
+    uint64_t initial_presence = sensornetwork_get_reading();
+    uint64_t initial_presence_white = (initial_presence & (~INITIAL_PRESENCE_BLACK));
+    uint64_t initial_presence_black = (initial_presence & (~INITIAL_PRESENCE_WHITE));
+
+    // Check for an invalid state
+    if (initial_presence_white != INITIAL_PRESENCE_WHITE)
+    {
+        initial_valid = false;
+        led_mode(LED_SCANNING_ERROR_WHITE);
+    }
+    else if (initial_presence_black != INITIAL_PRESENCE_BLACK)
+    {
+        initial_valid = false;
+        led_mode(LED_SCANNING_ERROR_BLACK);
+    }
+    else
+    {
+        initial_valid = true;
+        led_mode(LED_HUMAN_MOVE);
+    }
+}
+
+/**
+ * @brief Clear the start state valid flag for the next game
+ *
+ * @returns Pointer to the dynamically-allocated command
+ */
+void gantry_start_state_exit(command_t* command)
+{
+    initial_valid = false;
+}
+
+/**
+ * @brief Done when the start state is valid
+ *
+ * @returns Pointer to the dynamically-allocated command
+ */
+bool gantry_start_state_is_done(command_t* command)
+{
+    return initial_valid;
+}
 
 /**
  * @brief Build a reset command
@@ -158,18 +246,22 @@ void gantry_reset_entry(command_t* command)
     // Reset the rpi
     rpi_reset_uart();
 
-    // Mark this as first move
-    first_move = true;
-
     // Read the user color
     char user_color = 'W';
 
-#ifdef FINAL_IMPLEMENTATION_MODE
+    // Clear flags
+    sys_limit = false;
+    sys_reset = false;
 
+#ifdef FINAL_IMPLEMENTATION_MODE
     // Force an interrupt to fire
     clock_trigger_interrupt(SWITCH_TIMER);
     uint16_t switch_data = switch_get_reading();
 
+    // Wait for a valid start state
+    command_queue_push((command_t*) gantry_start_state_build_command());
+
+    // Start the game
     if (switch_data & TOGGLE_MASK)
     {
         // User is black, start in gantry_robot
@@ -191,6 +283,9 @@ void gantry_reset_entry(command_t* command)
 
         // After receiving an ACK, goto robot command
         command_queue_push((command_t*) gantry_robot_build_command());
+
+        // Do not check for a valid initial state
+        human_move_legal = true;
     }
 
 #elif defined(THREE_PARTY_MODE)
@@ -206,9 +301,6 @@ void gantry_reset_entry(command_t* command)
     // After receiving an ACK, goto human command
     command_queue_push((command_t*) gantry_human_build_command());
 #endif
-
-    // Clear the flags
-    sys_reset = false;
 }
 
 /**
@@ -299,29 +391,6 @@ void gantry_human_entry(command_t* command)
 void gantry_human_action(command_t* command)
 {
 #ifdef FINAL_IMPLEMENTATION_MODE
-    if (first_move)
-    {
-        // Read the board's initial state
-        uint64_t initial_presence = sensornetwork_get_reading();
-        uint64_t initial_presence_white = (initial_presence & (~INITIAL_PRESENCE_BLACK));
-        uint64_t initial_presence_black = (initial_presence & (~INITIAL_PRESENCE_WHITE));
-        if (initial_presence_white != INITIAL_PRESENCE_WHITE)
-        {
-            initial_valid = false;
-            led_mode(LED_SCANNING_ERROR_WHITE);
-        }
-        else if (initial_presence_black != INITIAL_PRESENCE_BLACK)
-        {
-            initial_valid = false;
-            led_mode(LED_SCANNING_ERROR_BLACK);
-        }
-        else
-        {
-            first_move = false;
-            initial_valid = true;
-            led_mode(LED_HUMAN_MOVE);
-        }
-    }
 
 #elif defined(THREE_PARTY_MODE)
     if (!ready_to_read) {
@@ -415,7 +484,7 @@ void gantry_human_exit(command_t* command)
 {
 #ifdef FINAL_IMPLEMENTATION_MODE
     // Make sure a reset has not been issued
-    if (sys_reset)
+    if (sys_reset || sys_limit)
     {
         return;
     }
@@ -481,7 +550,7 @@ void gantry_human_exit(command_t* command)
  */
 bool gantry_human_is_done(command_t* command)
 {
-    return (human_move_done && initial_valid);
+    return human_move_done;
 }
 
 /**
@@ -532,6 +601,7 @@ void gantry_comm_entry(command_t* command)
     msg_ready_to_send = false;
 
     // Start the timer
+    clock_reset_timer_value(COMM_TIMER);
     clock_start_timer(COMM_TIMER);
 }
 
@@ -568,9 +638,6 @@ void gantry_comm_exit(command_t* command)
     // Stop and reset the timer
     clock_stop_timer(COMM_TIMER);
     clock_reset_timer_value(COMM_TIMER);
-
-    // Reset the LED
-    led_mode(LED_OFF);
 }
 
 /**
@@ -848,6 +915,12 @@ void gantry_robot_exit(command_t* command)
 {
     gantry_robot_command_t* p_gantry_command = (gantry_robot_command_t*) command;
 
+    // Make sure a reset has not been issued
+    if (sys_reset || sys_limit)
+    {
+        return;
+    }
+
     // Special case of human made an illegal move
     if (!human_move_legal)
     {
@@ -1092,7 +1165,6 @@ gantry_command_t* gantry_home_build_command(void)
 void gantry_home_entry(command_t* command)
 {
     led_mode(LED_ROBOT_MOVE);
-    sys_reset = false;
     gantry_homing = !gantry_homing;
 }
 
@@ -1123,28 +1195,21 @@ __interrupt void GANTRY_HANDLER(void)
     // If the emergency stop button was pressed, kill everything
     if (switch_data & E_STOP_MASK)
     {
-        gantry_kill();
+        gantry_estop();
     }
 
     // If a limit switch was pressed, and the system is not homing, kill everything
-    if ((!gantry_homing) && (switch_data & LIMIT_MASK))
+    if ((!sys_limit) && (!gantry_homing) && (switch_data & LIMIT_MASK))
     {
+        sys_limit = true;
         gantry_kill();
     }
 
-    // If the start/reset button was pressed, send the appropriate "new game" signal
-    if ((!sys_reset) && ((switch_data & BUTTON_RESET_MASK) || (switch_data & BUTTON_START_MASK)))
+    // If the start/reset/home button was pressed, send the appropriate "new game" signal
+    if ((!sys_reset) && (switch_data & (BUTTON_RESET_MASK | BUTTON_START_MASK | BUTTON_HOME_MASK)))
     {
         sys_reset = true;
         command_queue_push((command_t*) gantry_reset_build_command());
-    }
-
-    // If the home button was pressed, clear the queue and execute a homing command
-    if ((!sys_reset) && (!gantry_homing) && (switch_data & BUTTON_HOME_MASK))
-    {
-        sys_reset = true;
-        command_queue_clear();
-        gantry_home();
     }
 
     // Store the current reading if the human hit the capture tile

@@ -229,6 +229,17 @@ void clock_start_timer(TIMER0_Type* timer)
 }
 
 /**
+ * @brief Checks if timer is active (on the A subsubmodule)
+ *
+ * @param timer One of TIMERX for X={0,...,7}
+ * @return Whether the clock is active
+ */
+bool clock_active(TIMER0_Type* timer)
+{
+    return ((timer->CTL & (TIMER_CTL_TAEN)) != 0);
+}
+
+/**
  * @brief Sets the period of the specified timer
  * 
  * @param timer One of TIMERX for X={0,...,7}

@@ -33,8 +33,6 @@
 // Board state struct
 typedef struct {
     uint64_t board_presence;
-    uint64_t robot_presence;
-    uint64_t human_presence;
     char board_pieces[8][8];
 } chess_board_t;
 

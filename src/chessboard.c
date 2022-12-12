@@ -695,8 +695,7 @@ bool chessboard_update_intermediate_board_from_presence(uint64_t board_reading, 
     chessboard_copy_board(p_prev_board, p_inter_board);
 
     // Update the intermediate board from the given reading
-    uint64_t human_presence = (p_inter_board->robot_presence ^ board_reading);
-    return chessboard_update_from_presence_capture(p_inter_board, human_presence, move);
+    return chessboard_update_from_presence_capture(p_inter_board, board_reading, move);
 }
 
 /**

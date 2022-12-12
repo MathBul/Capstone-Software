@@ -112,4 +112,11 @@ gantry_command_t* gantry_reset_build_command(void);
 void gantry_reset_entry(command_t* command);
 bool gantry_reset_is_done(command_t* command);
 
+// Command Functions (checks for an initial start state)
+gantry_command_t* gantry_start_state_build_command(void);
+void gantry_start_state_entry(command_t* command);
+void gantry_start_state_action(command_t* command);
+void gantry_start_state_exit(command_t* command);
+bool gantry_start_state_is_done(command_t* command);
+
 #endif /* GANTRY_H_ */

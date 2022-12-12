@@ -71,6 +71,7 @@ void clock_timer7c_init(void);                       // Communication Timeout
 void clock_clear_interrupt(TIMER0_Type* timer);
 void clock_stop_timer(TIMER0_Type* timer);
 void clock_start_timer(TIMER0_Type* timer);
+bool clock_active(TIMER0_Type* timer);
 void clock_set_timer_period(TIMER0_Type* timer, uint32_t value);
 uint32_t clock_get_timer_period(TIMER0_Type* timer);
 void clock_reset_timer_value(TIMER0_Type* timer);

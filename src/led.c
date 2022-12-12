@@ -86,7 +86,10 @@ static void led_toggle(led_t* p_led)
  */
 static void led_start_flash()
 {
-    clock_start_timer(LED_TIMER);
+    if (!clock_active(LED_TIMER))
+    {
+        clock_start_timer(LED_TIMER);
+    }
 }
 
 /**
