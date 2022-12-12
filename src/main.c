@@ -19,13 +19,13 @@ int main(void)
 
     // Add commands to the queue
 #ifdef SENSOR_NETWORK_DEBUG
-    while(1) {};
 
     gantry_home();
-//    chessboard_reset_all();
-//    command_queue_push((command_t*)stepper_build_chess_xy_command(A, FIFTH, 1, 1));
-//    command_queue_push((command_t*)delay_build_command(1000));
-//    command_queue_push((command_t*)stepper_build_chess_z_command(PAWN, 1));
+    chessboard_reset_all();
+    command_queue_push((command_t*) stepper_build_chess_xy_command(QUEEN_FILE, QUEEN_RANK, 1, 1));
+    command_queue_push((command_t*) delay_build_command(1000));
+    command_queue_push((command_t*) stepper_build_chess_z_command(QUEEN_FILE, QUEEN_RANK, QUEEN, 1));
+    command_queue_push((command_t*) delay_build_command(1000));
 
 #elif defined(UART_DEBUG)
     while (1)
@@ -36,15 +36,15 @@ int main(void)
 #elif defined(STEPPER_DEBUG) || defined(GANTRY_DEBUG)
     // Test a chess movement
     command_queue_push((command_t*) delay_build_command(2000));
-//    gantry_home();
-//    command_queue_push((command_t*) gantry_robot_build_command());
+    gantry_home();
+    command_queue_push((command_t*) gantry_robot_build_command());
 
     // Test a switch
     gpio_set_as_output(SWITCH_TEST_PORT, SWITCH_TEST_PIN);
     gpio_set_output_high(SWITCH_TEST_PORT, SWITCH_TEST_PIN);
 
 #else
-    gantry_reset();
+    command_queue_push((command_t*) gantry_reset_build_command());
 #endif
 
     // Main program flow
@@ -64,10 +64,17 @@ int main(void)
             // Run the action function - is_done() determines when action is complete
             while (!p_current_command->p_is_done(p_current_command))
             {
-                // Check for a system fault (E-stop, etc.)
+                // Check for a system fault (E-stop, etc.) or reset
                 if (sys_fault)
                 {
-                    // In the case of a fault, indefinitely delay until sys_fault has been reset
+                    // In the case of a fault, force a hard fault
+                    command_t* p_bad_command = NULL;
+                    p_bad_command->p_entry(p_bad_command);
+                    break;
+                }
+                else if (sys_reset)
+                {
+                    // In the case of a reset, skip actions until the the homing or reset button clears
                     break;
                 }
                 p_current_command->p_action(p_current_command);

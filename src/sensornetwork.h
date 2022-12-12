@@ -14,6 +14,7 @@
 // Note on sensor network:
 //  - Assumes a multiplexed crosspoint array
 //  - Sends signals on the rows, reads on the columns
+//  - Due to propogation delay in the diodes, reading is on-demand (no interrupt)
 
 #include "msp.h"
 #include "clock.h"
@@ -26,8 +27,6 @@
 #define NUMBER_OF_COLS                      (8)
 #define NUMBER_OF_SENSOR_ROW_SELECTS        (3)
 #define NUMBER_OF_SENSOR_COL_SELECTS        (3)
-#define SENSOR_NETWORK_TIMER                (TIMER6)
-#define SENSOR_NETWORK_HANDLER              (TIMER6A_IRQHandler)
 
 // Sensor cols
 #define SENSOR_COL_SELECT_0_PORT            (GPIOD)
@@ -54,18 +53,6 @@
 #define SENSOR_ROW_DATA_7_PIN               (GPIO_PIN_0)
 #define SENSOR_ROW_DATA_8_PORT              (GPIOL)
 #define SENSOR_ROW_DATA_8_PIN               (GPIO_PIN_5)
-
-// Local representation of the sensors
-typedef struct {
-    uint64_t current_inputs;
-    uint64_t edges;
-    uint64_t pos_transitions;
-    uint64_t neg_transitions;
-    uint64_t previous_inputs;
-} sensornetwork_state_t;
-
-// Virtual port for the sensor network
-union utils_vport64_t sensor_vport;
 
 // Public functions
 void sensornetwork_init(void);

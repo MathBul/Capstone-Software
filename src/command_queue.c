@@ -119,7 +119,14 @@ bool command_queue_is_empty(void)
  */
 bool command_queue_clear(void)
 {
-    head = tail;
+    command_t* p_command;
+
+    // Free all remaining commands
+    while (command_queue_pop(&p_command))
+    {
+        free(p_command);
+    }
+
     return true;
 }
 

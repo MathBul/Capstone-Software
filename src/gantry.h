@@ -27,7 +27,6 @@
 //      - Turn off the robot moving LED
 //      - If the game is ONGOING, turn on human moving LED and load a gantry_human_command
 //      - Else, turn on a white LED and load no further commands (wait for reset)
-// - TODO: Handle case of RPi does not receive ACK?
 
 #include "clock.h"
 #include "chessboard.h"
@@ -77,7 +76,6 @@ typedef struct gantry_comm_command_t {
 
 // Public functions
 void gantry_init(void);
-void gantry_reset(void);
 void gantry_home(void);
 void gantry_robot_move_piece(chess_file_t initial_file, chess_rank_t initial_rank, chess_file_t final_file, chess_rank_t final_rank, chess_piece_t piece);
 
@@ -108,5 +106,10 @@ void gantry_home_entry(command_t* command);
 void gantry_home_action(command_t* command);
 void gantry_home_exit(command_t* command);
 bool gantry_home_is_done(command_t* command);
+
+// Command Functions (system resets)
+gantry_command_t* gantry_reset_build_command(void);
+void gantry_reset_entry(command_t* command);
+bool gantry_reset_is_done(command_t* command);
 
 #endif /* GANTRY_H_ */

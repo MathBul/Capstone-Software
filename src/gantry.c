@@ -12,20 +12,23 @@
 
 // Private functions
 static void gantry_kill(void);
-//void gantry_robot_move_piece(chess_file_t initial_file, chess_rank_t initial_rank, chess_file_t final_file, chess_rank_t final_rank, chess_piece_t piece);
 
 // Stores the board readings, which are read in an interrupt and used in various commands
 uint64_t board_reading_current      = 0;
 uint64_t board_reading_intermediate = 0;
 
 // Flags
+bool sys_fault                 = false;
+bool sys_reset                 = false;
 static bool gantry_homing      = false;
-static bool human_move_legal   = false;
+static bool human_move_legal   = true;
 static bool human_move_capture = false;
 static bool human_move_done    = false;
-static bool robot_is_done      = false;
+static bool first_move         = false;
+static bool initial_valid      = true;
 static bool msg_ready_to_send  = true;
-bool sys_fault                 = false;
+static bool robot_is_done      = false;
+
 static bool ready_to_read      = false;
 
 /**
@@ -41,7 +44,7 @@ void gantry_init(void)
     clock_timer3a_init();               // Switches
     clock_timer4a_init();               // Gantry
     clock_timer5a_init();               // Delay
-    clock_timer6a_init();               // Sensor network
+    clock_timer6a_init();               // LEDs
     clock_timer7c_init();               // Comm delay
     clock_start_timer(GANTRY_TIMER);
 
@@ -90,69 +93,6 @@ void gantry_home(void)
 }
 
 /**
- * @brief Resets the entire system (motors, stored chess boards, UART, etc.). NOT a system fault
- */
-void gantry_reset(void)
-{
-    // Clear the command queue
-    command_queue_clear();
-
-    // Home the motors
-    gantry_home();
-
-    // Reset the chess board
-    chessboard_reset_all();
-
-    // Indicate that the Pi's not up yet
-    led_on(led_robot_move);
-
-    // Reset the rpi
-    rpi_reset_uart();
-
-#ifdef FINAL_IMPLEMENTATION_MODE
-    // Read the user color
-    char user_color = 'W';
-
-    uint16_t switch_data = switch_get_reading();
-    if (switch_data & TOGGLE_MASK)
-    {
-        // User is black, start in gantry_robot
-        user_color = 'W';
-
-        char message[START_INSTR_LENGTH];
-        rpi_build_start_msg(user_color, message);
-        command_queue_push((command_t*) gantry_comm_build_command(message, START_INSTR_LENGTH));
-
-        // After receiving an ACK, goto robot command
-        command_queue_push((command_t*) gantry_robot_build_command());
-    } else {
-        // User is white, start in gantry_human
-        user_color = 'B';
-
-        char message[START_INSTR_LENGTH];
-        rpi_build_start_msg(user_color, message);
-        command_queue_push((command_t*) gantry_comm_build_command(message, START_INSTR_LENGTH));
-
-        // After receiving an ACK, goto human command
-        command_queue_push((command_t*) gantry_human_build_command());
-    }
-
-#elif defined(THREE_PARTY_MODE)
-    uart_reset(USER_CHANNEL);
-
-    // User is always white, start in gantry_human
-    char user_color = 'W';
-
-    char message[START_INSTR_LENGTH];
-    rpi_build_start_msg(user_color, message);
-    command_queue_push((command_t*) gantry_comm_build_command(message, START_INSTR_LENGTH));
-
-    // After receiving an ACK, goto human command
-    command_queue_push((command_t*) gantry_human_build_command());
-#endif
-}
-
-/**
  * @brief Hard stops the gantry system. Kills (but does not home) motors, sets sys_fault flag
  */
 static void gantry_kill(void)
@@ -166,8 +106,7 @@ static void gantry_kill(void)
     sys_fault = true;
 
     // Turn on the error LED
-    led_all_off();
-    led_on(led_error);
+    led_mode(LED_ERROR);
 
     // Clear the command queue (just in case)
     command_queue_clear();
@@ -176,20 +115,123 @@ static void gantry_kill(void)
 /* Command Functions */
 
 /**
+ * @brief Build a reset command
+ *
+ * @returns Pointer to the dynamically-allocated command
+ */
+gantry_command_t* gantry_reset_build_command(void)
+{
+    // The thing to return
+    gantry_command_t* p_command = (gantry_command_t*) malloc(sizeof(gantry_command_t));
+
+    // Functions
+    p_command->command.p_entry   = &gantry_reset_entry;
+    p_command->command.p_action  = &utils_empty_function;
+    p_command->command.p_exit    = &utils_empty_function;
+    p_command->command.p_is_done = &gantry_reset_is_done;
+
+    return (gantry_command_t*) p_command;
+}
+
+/**
+ * @brief Resets the entire system (motors, stored chess boards, UART, etc.). NOT a system fault
+ *
+ * @returns Pointer to the dynamically-allocated command
+ */
+void gantry_reset_entry(command_t* command)
+{
+    // Clear the command queue
+    command_queue_clear();
+
+    // Indicate that the Pi's not up yet
+    led_mode(LED_ROBOT_MOVE);
+
+    // Home the motors
+    gantry_home();
+
+    // Reset the chess board
+    chessboard_reset_all();
+
+    // Reset the rpi
+    rpi_reset_uart();
+
+    // Mark this as first move
+    first_move = true;
+
+    // Read the user color
+    char user_color = 'W';
+
+#ifdef FINAL_IMPLEMENTATION_MODE
+
+    // Force an interrupt to fire
+    clock_trigger_interrupt(SWITCH_TIMER);
+    uint16_t switch_data = switch_get_reading();
+
+    if (switch_data & TOGGLE_MASK)
+    {
+        // User is black, start in gantry_robot
+        user_color = 'W';
+
+        char message[START_INSTR_LENGTH];
+        rpi_build_start_msg(user_color, message);
+        command_queue_push((command_t*) gantry_comm_build_command(message, START_INSTR_LENGTH));
+
+        // After receiving an ACK, goto human command
+        command_queue_push((command_t*) gantry_human_build_command());
+    } else {
+        // User is white, start in gantry_human
+        user_color = 'B';
+
+        char message[START_INSTR_LENGTH];
+        rpi_build_start_msg(user_color, message);
+        command_queue_push((command_t*) gantry_comm_build_command(message, START_INSTR_LENGTH));
+
+        // After receiving an ACK, goto robot command
+        command_queue_push((command_t*) gantry_robot_build_command());
+    }
+
+#elif defined(THREE_PARTY_MODE)
+    uart_reset(USER_CHANNEL);
+
+    // User is always white, start in gantry_human
+    user_color = 'W';
+
+    char message[START_INSTR_LENGTH];
+    rpi_build_start_msg(user_color, message);
+    command_queue_push((command_t*) gantry_comm_build_command(message, START_INSTR_LENGTH));
+
+    // After receiving an ACK, goto human command
+    command_queue_push((command_t*) gantry_human_build_command());
+#endif
+
+    // Clear the flags
+    sys_reset = false;
+}
+
+/**
+ * @brief Always done
+ *
+ * @returns Pointer to the dynamically-allocated command
+ */
+bool gantry_reset_is_done(command_t* command)
+{
+    return true;
+}
+
+/**
  * @brief Build a gantry_human command
  *
  * @returns Pointer to the dynamically-allocated command
  */
 gantry_command_t* gantry_human_build_command(void)
 {
-
-    // Functions
 #ifdef FINAL_IMPLEMENTATION_MODE
     // The thing to return
     gantry_command_t* p_command = (gantry_command_t*) malloc(sizeof(gantry_command_t));
 
+    // Functions
     p_command->command.p_entry   = &gantry_human_entry;
-    p_command->command.p_action  = &utils_empty_function;
+    p_command->command.p_action  = &gantry_human_action;
     p_command->command.p_exit    = &gantry_human_exit;
     p_command->command.p_is_done = &gantry_human_is_done;
 
@@ -221,11 +263,21 @@ gantry_command_t* gantry_human_build_command(void)
     return (gantry_command_t*) p_command;
 }
 
+/*
+ * @brief Clear flags
+ *
+ * @param command The gantry command being run
+ */
 void gantry_human_entry(command_t* command)
 {
-    // Set the human moving LED
-    led_all_off();
-    led_on(led_human_move);
+    if (!human_move_legal)
+    {
+        led_mode(LED_ERROR);
+    }
+    else
+    {
+        led_mode(LED_HUMAN_MOVE);
+    }
 
     // Reset the flags
     human_move_capture = false;
@@ -240,7 +292,26 @@ void gantry_human_entry(command_t* command)
  */
 void gantry_human_action(command_t* command)
 {
-#ifdef THREE_PARTY_MODE
+
+#ifdef FINAL_IMPLEMENTATION_MODE
+    if (first_move)
+    {
+        // Read the board's initial state
+        uint64_t initial_presence = sensornetwork_get_reading();
+        if(initial_presence != INITIAL_PRESENCE_BOARD)
+        {
+            initial_valid = false;
+            led_mode(LED_SCANNING_ERROR);
+        }
+        else
+        {
+            first_move = false;
+            initial_valid = true;
+            led_mode(LED_HUMAN_MOVE);
+        }
+    }
+
+#elif defined(THREE_PARTY_MODE)
     if (!ready_to_read) {
         return;
     }
@@ -277,8 +348,7 @@ void gantry_human_action(command_t* command)
             // No ACK's
 
             // Turn on the error LED
-            led_all_off();
-            led_on(led_error);
+            led_mode(LED_ERROR);
 
             // Mark the humans's move as illegal, the robot's move as done
             human_move_legal = false;
@@ -332,6 +402,13 @@ void gantry_human_action(command_t* command)
 void gantry_human_exit(command_t* command)
 {
 #ifdef FINAL_IMPLEMENTATION_MODE
+
+    // Make sure a reset has not been issued
+    if (sys_reset)
+    {
+        return;
+    }
+
     // Update the board state from the reading
     human_move_legal = true;
     char move[5];
@@ -357,11 +434,13 @@ void gantry_human_exit(command_t* command)
     else
     {
         // Change the LED's to indicate an error
-        led_all_off();
-        led_on(led_error);
+        led_mode(LED_ERROR);
         
         // Place the gantry_human command on the queue until a legal move is given
         command_queue_push((command_t*) gantry_human_build_command());
+
+        // Clear the flags
+        human_move_capture = false;
     }
 
 #elif defined(THREE_PARTY_MODE)
@@ -391,7 +470,7 @@ void gantry_human_exit(command_t* command)
  */
 bool gantry_human_is_done(command_t* command)
 {
-    return human_move_done;
+    return (human_move_done && initial_valid);
 }
 
 /**
@@ -433,8 +512,7 @@ void gantry_comm_entry(command_t* command)
     gantry_comm_command_t* p_gantry_command = (gantry_comm_command_t*) command;
 
     // Indicate we're talking to the pi
-    led_all_off();
-    led_on(led_waiting_for_msg);
+    led_mode(LED_WAITING_FOR_MSG);
 
     // Send the message
     rpi_transmit(p_gantry_command->message, p_gantry_command->message_length);
@@ -481,7 +559,7 @@ void gantry_comm_exit(command_t* command)
     clock_reset_timer_value(COMM_TIMER);
 
     // Reset the LED
-    led_all_off();
+    led_mode(LED_OFF);
 }
 
 /**
@@ -492,8 +570,6 @@ void gantry_comm_exit(command_t* command)
  */
 bool gantry_comm_is_done(command_t* command)
 {
-
-    gantry_comm_command_t* p_gantry_command = (gantry_comm_command_t*) command;
     char ack_byte = '\0';
     bool got_byte = false;
 
@@ -501,7 +577,7 @@ bool gantry_comm_is_done(command_t* command)
     got_byte = rpi_receive_unblocked(&ack_byte, 1);
 
     // If we get an ACK, we are done
-    return (ack_byte == ACK_BYTE) && got_byte;
+    return ((ack_byte == ACK_BYTE) && got_byte);
 }
 
 /**
@@ -547,8 +623,7 @@ void gantry_robot_entry(command_t* command)
     gantry_robot_command_t* gantry_robot_move_cmd = (gantry_robot_command_t*) command;
 
     // Set the robot moving LED
-    led_all_off();
-    led_on(led_robot_move);
+    led_mode(LED_ROBOT_MOVE);
 
     // Reset everything
     robot_is_done = false;
@@ -631,8 +706,7 @@ void gantry_robot_action(command_t* command)
             rpi_transmit_ack();
 
             // Turn on the error LED
-            led_all_off();
-            led_on(led_error);
+            led_mode(LED_ERROR);
 
             // Mark the humans's move as illegal, the robot's move as done
             p_gantry_command->move.move_type = IDLE;
@@ -749,8 +823,6 @@ void gantry_robot_move_piece(chess_file_t initial_file, chess_rank_t initial_ran
     // Check for errors
     if ((initial_file == FILE_ERROR) || (initial_rank == RANK_ERROR) || (final_file == FILE_ERROR) || (final_rank == RANK_ERROR))
     {
-        // TODO: Turn on the sys_fault flag? Turn on the error LED? Kill the gantry?
-//        gantry_kill();
         return;
     }
 
@@ -763,28 +835,29 @@ void gantry_robot_move_piece(chess_file_t initial_file, chess_rank_t initial_ran
 #endif
 
     // Lower the magnet
-    command_queue_push((command_t*) stepper_build_chess_z_command(piece, MOTORS_MOVE_V_Z));
+    command_queue_push((command_t*) stepper_build_chess_z_command(initial_file, initial_rank, piece, MOTORS_MOVE_V_Z));
 
     // Wait
     command_queue_push((command_t*) delay_build_command(1000));
 
     // Raise the magnet
-    command_queue_push((command_t*) stepper_build_chess_z_command(HOME_PIECE, MOTORS_MOVE_V_Z));
+    command_queue_push((command_t*) stepper_build_chess_z_command(initial_file, initial_rank, HOME_PIECE, MOTORS_MOVE_V_Z));
 
     // Go to the destination tile
     command_queue_push((command_t*) stepper_build_chess_xy_command(final_file, final_rank, MOTORS_MOVE_V_X, MOTORS_MOVE_V_Y));
 
     // Lower the magnet
-    command_queue_push((command_t*) stepper_build_chess_z_command(piece, MOTORS_MOVE_V_Z));
+    command_queue_push((command_t*) stepper_build_chess_z_command(final_file, final_rank, piece, MOTORS_MOVE_V_Z));
 #ifdef PERIPHERALS_ENABLED
     // Disengage the magnet
     command_queue_push((command_t*) electromagnet_build_command(disabled));
 #endif
+
     // Wait
     command_queue_push((command_t*) delay_build_command(500));
 
     // Raise the magnet
-    command_queue_push((command_t*) stepper_build_chess_z_command(HOME_PIECE, MOTORS_MOVE_V_Z));
+    command_queue_push((command_t*) stepper_build_chess_z_command(initial_file, initial_rank, HOME_PIECE, MOTORS_MOVE_V_Z));
 }
 
 /**
@@ -800,8 +873,7 @@ void gantry_robot_exit(command_t* command)
     if (!human_move_legal)
     {
         // Turn on the error LED and go back to human move
-        led_all_off();
-        led_on(led_error);
+        led_mode(LED_ERROR);
         command_queue_push((command_t*) gantry_human_build_command());
         return;
     }
@@ -943,7 +1015,6 @@ void gantry_robot_exit(command_t* command)
     }
 
     // Check if the game is still going
-    //  TODO: Differentiate ROBOT_WIN, HUMAN_WIN, STALEMATE
     switch (p_gantry_command->game_status) 
     {
         case ONGOING:
@@ -951,18 +1022,18 @@ void gantry_robot_exit(command_t* command)
         break;
 
         case HUMAN_WIN:
-            // Turn on a white LED
-            led_all_on();
+            // Turn on a flashing green LED
+            led_mode(LED_HUMAN_WIN);
         break;
 
         case ROBOT_WIN:
-            // Turn on a white LED
-            led_all_on();
+            // Turn on a flashing blue LED
+            led_mode(LED_ROBOT_WIN);
         break;
 
         case STALEMATE:
-            // Turn on a white LED
-            led_all_on();
+            // Turn on a flashing white LED
+            led_mode(LED_STALEMATE);
         break;
     }
 
@@ -1007,6 +1078,8 @@ gantry_command_t* gantry_home_build_command(void)
  */
 void gantry_home_entry(command_t* command)
 {
+    led_mode(LED_ROBOT_MOVE);
+    sys_reset = false;
     gantry_homing = !gantry_homing;
 }
 
@@ -1047,22 +1120,26 @@ __interrupt void GANTRY_HANDLER(void)
     }
 
     // If the start/reset button was pressed, send the appropriate "new game" signal
-    if ((switch_data & BUTTON_RESET_MASK) || (switch_data & BUTTON_START_MASK))
+    if ((!sys_reset) && ((switch_data & BUTTON_RESET_MASK) || (switch_data & BUTTON_START_MASK)))
     {
-        gantry_reset();
+        sys_reset = true;
+        command_queue_push((command_t*) gantry_reset_build_command());
     }
 
     // If the home button was pressed, clear the queue and execute a homing command
-    if (switch_data & BUTTON_HOME_MASK)
+    if ((!sys_reset) && (!gantry_homing) && (switch_data & BUTTON_HOME_MASK))
     {
+        sys_reset = true;
+        command_queue_clear();
         gantry_home();
     }
 
     // Store the current reading if the human hit the capture tile
     if ((!human_move_capture) && (switch_data & SWITCH_CAPTURE_MASK))
     {
-        board_reading_intermediate = sensornetwork_get_reading();
         human_move_capture = true;
+        board_reading_intermediate = sensornetwork_get_reading();
+        led_mode(LED_CAPTURE);
     }
 
 #ifdef FINAL_IMPLEMENTATION_MODE
@@ -1072,6 +1149,7 @@ __interrupt void GANTRY_HANDLER(void)
         board_reading_current = sensornetwork_get_reading();
         human_move_done = true;
     }
+
 #elif defined(THREE_PARTY_MODE)
     if ((!human_move_done) && (switch_data & BUTTON_NEXT_TURN_MASK))
     {

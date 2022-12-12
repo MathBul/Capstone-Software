@@ -19,16 +19,13 @@ static void stepper_set_microstep(uint8_t ms_level);
 static void stepper_set_direction_clockwise(stepper_motors_t *stepper_motor);
 static void stepper_set_direction_counterclockwise(stepper_motors_t *stepper_motor);
 static void stepper_edge_transition(stepper_motors_t *stepper_motor);
-static uint32_t stepper_distance_to_transitions(int16_t distance);
-static uint32_t stepper_velocity_to_timer_period(uint16_t velocity);
+static uint32_t stepper_distance_to_transitions(int16_t distance, bool z_axis);
+static uint32_t stepper_velocity_to_timer_period(uint16_t velocity, bool z_axis);
 static void stepper_disable_motor(stepper_motors_t *stepper_motor);
 static void stepper_disable_all_motors(void);
 static void stepper_enable_motor(stepper_motors_t *stepper_motor);
-static void stepper_enable_all_motors(void);
-static void stepper_pause_all_motors(void);
-static void stepper_resume_all_motors(void);
 static int16_t stepper_get_current_pos_mm(stepper_motors_t *p_stepper_motor);
-static void stepper_update_velocities(uint16_t v_x, uint16_t v_y, uint16_t v_z, uint16_t max_a_x, uint16_t max_a_y, uint16_t max_a_z);
+static void stepper_update_velocities(uint32_t v_x, uint32_t v_y, uint32_t v_z, uint32_t max_a_x, uint32_t max_a_y, uint32_t max_a_z);
 static uint64_t stepper_get_period_shift(stepper_motors_t* p_stepper_motor);
 static void stepper_interrupt_activity(stepper_motors_t *p_stepper_motor);
 
@@ -284,26 +281,41 @@ static void stepper_edge_transition(stepper_motors_t *p_stepper_motor)
  * @brief Convert a distance (mm) to the number of edge transitions required to drive a stepper that far
  *
  * @param distance The distance to travel
+ * @param z_axis Whether this is for Z_STEPPER
  * @return The number of edge transitions to travel that distance
  */
-static uint32_t stepper_distance_to_transitions(int16_t distance)
+static uint32_t stepper_distance_to_transitions(int16_t distance, bool z_axis)
 {
+    uint32_t distance_mm = 0;
+
+    // Different conversion rates for {X,Y} and {Z}
+    if (z_axis)
+    {
+        distance_mm = (TRANSITIONS_PER_MM_Z*distance);
+    }
+    else
+    {
+        distance_mm = (TRANSITIONS_PER_MM*distance);
+    }
+
+    // Account for direction
     if (distance < 0)
     {
-        return (-TRANSITIONS_PER_MM)*distance;
+        return (-distance_mm);
     }
-    return TRANSITIONS_PER_MM*distance;
+    return distance_mm;
 }
 
 /**
  * @brief Converts a velocity (mm/s) to the timer period required to reach it
  *
  * @param velocity The desired velocity (bounded)
+ * @param z_axis Whether this is for Z_STEPPER
  * @return The period for the appropriate timer
  */
-static uint32_t stepper_velocity_to_timer_period(uint16_t velocity)
+static uint32_t stepper_velocity_to_timer_period(uint16_t velocity, bool z_axis)
 {
-    return (SYSCLOCK_FREQUENCY / stepper_distance_to_transitions(velocity));
+    return (SYSCLOCK_FREQUENCY / stepper_distance_to_transitions(velocity, z_axis));
 }
 
 /**
@@ -338,18 +350,6 @@ static void stepper_enable_motor(stepper_motors_t *p_stepper_motor)
 {
     gpio_set_output_low(p_stepper_motor->nenable_port, p_stepper_motor->nenable_pin);
     p_stepper_motor->current_state = enabled;
-}
-
-/**
- * @brief Enable all motors
- */
-static void stepper_enable_all_motors(void)
-{
-    uint8_t i = 0;
-    for (i = 0; i < NUMBER_OF_STEPPER_MOTORS; i++)
-    {
-        stepper_enable_motor(&stepper_motors[i]);
-    }
 }
 
 /**
@@ -424,28 +424,6 @@ bool stepper_z_has_fault(void)
 }
 
 /**
- * @brief Pause all motors and their ISR clocks, can resume from this point later
- */
-static void stepper_pause_all_motors(void)
-{
-    clock_stop_timer(STEPPER_X_TIMER);
-    clock_stop_timer(STEPPER_Y_TIMER);
-    clock_stop_timer(STEPPER_Z_TIMER);
-    stepper_disable_all_motors();
-}
-
-/**
- * @brief Resume all motors and their ISR clocks from a previously paused state
- */
-static void stepper_resume_all_motors(void)
-{
-    stepper_enable_all_motors();
-    clock_start_timer(STEPPER_X_TIMER);
-    clock_start_timer(STEPPER_Y_TIMER);
-    clock_start_timer(STEPPER_Z_TIMER);
-}
-
-/**
  * @brief Returns the current position of the stepper in mm
  * 
  * @param p_stepper_motor The stepper motor to enable
@@ -463,7 +441,7 @@ static int16_t stepper_get_current_pos_mm(stepper_motors_t *p_stepper_motor)
  * @param v_y Desired y-axis velocity
  * @param v_z Desired z-axis velocity
  */
-static void stepper_update_velocities(uint16_t v_x, uint16_t v_y, uint16_t v_z, uint16_t max_a_x, uint16_t max_a_y, uint16_t max_a_z)
+static void stepper_update_velocities(uint32_t v_x, uint32_t v_y, uint32_t v_z, uint32_t max_a_x, uint32_t max_a_y, uint32_t max_a_z)
 {
     // X-axis determine the points where the speeds need to change
     if (STEPPER_X_MAX_V * STEPPER_X_MAX_V / STEPPER_X_MAX_A > p_stepper_motor_x->transitions_to_desired_pos)
@@ -511,7 +489,7 @@ static void stepper_update_velocities(uint16_t v_x, uint16_t v_y, uint16_t v_z, 
     if (v_x != 0)
     {
         uint16_t v_x_bounded = utils_bound(v_x, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
-        uint32_t stepper_x_initial_period = stepper_velocity_to_timer_period(v_x_bounded);
+        uint32_t stepper_x_initial_period = stepper_velocity_to_timer_period(v_x_bounded, false);
         
         // Set the acceleration
         p_stepper_motor_x->max_accel = max_a_x;
@@ -525,7 +503,7 @@ static void stepper_update_velocities(uint16_t v_x, uint16_t v_y, uint16_t v_z, 
     if (v_y != 0)
     {
         uint16_t v_y_bounded = utils_bound(v_y, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
-        uint32_t stepper_y_initial_period = stepper_velocity_to_timer_period(v_y_bounded);
+        uint32_t stepper_y_initial_period = stepper_velocity_to_timer_period(v_y_bounded, false);
         
         // Set the acceleration
         p_stepper_motor_y->max_accel = max_a_y;
@@ -539,7 +517,7 @@ static void stepper_update_velocities(uint16_t v_x, uint16_t v_y, uint16_t v_z, 
     if (v_z != 0)
     {
         uint16_t v_z_bounded = utils_bound(v_z, STEPPER_MIN_SPEED, STEPPER_MAX_SPEED);
-        uint32_t stepper_z_initial_period = stepper_velocity_to_timer_period(v_z_bounded);
+        uint32_t stepper_z_initial_period = stepper_velocity_to_timer_period(v_z_bounded, true);
         
         // Set the acceleration
         p_stepper_motor_z->max_accel = max_a_z;
@@ -619,11 +597,13 @@ stepper_chess_command_t* stepper_build_chess_xy_command(chess_file_t file, chess
 /**
  * @brief Builds a stepper chess movement command for {Z} (moves to absolute position)
  *
+ * @param file The board column to travel to
+ * @param rank The board row to travel to
  * @param piece The piece type at the given tile
  * @param vel_z Travel velocity for Z movement (mm/s)
  * @return Pointer to the command object
  */
-stepper_chess_command_t* stepper_build_chess_z_command(chess_piece_t piece, uint16_t v_z)
+stepper_chess_command_t* stepper_build_chess_z_command(chess_file_t file, chess_rank_t rank, chess_piece_t piece, uint16_t v_z)
 {
     // The thing to return
     stepper_chess_command_t* p_command = (stepper_chess_command_t*) malloc(sizeof(stepper_chess_command_t));
@@ -637,7 +617,7 @@ stepper_chess_command_t* stepper_build_chess_z_command(chess_piece_t piece, uint
     // Data
     p_command->file  = FILE_ERROR;
     p_command->rank  = RANK_ERROR;
-    p_command->piece = piece;
+    p_command->piece = utils_vertical_offset(file, rank, piece);
     p_command->v_x   = 0;
     p_command->v_y   = 0;
     p_command->v_z   = v_z;
@@ -757,9 +737,9 @@ void stepper_rel_entry(command_t* command)
     }
 
     // Determine the distances to go
-    p_stepper_motor_x->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_x);
-    p_stepper_motor_y->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_y);
-    p_stepper_motor_z->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_z);
+    p_stepper_motor_x->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_x, false);
+    p_stepper_motor_y->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_y, false);
+    p_stepper_motor_z->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_z, true);
 
     // Update the velocities
     stepper_update_velocities(p_stepper_command->v_x, p_stepper_command->v_y, p_stepper_command->v_z, STEPPER_X_MAX_A, STEPPER_Y_MAX_A, STEPPER_Z_MAX_A);
@@ -839,9 +819,9 @@ void stepper_chess_entry(command_t* command)
     }
 
     // Determine the distances to go
-    p_stepper_motor_x->transitions_to_desired_pos = stepper_distance_to_transitions(rel_move_x);
-    p_stepper_motor_y->transitions_to_desired_pos = stepper_distance_to_transitions(rel_move_y);
-    p_stepper_motor_z->transitions_to_desired_pos = stepper_distance_to_transitions(rel_move_z);
+    p_stepper_motor_x->transitions_to_desired_pos = stepper_distance_to_transitions(rel_move_x, false);
+    p_stepper_motor_y->transitions_to_desired_pos = stepper_distance_to_transitions(rel_move_y, false);
+    p_stepper_motor_z->transitions_to_desired_pos = stepper_distance_to_transitions(rel_move_z, true);
 
     // Update the velocities
     stepper_update_velocities(p_stepper_command->v_x, p_stepper_command->v_y, p_stepper_command->v_z, STEPPER_X_MAX_A, STEPPER_Y_MAX_A, STEPPER_Z_MAX_A);
@@ -905,9 +885,9 @@ void stepper_home_entry(command_t* command)
     }
 
     // Determine the distances to go
-    p_stepper_motor_x->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_x);
-    p_stepper_motor_y->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_y);
-    p_stepper_motor_z->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_z);
+    p_stepper_motor_x->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_x, false);
+    p_stepper_motor_y->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_y, false);
+    p_stepper_motor_z->transitions_to_desired_pos = stepper_distance_to_transitions(p_stepper_command->rel_z, true);
 
     // Update the velocities (max acceleration of zero prevents the speed from changing)
     stepper_update_velocities(p_stepper_command->v_x, p_stepper_command->v_y, p_stepper_command->v_z, 0, 0, 0);
@@ -995,8 +975,9 @@ bool stepper_is_done(command_t* command)
 static uint64_t stepper_get_period_shift(stepper_motors_t* p_stepper_motor)
 {
     // This computes the [at] term from the kinematic equation [v_f = v_i + at]. The coefficient [80/9] was determined by trial-and-error
-    // return 80*(uint64_t)(p_stepper_motor->max_accel * clock_get_timer_period(p_stepper_motor->timer)) / (9*SYSCLOCK_FREQUENCY);
-    return 0;
+    uint64_t period_shift = (80 * (uint64_t) (p_stepper_motor->max_accel * clock_get_timer_period(p_stepper_motor->timer)) / (9*SYSCLOCK_FREQUENCY));
+
+    return (period_shift / (MICROSTEP_LEVEL/2));
 }
 
 /**

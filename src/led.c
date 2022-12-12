@@ -13,13 +13,20 @@
 // Private functions
 static void led_enable(led_t* p_led);
 static void led_disable(led_t* p_led);
+static void led_toggle(led_t* p_led);
+static void led_start_flash();
+static void led_stop_flash();
 
 // Declare the LEDs
 led_t leds[NUMBER_OF_LEDS];
-static led_t* p_led_error         = &leds[0];
-static led_t* p_led_robot_move    = &leds[1];
-static led_t* p_led_human_move    = &leds[2];
-static led_t* p_led_system_status = &leds[3];
+static led_t* p_led_red   = &leds[0];
+static led_t* p_led_blue  = &leds[1];
+static led_t* p_led_green = &leds[2];
+
+// Private variables
+static bool led_red_status   = false;
+static bool led_green_status = false;
+static bool led_blue_status  = false;
 
 /**
  * @brief Initialize all LEDs
@@ -29,24 +36,18 @@ void led_init(void)
     // Game status LEDs
     gpio_set_as_output(RGB_RED_PORT, RGB_RED_PIN);
     gpio_set_output_low(RGB_RED_PORT, RGB_RED_PIN);
-    p_led_error->enable_port = RGB_RED_PORT;
-    p_led_error->enable_pin  = RGB_RED_PIN;
+    p_led_red->enable_port = RGB_RED_PORT;
+    p_led_red->enable_pin  = RGB_RED_PIN;
 
     gpio_set_as_output(RGB_BLUE_PORT, RGB_BLUE_PIN);
     gpio_set_output_low(RGB_BLUE_PORT, RGB_BLUE_PIN);
-    p_led_robot_move->enable_port = RGB_BLUE_PORT;
-    p_led_robot_move->enable_pin  = RGB_BLUE_PIN;
+    p_led_blue->enable_port = RGB_BLUE_PORT;
+    p_led_blue->enable_pin  = RGB_BLUE_PIN;
     
     gpio_set_as_output(RGB_GREEN_PORT, RGB_GREEN_PIN);
     gpio_set_output_low(RGB_GREEN_PORT, RGB_GREEN_PIN);
-    p_led_human_move->enable_port = RGB_GREEN_PORT;
-    p_led_human_move->enable_pin  = RGB_GREEN_PIN;
-
-    // System status LEDs
-    gpio_set_as_output(SIGNAL_LIGHT_PORT, SIGNAL_LIGHT_PIN);
-    gpio_set_output_low(SIGNAL_LIGHT_PORT, SIGNAL_LIGHT_PIN);
-    p_led_system_status->enable_port = SIGNAL_LIGHT_PORT;
-    p_led_system_status->enable_pin  = SIGNAL_LIGHT_PIN;
+    p_led_green->enable_port = RGB_GREEN_PORT;
+    p_led_green->enable_pin  = RGB_GREEN_PIN;
 }
 
 /**
@@ -63,6 +64,7 @@ static void led_enable(led_t* p_led)
  * @brief Helper function to disable an LED
  * 
  * @param p_led The LED to disable
+ * @param flashing Whether the LED should flash or be solid
  */
 static void led_disable(led_t* p_led)
 {
@@ -70,31 +72,146 @@ static void led_disable(led_t* p_led)
 }
 
 /**
+ * @brief Helper function to toggle an LED
+ *
+ * @param p_led The LED to toggle
+ */
+static void led_toggle(led_t* p_led)
+{
+    gpio_set_output_toggle(p_led->enable_port, p_led->enable_pin);
+}
+
+/**
+ * Helper function to start the LED flashing
+ */
+static void led_start_flash()
+{
+    clock_start_timer(LED_TIMER);
+}
+
+/**
+ * Helper function to stop the LED flashing
+ */
+static void led_stop_flash()
+{
+    clock_stop_timer(LED_TIMER);
+}
+
+/**
  * @brief Turn on the specified LED
  */
-void led_on(led_indicator_t indicator)
+void led_mode(led_indicator_t indicator)
 {
     switch (indicator)
     {
-        case led_error:
-            led_enable(p_led_error);
+        case LED_ERROR:
+            led_stop_flash();
+            led_enable(p_led_red);
+            led_disable(p_led_green);
+            led_disable(p_led_blue);
+
+            led_red_status   = true;
+            led_green_status = false;
+            led_blue_status  = false;
         break;
 
-        case led_robot_move:
-            led_enable(p_led_robot_move);
+        case LED_ROBOT_MOVE:
+            led_stop_flash();
+            led_disable(p_led_red);
+            led_disable(p_led_green);
+            led_enable(p_led_blue);
+
+            led_red_status   = false;
+            led_green_status = false;
+            led_blue_status  = true;
         break;
 
-        case led_human_move:
-            led_enable(p_led_human_move);
+        case LED_ROBOT_WIN:
+            led_disable(p_led_red);
+            led_disable(p_led_green);
+            led_enable(p_led_blue);
+
+            led_red_status   = false;
+            led_green_status = false;
+            led_blue_status  = true;
+            led_start_flash();
         break;
 
-        case led_system_status:
-            led_enable(p_led_system_status);
+        case LED_HUMAN_MOVE:
+            led_stop_flash();
+            led_disable(p_led_red);
+            led_enable(p_led_green);
+            led_disable(p_led_blue);
+
+            led_red_status   = false;
+            led_green_status = true;
+            led_blue_status  = false;
         break;
 
-        case led_waiting_for_msg:
-            led_enable(p_led_robot_move);
-            led_enable(p_led_error);
+        case LED_HUMAN_WIN:
+            led_disable(p_led_red);
+            led_enable(p_led_green);
+            led_disable(p_led_blue);
+
+            led_red_status   = false;
+            led_green_status = true;
+            led_blue_status  = false;
+            led_start_flash();
+        break;
+
+        case LED_WAITING_FOR_MSG:
+            led_stop_flash();
+            led_enable(p_led_red);
+            led_disable(p_led_green);
+            led_enable(p_led_blue);
+
+            led_red_status   = true;
+            led_green_status = false;
+            led_blue_status  = true;
+        break;
+
+        case LED_STALEMATE:
+            led_enable(p_led_red);
+            led_enable(p_led_green);
+            led_enable(p_led_blue);
+
+            led_red_status   = true;
+            led_green_status = true;
+            led_blue_status  = true;
+            led_start_flash();
+        break;
+
+        case LED_OFF:
+            led_stop_flash();
+            led_disable(p_led_red);
+            led_disable(p_led_green);
+            led_disable(p_led_blue);
+
+            led_red_status   = false;
+            led_green_status = false;
+            led_blue_status  = false;
+        break;
+
+        case LED_SCANNING_ERROR:
+            led_disable(p_led_red);
+            led_enable(p_led_green);
+            led_enable(p_led_blue);
+
+            led_red_status   = false;
+            led_green_status = true;
+            led_blue_status  = true;
+            led_start_flash();
+        break;
+
+        case LED_CAPTURE:
+            led_disable(p_led_red);
+            led_enable(p_led_green);
+            led_disable(p_led_blue);
+
+            led_red_status   = false;
+            led_green_status = true;
+            led_blue_status  = false;
+            led_start_flash();
         break;
 
         default:
@@ -104,55 +221,25 @@ void led_on(led_indicator_t indicator)
 }
 
 /**
- * @brief Turn off the specified LED
+ * @brief Interrupt handler for the LED module
  */
-void led_off(led_indicator_t indicator)
+__interrupt void LED_HANDLER(void)
 {
-    switch (indicator)
+    // Clear the interrupt flag
+    clock_clear_interrupt(LED_TIMER);
+
+    // Toggle any LED that is on
+    if (led_red_status)
     {
-        case led_error:
-            led_disable(p_led_error);
-        break;
-
-        case led_robot_move:
-            led_disable(p_led_robot_move);
-        break;
-
-        case led_human_move:
-            led_disable(p_led_human_move);
-        break;
-
-        case led_system_status:
-            led_disable(p_led_system_status);
-        break;
-
-        default:
-            // Invalid LED indicator provided, do nothing
-        break;
+        led_toggle(p_led_red);
     }
-}
-
-/**
- * @brief Turn on all LEDs
- */
-void led_all_on(void)
-{
-    int i = 0;
-    for (i = 0; i < NUMBER_OF_LEDS; i++)
+    if (led_green_status)
     {
-        led_enable(&leds[i]);
+        led_toggle(p_led_green);
     }
-}
-
-/**
- * @brief Turn off all LEDs
- */
-void led_all_off(void)
-{
-    int i = 0;
-    for (i = 0; i < NUMBER_OF_LEDS; i++)
+    if (led_blue_status)
     {
-        led_disable(&leds[i]);
+        led_toggle(p_led_blue);
     }
 }
 

@@ -24,6 +24,7 @@ static uint64_t chessboard_get_presence_from_move(uint64_t initial_presence, cha
 static void chessboard_update_pieces_from_move_activity(chess_board_t *p_board, char move[5]);
 static void chessboard_update_pieces_from_move(chess_board_t *p_board, char move[5], bool human_move);
 static bool chessboard_update_from_presence(chess_board_t* p_board, uint64_t new_presence, char move[5]);
+static bool chessboard_update_from_presence_capture(chess_board_t* p_board, uint64_t new_presence, char move[5]);
 static void chessboard_update_from_move(chess_board_t* p_board, char move[5]);
 static void chessboard_copy_board(chess_board_t* p_source_board, chess_board_t* p_dest_board);
 
@@ -49,7 +50,7 @@ void chessboard_init(void)
 static void chessboard_reset_board(chess_board_t *board)
 {
     // Set default board presence
-    board->board_presence = (uint64_t) 0xFFFF00000000FFFF;
+    board->board_presence = INITIAL_PRESENCE_BOARD;
 
     // Set white's non-pawn pieces
     board->board_pieces[FIRST_RANK][A_FILE] = 'R';
@@ -86,6 +87,7 @@ static void chessboard_reset_board(chess_board_t *board)
 
 /**
  * @brief Reset all chess boards to their default states
+ *
  */
 void chessboard_reset_all(void)
 {
@@ -444,8 +446,8 @@ static uint64_t chessboard_get_presence_from_move(uint64_t initial_presence, cha
             set_presence_index = chessboard_tile_to_presence_index(move[2], move[3]);
 
             // Clear source, set dest
-            final_presence &= ~(1 << clear_presence_index);
-            final_presence |= (1 << set_presence_index);
+            final_presence &= ~(((uint64_t) 1) << clear_presence_index);
+            final_presence |= (((uint64_t) 1) << set_presence_index);
         break;
 
         case 'C':
@@ -454,7 +456,7 @@ static uint64_t chessboard_get_presence_from_move(uint64_t initial_presence, cha
             set_presence_index = chessboard_tile_to_presence_index(move[2], move[3]);
 
             // Clear source, but do not set the dest
-            final_presence &= ~(1 << clear_presence_index);
+            final_presence &= ~(((uint64_t) 1) << clear_presence_index);
         break;
 
         case 'c':
@@ -463,8 +465,8 @@ static uint64_t chessboard_get_presence_from_move(uint64_t initial_presence, cha
             set_presence_index = chessboard_tile_to_presence_index(move[2], move[3]);
 
             // Clear king source, and set king dest
-            final_presence &= ~(1 << clear_presence_index);
-            final_presence |= (1 << set_presence_index);
+            final_presence &= ~(((uint64_t) 1) << clear_presence_index);
+            final_presence |= (((uint64_t) 1) << set_presence_index);
 
             // Get the corresponding rook move
             char rook_move[5];
@@ -473,8 +475,8 @@ static uint64_t chessboard_get_presence_from_move(uint64_t initial_presence, cha
             // Clear rook source, and set rook dest
             clear_presence_index = chessboard_tile_to_presence_index(rook_move[0], rook_move[1]);
             set_presence_index = chessboard_tile_to_presence_index(rook_move[2], rook_move[3]);
-            final_presence &= ~(1 << clear_presence_index);
-            final_presence |= (1 << set_presence_index);
+            final_presence &= ~(((uint64_t) 1) << clear_presence_index);
+            final_presence |= (((uint64_t) 1) << set_presence_index);
         break;
 
         case 'E':
@@ -483,8 +485,8 @@ static uint64_t chessboard_get_presence_from_move(uint64_t initial_presence, cha
             set_presence_index = chessboard_tile_to_presence_index(move[2], move[3]);
 
             // Clear source, set dest
-            final_presence &= ~(1 << clear_presence_index);
-            final_presence |= (1 << set_presence_index);
+            final_presence &= ~(((uint64_t) 1) << clear_presence_index);
+            final_presence |= (((uint64_t) 1) << set_presence_index);
         break;
 
         case '_':
@@ -493,8 +495,8 @@ static uint64_t chessboard_get_presence_from_move(uint64_t initial_presence, cha
             set_presence_index = chessboard_tile_to_presence_index(move[2], move[3]);
 
             // Clear source, set dest
-            final_presence &= ~(1 << clear_presence_index);
-            final_presence |= (1 << set_presence_index);
+            final_presence &= ~(((uint64_t) 1) << clear_presence_index);
+            final_presence |= (((uint64_t) 1) << set_presence_index);
         break;
 
         default:
@@ -583,8 +585,43 @@ static bool chessboard_update_from_presence(chess_board_t* p_board, uint64_t new
 }
 
 /**
+ * @brief Update a chessboard struct from its presence during a capture
+ *
+ * @param p_board The board to update
+ * @param new_presence How the board has changed
+ * @param move Buffer to store move in UCI notation (4-5 characters)
+ * @return Whether the move was legal
+ */
+static bool chessboard_update_from_presence_capture(chess_board_t* p_board, uint64_t new_presence, char move[5])
+{
+    // Update the presence
+    uint64_t old_presence = p_board->board_presence;
+    p_board->board_presence = new_presence;
+
+    // Get the indices of the change
+    board_changes_t board_changes = chessboard_get_board_changes_from_presence(old_presence, new_presence);
+
+    // Update the board, and gently check legality
+    bool legality = false;
+    if (board_changes.num_changes == 1)
+    {
+        uint8_t index_a = board_changes.presence_change_index_1;
+
+        // Clear this piece
+        uint8_t captured_file_index = chessboard_presence_index_to_file_index(index_a);
+        uint8_t captured_rank_index = chessboard_presence_index_to_rank_index(index_a);
+        p_curr_board->board_pieces[captured_rank_index][captured_file_index] = '\0';
+
+        // Mark move gently legal
+        legality = true;
+    }
+
+    return legality;
+}
+
+/**
  * @brief Update a chessboard struct from its presence
- * 
+ *
  * @param p_board The board to update
  * @param new_presence How the board has changed
  * @param move Buffer to store move in UCI notation (4-5 characters)
@@ -654,11 +691,12 @@ chess_piece_t chessboard_get_piece_at_position(chess_file_t file, chess_rank_t r
  */
 bool chessboard_update_intermediate_board_from_presence(uint64_t board_reading, char move[5])
 {
-    // Reset the intermediate board to the previous boad
+    // Reset the intermediate board to the previous board
     chessboard_copy_board(p_prev_board, p_inter_board);
 
     // Update the intermediate board from the given reading
-    return chessboard_update_from_presence(p_inter_board, board_reading, move);
+    uint64_t human_presence = (p_inter_board->robot_presence ^ board_reading);
+    return chessboard_update_from_presence_capture(p_inter_board, human_presence, move);
 }
 
 /**

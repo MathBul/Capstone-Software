@@ -20,6 +20,9 @@
 
 // General chessboard macros
 #define NUMBER_OF_CHESSBOARDS               (3)
+#define INITIAL_PRESENCE_WHITE              ((uint64_t) 0x000000000000FFFF)
+#define INITIAL_PRESENCE_BLACK              ((uint64_t) 0xFFFF000000000000)
+#define INITIAL_PRESENCE_BOARD              (INITIAL_PRESENCE_WHITE | INITIAL_PRESENCE_BLACK)
 
 // Possible castling signatures
 #define CASTLE_WHITE_K                      (0x00000000000000F0)    // (e1g1)
@@ -30,6 +33,8 @@
 // Board state struct
 typedef struct {
     uint64_t board_presence;
+    uint64_t robot_presence;
+    uint64_t human_presence;
     char board_pieces[8][8];
 } chess_board_t;
 
@@ -70,6 +75,5 @@ void chessboard_update_previous_board_from_current_board(void);
 void chessboard_update_current_board_from_previous_board(void);
 void chessboard_update_previous_board_from_move(char move[5]);
 void chessboard_update_current_board_from_move(char move[5]);
-
 
 #endif /* CHESSBOARD_H_ */

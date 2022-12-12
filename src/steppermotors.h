@@ -24,10 +24,15 @@
 //        BASE
 //
 // Transition math:
-//  - Steppers perform 200 steps/revolution. We microstep to 1/8 steps, so 1600 microsteps/revolution
+//  - Steppers {X,Y} perform 200 steps/revolution. We microstep to M steps, so 200*M microsteps/revolution
 //  - Belt pitch is 2 mm, and rotor has 20 teeth, so 40mm/revolution
 //  - There are 2 transitions/microstep
-//      ==> (2 transitions/microstep)*(1600 microsteps/revolution)/(40mm/revolution) = 80 transitions/mm
+//      ==> (2 transitions/microstep)*(200*M microsteps/revolution)/(40mm/revolution) = 10*M transitions/mm
+//
+//  - Steppers {Z} perform 200 steps/revolution. We microstep to 1/8 steps, so 1600 microsteps/revolution
+//  - Belt pitch is 2.5 mm, and rotor has 20 teeth, so 50mm/revolution
+//  - There are 2 transitions/microstep
+//      ==> (2 transitions/microstep)*(200*M microsteps/revolution)/(50mm/revolution) = 8*M transitions/mm
 //
 // Microstepping table:
 //  MS2 | MS1 | MS0
@@ -59,6 +64,7 @@
 #define NUMBER_OF_STEPPER_MOTORS            (3)
 #define MICROSTEP_LEVEL                     (8)
 #define TRANSITIONS_PER_MM                  (10 * MICROSTEP_LEVEL)
+#define TRANSITIONS_PER_MM_Z                (8 * MICROSTEP_LEVEL)
 #define STEPPER_HOME_DISTANCE               (999)
 #define STEPPER_HOME_VELOCITY               (1)
 #define STEPPER_MIN_SPEED                   (100)      // mm/s
@@ -94,8 +100,8 @@
 #define STEPPER_X_NHOME_PORT                (GPIOD)
 #define STEPPER_X_NHOME_PIN                 (GPIO_PIN_2)
 #define STEPPER_X_ID                        (0)
-#define STEPPER_X_MAX_V                     (1500 * MICROSTEP_LEVEL)    // transitions/s
-#define STEPPER_X_MAX_A                     (5000 * MICROSTEP_LEVEL)    // transitions/s/s
+#define STEPPER_X_MAX_V                     (3000 * MICROSTEP_LEVEL)    // transitions/s
+#define STEPPER_X_MAX_A                     (9500 * MICROSTEP_LEVEL)    // transitions/s/s
 #define STEPPER_X_TIMER                     (TIMER0)
 #define STEPPER_X_HANDLER                   (TIMER0A_IRQHandler)
 #define STEPPER_X_INITIAL_PERIOD            ((48000 / MICROSTEP_LEVEL) - 1)
@@ -112,8 +118,8 @@
 #define STEPPER_Y_NHOME_PORT                (GPIOF)
 #define STEPPER_Y_NHOME_PIN                 (GPIO_PIN_3)
 #define STEPPER_Y_ID                        (1)
-#define STEPPER_Y_MAX_V                     (1500 * MICROSTEP_LEVEL)    // transitions/s
-#define STEPPER_Y_MAX_A                     (5000 * MICROSTEP_LEVEL)    // transitions/s/s
+#define STEPPER_Y_MAX_V                     (3000 * MICROSTEP_LEVEL)    // transitions/s
+#define STEPPER_Y_MAX_A                     (9500 * MICROSTEP_LEVEL)    // transitions/s/s
 #define STEPPER_Y_TIMER                     (TIMER1)
 #define STEPPER_Y_HANDLER                   (TIMER1A_IRQHandler)
 #define STEPPER_Y_INITIAL_PERIOD            ((48000 / MICROSTEP_LEVEL) - 1)
@@ -130,8 +136,8 @@
 #define STEPPER_Z_NHOME_PORT                (GPIOB)
 #define STEPPER_Z_NHOME_PIN                 (GPIO_PIN_5)
 #define STEPPER_Z_ID                        (2)
-#define STEPPER_Z_MAX_V                     (250 * MICROSTEP_LEVEL)     // transitions/s
-#define STEPPER_Z_MAX_A                     (1000 * MICROSTEP_LEVEL)    // transitions/s/s
+#define STEPPER_Z_MAX_V                     (500 * MICROSTEP_LEVEL)     // transitions/s
+#define STEPPER_Z_MAX_A                     (2000 * MICROSTEP_LEVEL)    // transitions/s/s
 #define STEPPER_Z_TIMER                     (TIMER2)
 #define STEPPER_Z_HANDLER                   (TIMER2A_IRQHandler)
 #define STEPPER_Z_INITIAL_PERIOD            ((48000 / MICROSTEP_LEVEL) - 1)
@@ -195,7 +201,7 @@ bool stepper_z_has_fault(void);
 // Command Functions
 stepper_rel_command_t* stepper_build_rel_command(int16_t rel_x, int16_t rel_y, int16_t rel_z, uint16_t v_x, uint16_t v_y, uint16_t v_z);
 stepper_chess_command_t* stepper_build_chess_xy_command(chess_file_t file, chess_rank_t rank, uint16_t v_x, uint16_t v_y);
-stepper_chess_command_t* stepper_build_chess_z_command(chess_piece_t piece, uint16_t v_z);
+stepper_chess_command_t* stepper_build_chess_z_command(chess_file_t file, chess_rank_t rank, chess_piece_t piece, uint16_t v_z);
 stepper_rel_command_t* stepper_build_home_xy_command(void);
 stepper_rel_command_t* stepper_build_home_z_command(void);
 void stepper_rel_entry(command_t* command);

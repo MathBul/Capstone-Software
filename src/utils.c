@@ -812,4 +812,60 @@ chess_piece_t utils_byte_to_piece_type(uint8_t byte)
     return piece;
 }
 
+/**
+ * @brief Adds an offset to piece height based on position on board
+ *
+ * @param file The column
+ * @param rank The row
+ * @param piece The piece
+ * @return The total vertical distance to travel
+ */
+int16_t utils_vertical_offset(chess_file_t file, chess_rank_t rank, chess_piece_t piece)
+{
+    int16_t vertical_dist = 0;
+
+    // Add the offset
+    switch (rank)
+    {
+        case FIRST:
+            vertical_dist -= 0;
+        break;
+
+        case SECOND:
+            vertical_dist -= 0;
+        break;
+
+        case THIRD:
+            vertical_dist -= 1;
+        break;
+
+        case FOURTH:
+            vertical_dist -= 1;
+        break;
+
+        case FIFTH:
+            vertical_dist -= 2;
+        break;
+
+        case SIXTH:
+            vertical_dist -= 2;
+        break;
+
+        case SEVENTH:
+            vertical_dist -= 3;
+        break;
+
+        case EIGHTH:
+            vertical_dist -= 3;
+        break;
+
+        default:
+            // Error, do nothing
+        break;
+    }
+
+    return (piece + vertical_dist);
+
+}
+
 /* End utils.c */

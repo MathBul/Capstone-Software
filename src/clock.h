@@ -43,17 +43,17 @@
 #define TIMER_4A_INTERRUPT_NUM                  TIMER4A_IRQn
 
 // Timer 5 defines
-#define TIMER_5A_PERIOD                         119999      // Period: 1s @ 120MHz
+#define TIMER_5A_PERIOD                         119999      // Period: 1ms @ 120MHz
 #define TIMER_5A_RELOAD_VALUE                   (TIMER_5A_PERIOD << NVIC_ST_RELOAD_S)
 #define TIMER_5A_INTERRUPT_NUM                  TIMER5A_IRQn
 
 // Timer 6 defines
-#define TIMER_6A_PERIOD                         119999       // Chosen through trial-and-error
+#define TIMER_6A_PERIOD                         119999999   // Period: 1s @ 120MHz
 #define TIMER_6A_RELOAD_VALUE                   (TIMER_6A_PERIOD << NVIC_ST_RELOAD_S)
 #define TIMER_6A_INTERRUPT_NUM                  TIMER6A_IRQn
 
 // Timer 7 defines
-#define TIMER_7C_PERIOD                         600000000  // Period: 5s @ 120MHz
+#define TIMER_7C_PERIOD                         599999999   // Period: 5s @ 120MHz
 #define TIMER_7C_RELOAD_VALUE                   (TIMER_7C_PERIOD << NVIC_ST_RELOAD_S)
 #define TIMER_7C_INTERRUPT_NUM                  TIMER7A_IRQn
 
@@ -65,7 +65,7 @@ void clock_timer2a_init(void);                       // Z Stepper
 void clock_timer3a_init(void);                       // Switches
 void clock_timer4a_init(void);                       // Gantry
 void clock_timer5a_init(void);                       // Delay
-void clock_timer6a_init(void);                       // Sensor Network
+void clock_timer6a_init(void);                       // LED
 void clock_timer7c_init(void);                       // Communication Timeout
 
 void clock_clear_interrupt(TIMER0_Type* timer);
@@ -74,5 +74,6 @@ void clock_start_timer(TIMER0_Type* timer);
 void clock_set_timer_period(TIMER0_Type* timer, uint32_t value);
 uint32_t clock_get_timer_period(TIMER0_Type* timer);
 void clock_reset_timer_value(TIMER0_Type* timer);
+void clock_trigger_interrupt(TIMER0_Type* timer);
 
 #endif /* CLOCK_H_ */

@@ -268,4 +268,16 @@ void clock_reset_timer_value(TIMER0_Type* timer)
     timer->TAV  = clock_get_timer_period(timer);            // Reset the value to the period
 }
 
+/**
+ * @brief Forces an interrupt to fire
+ *
+ * @param timer One of TIMERX for X={0,...,7}
+ */
+void clock_trigger_interrupt(TIMER0_Type* timer)
+{
+    timer->CTL &= ~(TIMER_CTL_TAEN);                        // Disable the timer
+    timer->TAV  = 0;                                        // Clear the value
+    timer->CTL |= (TIMER_CTL_TAEN);                         // Enable the timer
+}
+
 /* End clock.c */

@@ -16,12 +16,12 @@
 #define PERIPHERALS_ENABLED
 //#define GANTRY_DEBUG
 //#define STEPPER_DEBUG
-#define SENSOR_NETWORK_DEBUG
+//#define SENSOR_NETWORK_DEBUG
 
 // Game mode select (define at most one at a time)
 //#define USER_MODE                 // User, through UART0 terminal, sends moves to MSP directly
-#define THREE_PARTY_MODE          // User sends moves to MSP, which sends moves to RPi, which sends moves back
-//#define FINAL_IMPLEMENTATION_MODE // Ideally, final implementation w/board reading
+//#define THREE_PARTY_MODE          // User sends moves to MSP, which sends moves to RPi, which sends moves back
+#define FINAL_IMPLEMENTATION_MODE // Ideally, final implementation w/board reading
 
 
 // Notes on vports: 
@@ -50,6 +50,9 @@
 #define SQUARE_Y_INITIAL                    (26)        // mm
 #define CAPTURE_X                           (-20)       // mm
 #define CAPTURE_Y                           (SQUARE_Y_INITIAL + 5*SQUARE_CENTER_TO_CENTER)
+#define QUEEN_X                             (-30)       // mm
+#define QUEEN_Y                             (SQUARE_Y_INITIAL + 1*SQUARE_CENTER_TO_CENTER)
+#define PIECE_HEIGHT_OFFSET                 (44)
 
 // Motor-specific macros
 #define HOMING_X_BACKOFF                    (-6)        // mm
@@ -60,10 +63,9 @@
 #define HOMING_Z_VELOCITY                   (1)         // mm
 #define HOMING_DELAY_MS                     (100)       // ms
 
-#define PIECE_HEIGHT_OFFSET                 (22)
-
 // Shared flags
 extern bool sys_fault;
+extern bool sys_reset;
 
 // Bitfield for peripheral imaging (accessing 8-bit volatile memory)
 typedef struct utils_bits8_tutils_bits8_t {
@@ -205,23 +207,23 @@ typedef enum chess_file_t {
     G            = SQUARE_X_INITIAL - 6*SQUARE_CENTER_TO_CENTER + 4,
     H            = SQUARE_X_INITIAL - 7*SQUARE_CENTER_TO_CENTER + 4,
     CAPTURE_FILE = CAPTURE_X,
-    QUEEN_FILE   = CAPTURE_X,
+    QUEEN_FILE   = QUEEN_X,
     HOME_FILE    = HOMING_X_BACKOFF,
     FILE_ERROR   = 1,
 } chess_file_t;
 
 // Translates rank on the board to distance in mm
 typedef enum chess_rank_t {
-    FIRST         = SQUARE_Y_INITIAL + 7*SQUARE_CENTER_TO_CENTER - 2,
-    SECOND        = SQUARE_Y_INITIAL + 6*SQUARE_CENTER_TO_CENTER,
-    THIRD         = SQUARE_Y_INITIAL + 5*SQUARE_CENTER_TO_CENTER,
-    FOURTH        = SQUARE_Y_INITIAL + 4*SQUARE_CENTER_TO_CENTER,
-    FIFTH         = SQUARE_Y_INITIAL + 3*SQUARE_CENTER_TO_CENTER,
-    SIXTH         = SQUARE_Y_INITIAL + 2*SQUARE_CENTER_TO_CENTER,
-    SEVENTH       = SQUARE_Y_INITIAL + 1*SQUARE_CENTER_TO_CENTER,
-    EIGHTH        = SQUARE_Y_INITIAL,
+    FIRST        = SQUARE_Y_INITIAL + 7*SQUARE_CENTER_TO_CENTER - 2,
+    SECOND       = SQUARE_Y_INITIAL + 6*SQUARE_CENTER_TO_CENTER,
+    THIRD        = SQUARE_Y_INITIAL + 5*SQUARE_CENTER_TO_CENTER,
+    FOURTH       = SQUARE_Y_INITIAL + 4*SQUARE_CENTER_TO_CENTER,
+    FIFTH        = SQUARE_Y_INITIAL + 3*SQUARE_CENTER_TO_CENTER,
+    SIXTH        = SQUARE_Y_INITIAL + 2*SQUARE_CENTER_TO_CENTER,
+    SEVENTH      = SQUARE_Y_INITIAL + 1*SQUARE_CENTER_TO_CENTER,
+    EIGHTH       = SQUARE_Y_INITIAL,
     CAPTURE_RANK = CAPTURE_Y,
-    QUEEN_RANK   = CAPTURE_Y,
+    QUEEN_RANK   = QUEEN_Y,
     HOME_RANK    = HOMING_Y_BACKOFF,
     RANK_ERROR   = 1,
 } chess_rank_t;
@@ -271,5 +273,6 @@ chess_file_t utils_byte_to_file(uint8_t byte);
 chess_rank_t utils_byte_to_rank(uint8_t byte);
 chess_move_type_t utils_byte_to_move_type(uint8_t byte);
 chess_piece_t utils_byte_to_piece_type(uint8_t byte);
+int16_t utils_vertical_offset(chess_file_t file, chess_rank_t rank, chess_piece_t piece);
 
 #endif /* UTILS_H_ */

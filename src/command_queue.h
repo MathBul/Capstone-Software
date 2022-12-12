@@ -13,6 +13,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 // Command queue defines
 #define COMMAND_QUEUE_SIZE          (128) // Must be at least 1 and less than 65535

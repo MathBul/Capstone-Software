@@ -15,16 +15,17 @@
 //  - RED    <=> Error 
 //  - BLUE   <=> Robot is moving
 //  - GREEN  <=> Human is moving
-//  - SIGNAL <=> System operational
 
 #include "msp.h"
-#include "command_queue.h"
+#include "clock.h"
 #include "gpio.h"
 #include <stdint.h>
 #include <stdlib.h>
 
 // General LED macros
-#define NUMBER_OF_LEDS                      (4)
+#define NUMBER_OF_LEDS                      (3)
+#define LED_TIMER                           (TIMER6)
+#define LED_HANDLER                         (TIMER6A_IRQHandler)
 
 // Game status LED macros
 #define RGB_RED_PORT                        (GPIOC)
@@ -34,17 +35,18 @@
 #define RGB_GREEN_PORT                      (GPIOE)
 #define RGB_GREEN_PIN                       (GPIO_PIN_4)
 
-// System status LED macros
-#define SIGNAL_LIGHT_PORT                   (GPION)
-#define SIGNAL_LIGHT_PIN                    (GPIO_PIN_3)
-
 // LED indicator type
 typedef enum {
-    led_error, 
-    led_robot_move, 
-    led_human_move, 
-    led_system_status,
-    led_waiting_for_msg
+    LED_ERROR,
+    LED_ROBOT_MOVE,
+    LED_HUMAN_MOVE,
+    LED_WAITING_FOR_MSG,
+    LED_ROBOT_WIN,
+    LED_HUMAN_WIN,
+    LED_STALEMATE,
+    LED_OFF,
+    LED_SCANNING_ERROR,
+    LED_CAPTURE,
 } led_indicator_t;
 
 // LED structure
@@ -55,9 +57,6 @@ typedef struct {
 
 // Public functions
 void led_init(void);
-void led_on(led_indicator_t indicator);
-void led_off(led_indicator_t indicator);
-void led_all_on(void);
-void led_all_off(void);
+void led_mode(led_indicator_t indicator);;
 
 #endif /* LED_H_ */
