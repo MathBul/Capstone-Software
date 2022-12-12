@@ -359,7 +359,7 @@ static bool chessboard_get_move_from_presence(uint64_t initial_presence, uint64_
 
         if (chessboard_is_promotion(tile_initial[1], tile_final[1], moving_piece))
         {
-            move[4] = 'Q';
+            move[4] = 'q';
         }
         else
         {

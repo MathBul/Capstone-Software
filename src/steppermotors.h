@@ -67,7 +67,7 @@
 #define TRANSITIONS_PER_MM_Z                (8 * MICROSTEP_LEVEL)
 #define STEPPER_HOME_DISTANCE               (999)
 #define STEPPER_HOME_VELOCITY               (1)
-#define STEPPER_MIN_SPEED                   (100)      // mm/s
+#define STEPPER_MIN_SPEED                   (135)      // mm/s
 #define STEPPER_MAX_SPEED                   (250)      // mm/s
 
 // Common and microstepping GPIO
@@ -163,6 +163,7 @@ typedef struct {
     int32_t                x_1;                        // Point where the speed plateaus (in transitions)
     int32_t                x_2;                        // Point where the speed starts decreasing (in transitions)
     uint16_t               max_accel;                  // Max value to adjust the clock period to accel/deccel
+    uint8_t                motor_id;                   // Unique identifier for each motor
 #ifdef STEPPER_DEBUG
     uint32_t               time_elapsed;
 #endif
@@ -201,7 +202,7 @@ bool stepper_z_has_fault(void);
 // Command Functions
 stepper_rel_command_t* stepper_build_rel_command(int16_t rel_x, int16_t rel_y, int16_t rel_z, uint16_t v_x, uint16_t v_y, uint16_t v_z);
 stepper_chess_command_t* stepper_build_chess_xy_command(chess_file_t file, chess_rank_t rank, uint16_t v_x, uint16_t v_y);
-stepper_chess_command_t* stepper_build_chess_z_command(chess_file_t file, chess_rank_t rank, chess_piece_t piece, uint16_t v_z);
+stepper_chess_command_t* stepper_build_chess_z_command(chess_piece_t piece, uint16_t v_z);
 stepper_rel_command_t* stepper_build_home_xy_command(void);
 stepper_rel_command_t* stepper_build_home_z_command(void);
 void stepper_rel_entry(command_t* command);

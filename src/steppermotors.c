@@ -24,7 +24,7 @@ static uint32_t stepper_velocity_to_timer_period(uint16_t velocity, bool z_axis)
 static void stepper_disable_motor(stepper_motors_t *stepper_motor);
 static void stepper_disable_all_motors(void);
 static void stepper_enable_motor(stepper_motors_t *stepper_motor);
-static int16_t stepper_get_current_pos_mm(stepper_motors_t *p_stepper_motor);
+static int32_t stepper_get_current_pos_mm(stepper_motors_t *p_stepper_motor);
 static void stepper_update_velocities(uint32_t v_x, uint32_t v_y, uint32_t v_z, uint32_t max_a_x, uint32_t max_a_y, uint32_t max_a_z);
 static uint64_t stepper_get_period_shift(stepper_motors_t* p_stepper_motor);
 static void stepper_interrupt_activity(stepper_motors_t *p_stepper_motor);
@@ -73,6 +73,7 @@ void stepper_init_motors(void)
     p_stepper_motor_x->dir                        = 1;
     p_stepper_motor_x->current_pos                = 0;
     p_stepper_motor_x->current_vel                = 0;
+    p_stepper_motor_x->motor_id                   = STEPPER_X_ID;
 #ifdef STEPPER_DEBUG
     p_stepper_motor_x->time_elapsed               = 0;
 #endif
@@ -107,6 +108,7 @@ void stepper_init_motors(void)
     p_stepper_motor_y->dir                        = 1;
     p_stepper_motor_y->current_pos                = 0;
     p_stepper_motor_y->current_vel                = 0;
+    p_stepper_motor_y->motor_id                   = STEPPER_Y_ID;
 #ifdef STEPPER_DEBUG
     p_stepper_motor_y->time_elapsed               = 0;
 #endif
@@ -141,6 +143,7 @@ void stepper_init_motors(void)
     p_stepper_motor_z->dir                        = 1;
     p_stepper_motor_z->current_pos                = 0;
     p_stepper_motor_z->current_vel                = 0;
+    p_stepper_motor_z->motor_id                   = STEPPER_Z_ID;
 #ifdef STEPPER_DEBUG
     p_stepper_motor_z->time_elapsed               = 0;
 #endif
@@ -429,8 +432,13 @@ bool stepper_z_has_fault(void)
  * @param p_stepper_motor The stepper motor to enable
  * @return Current position in mm
  */
-static int16_t stepper_get_current_pos_mm(stepper_motors_t *p_stepper_motor)
+static int32_t stepper_get_current_pos_mm(stepper_motors_t *p_stepper_motor)
 {
+    if (p_stepper_motor->motor_id == STEPPER_Z_ID)
+    {
+        return p_stepper_motor->current_pos / TRANSITIONS_PER_MM_Z;
+    }
+
     return p_stepper_motor->current_pos / TRANSITIONS_PER_MM;
 }
 
@@ -603,7 +611,7 @@ stepper_chess_command_t* stepper_build_chess_xy_command(chess_file_t file, chess
  * @param vel_z Travel velocity for Z movement (mm/s)
  * @return Pointer to the command object
  */
-stepper_chess_command_t* stepper_build_chess_z_command(chess_file_t file, chess_rank_t rank, chess_piece_t piece, uint16_t v_z)
+stepper_chess_command_t* stepper_build_chess_z_command(chess_piece_t piece, uint16_t v_z)
 {
     // The thing to return
     stepper_chess_command_t* p_command = (stepper_chess_command_t*) malloc(sizeof(stepper_chess_command_t));
@@ -617,7 +625,7 @@ stepper_chess_command_t* stepper_build_chess_z_command(chess_file_t file, chess_
     // Data
     p_command->file  = FILE_ERROR;
     p_command->rank  = RANK_ERROR;
-    p_command->piece = utils_vertical_offset(file, rank, piece);
+    p_command->piece = piece;
     p_command->v_x   = 0;
     p_command->v_y   = 0;
     p_command->v_z   = v_z;
@@ -752,12 +760,12 @@ void stepper_rel_entry(command_t* command)
  */
 void stepper_chess_entry(command_t* command)
 {
-    int16_t rel_move_x = 0;
-    int16_t rel_move_y = 0;
-    int16_t rel_move_z = 0;
-    int16_t current_x = stepper_get_current_pos_mm(p_stepper_motor_x);
-    int16_t current_y = stepper_get_current_pos_mm(p_stepper_motor_y);
-    int16_t current_z = stepper_get_current_pos_mm(p_stepper_motor_z);
+    int32_t rel_move_x = 0;
+    int32_t rel_move_y = 0;
+    int32_t rel_move_z = 0;
+    int32_t current_x = stepper_get_current_pos_mm(p_stepper_motor_x);
+    int32_t current_y = stepper_get_current_pos_mm(p_stepper_motor_y);
+    int32_t current_z = stepper_get_current_pos_mm(p_stepper_motor_z);
 
     stepper_chess_command_t* p_stepper_command = (stepper_chess_command_t*) command;
 
@@ -805,7 +813,8 @@ void stepper_chess_entry(command_t* command)
         stepper_enable_motor(p_stepper_motor_z);
 
         // Find how far we need to go to get there
-        rel_move_z = p_stepper_command->piece - current_z;
+        int32_t offset = utils_calculate_offset(current_x, current_y, current_z);
+        rel_move_z = (p_stepper_command->piece - current_z) + offset;
 
         // Set the direction
         if (rel_move_z > 0)
@@ -998,8 +1007,9 @@ static void stepper_interrupt_activity(stepper_motors_t* p_stepper_motor)
 #ifdef STEPPER_DEBUG
         // Send the data to the laptop
         char data[32];
-        sprintf(data, "(%d,%d,%d)", p_stepper_motor->current_pos / TRANSITIONS_PER_MM, clock_get_timer_period(p_stepper_motor->timer), p_stepper_motor->time_elapsed); // current_pos, the number in the register, time_elapsed
+        sprintf(data, "(%d,%d,%d)", stepper_get_current_pos_mm(p_stepper_motor), clock_get_timer_period(p_stepper_motor->timer), p_stepper_motor->time_elapsed); // current_pos, the number in the register, time_elapsed
         uart_out_string(PROFILING_CHANNEL, data, 32);
+
         // Delay so this is not spamable (we only transmit strings for testing, so this is not an issue for the actual robot)
         utils_delay(150000);
 #endif

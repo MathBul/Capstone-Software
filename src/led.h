@@ -45,8 +45,10 @@ typedef enum {
     LED_HUMAN_WIN,
     LED_STALEMATE,
     LED_OFF,
-    LED_SCANNING_ERROR,
+    LED_SCANNING_ERROR_WHITE,
+    LED_SCANNING_ERROR_BLACK,
     LED_CAPTURE,
+    LED_ILLEGAL,
 } led_indicator_t;
 
 // LED structure

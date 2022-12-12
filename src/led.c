@@ -149,13 +149,13 @@ void led_mode(led_indicator_t indicator)
         break;
 
         case LED_HUMAN_WIN:
-            led_disable(p_led_red);
+            led_enable(p_led_red);
             led_enable(p_led_green);
-            led_disable(p_led_blue);
+            led_enable(p_led_blue);
 
-            led_red_status   = false;
+            led_red_status   = true;
             led_green_status = true;
-            led_blue_status  = false;
+            led_blue_status  = true;
             led_start_flash();
         break;
 
@@ -192,7 +192,18 @@ void led_mode(led_indicator_t indicator)
             led_blue_status  = false;
         break;
 
-        case LED_SCANNING_ERROR:
+        case LED_SCANNING_ERROR_WHITE:
+            led_enable(p_led_red);
+            led_enable(p_led_green);
+            led_disable(p_led_blue);
+
+            led_red_status   = true;
+            led_green_status = true;
+            led_blue_status  = false;
+            led_start_flash();
+        break;
+
+        case LED_SCANNING_ERROR_BLACK:
             led_disable(p_led_red);
             led_enable(p_led_green);
             led_enable(p_led_blue);
@@ -210,6 +221,17 @@ void led_mode(led_indicator_t indicator)
 
             led_red_status   = false;
             led_green_status = true;
+            led_blue_status  = false;
+            led_start_flash();
+        break;
+
+        case LED_ILLEGAL:
+            led_enable(p_led_red);
+            led_disable(p_led_green);
+            led_disable(p_led_blue);
+
+            led_red_status   = true;
+            led_green_status = false;
             led_blue_status  = false;
             led_start_flash();
         break;

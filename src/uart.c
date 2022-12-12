@@ -10,8 +10,6 @@
  */
 #include "uart.h"
 
-// TODO: Make sure the elements are only 1 byte long!
-
 // Declare the uart fifos
 fifo8_t fifo8s[NUMBER_OF_ACTIVE_UART_CHANNELS*2];
 static fifo8_t* uart_0_rx = &fifo8s[UART0_RX_ID];

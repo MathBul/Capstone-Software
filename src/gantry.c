@@ -29,7 +29,9 @@ static bool initial_valid      = true;
 static bool msg_ready_to_send  = true;
 static bool robot_is_done      = false;
 
+#ifdef THREE_PART_MODE
 static bool ready_to_read      = false;
+#endif
 
 /**
  * @brief Initializes all modules
@@ -55,6 +57,7 @@ void gantry_init(void)
     chessboard_init();
     stepper_init_motors();
     switch_init();
+
 #ifdef PERIPHERALS_ENABLED
     sensornetwork_init();
     electromagnet_init();
@@ -272,7 +275,7 @@ void gantry_human_entry(command_t* command)
 {
     if (!human_move_legal)
     {
-        led_mode(LED_ERROR);
+        led_mode(LED_ILLEGAL);
     }
     else
     {
@@ -282,7 +285,10 @@ void gantry_human_entry(command_t* command)
     // Reset the flags
     human_move_capture = false;
     human_move_done    = false;
+
+#ifdef THREE_PARTY_MODE
     ready_to_read      = false;
+#endif
 }
 
 /*
@@ -292,16 +298,22 @@ void gantry_human_entry(command_t* command)
  */
 void gantry_human_action(command_t* command)
 {
-
 #ifdef FINAL_IMPLEMENTATION_MODE
     if (first_move)
     {
         // Read the board's initial state
         uint64_t initial_presence = sensornetwork_get_reading();
-        if(initial_presence != INITIAL_PRESENCE_BOARD)
+        uint64_t initial_presence_white = (initial_presence & (~INITIAL_PRESENCE_BLACK));
+        uint64_t initial_presence_black = (initial_presence & (~INITIAL_PRESENCE_WHITE));
+        if (initial_presence_white != INITIAL_PRESENCE_WHITE)
         {
             initial_valid = false;
-            led_mode(LED_SCANNING_ERROR);
+            led_mode(LED_SCANNING_ERROR_WHITE);
+        }
+        else if (initial_presence_black != INITIAL_PRESENCE_BLACK)
+        {
+            initial_valid = false;
+            led_mode(LED_SCANNING_ERROR_BLACK);
         }
         else
         {
@@ -402,7 +414,6 @@ void gantry_human_action(command_t* command)
 void gantry_human_exit(command_t* command)
 {
 #ifdef FINAL_IMPLEMENTATION_MODE
-
     // Make sure a reset has not been issued
     if (sys_reset)
     {
@@ -645,37 +656,6 @@ void gantry_robot_action(command_t* command)
     uint8_t status_after_human = 0;
     uint8_t status_after_robot = 0;
     char move[5];
-
-#ifdef GANTRY_DEBUG
-
-    // Hard-code a message
-    move[0] = 'e';
-    move[1] = '2';
-    move[2] = 'c';
-    move[3] = '6';
-    move[4] = '_';
-
-    // Continue the game
-    status_after_human = GAME_ONGOING;
-    status_after_robot = GAME_ONGOING;
-    human_move_legal = true;
-
-#elif defined(USER_MODE)
-
-    // Read the MOVE bytes
-    msg_status = rpi_receive(move, 5);
-    if (!msg_status)
-    {
-        return;
-    }
-
-    // Continue the game
-    status_after_human = GAME_ONGOING;
-    status_after_robot = GAME_ONGOING;
-    human_move_legal = true;
-
-#else
-
     char message[8];
     char check_bytes[2];
     bool msg_status = false;
@@ -752,8 +732,6 @@ void gantry_robot_action(command_t* command)
     char game_status = message[7];
     status_after_human = (game_status >> 4);
     status_after_robot = (game_status & 0x0F);
-
-#endif
 
     // Record the UCI move
     p_gantry_command->move_uci[0] = move[0];
@@ -835,19 +813,20 @@ void gantry_robot_move_piece(chess_file_t initial_file, chess_rank_t initial_ran
 #endif
 
     // Lower the magnet
-    command_queue_push((command_t*) stepper_build_chess_z_command(initial_file, initial_rank, piece, MOTORS_MOVE_V_Z));
+    command_queue_push((command_t*) stepper_build_chess_z_command(piece, MOTORS_MOVE_V_Z));
 
     // Wait
     command_queue_push((command_t*) delay_build_command(1000));
 
     // Raise the magnet
-    command_queue_push((command_t*) stepper_build_chess_z_command(initial_file, initial_rank, HOME_PIECE, MOTORS_MOVE_V_Z));
+    command_queue_push((command_t*) stepper_build_chess_z_command(HOME_PIECE, MOTORS_MOVE_V_Z));
 
     // Go to the destination tile
     command_queue_push((command_t*) stepper_build_chess_xy_command(final_file, final_rank, MOTORS_MOVE_V_X, MOTORS_MOVE_V_Y));
 
     // Lower the magnet
-    command_queue_push((command_t*) stepper_build_chess_z_command(final_file, final_rank, piece, MOTORS_MOVE_V_Z));
+    command_queue_push((command_t*) stepper_build_chess_z_command(piece, MOTORS_MOVE_V_Z));
+
 #ifdef PERIPHERALS_ENABLED
     // Disengage the magnet
     command_queue_push((command_t*) electromagnet_build_command(disabled));
@@ -857,7 +836,7 @@ void gantry_robot_move_piece(chess_file_t initial_file, chess_rank_t initial_ran
     command_queue_push((command_t*) delay_build_command(500));
 
     // Raise the magnet
-    command_queue_push((command_t*) stepper_build_chess_z_command(initial_file, initial_rank, HOME_PIECE, MOTORS_MOVE_V_Z));
+    command_queue_push((command_t*) stepper_build_chess_z_command(HOME_PIECE, MOTORS_MOVE_V_Z));
 }
 
 /**
@@ -911,7 +890,41 @@ void gantry_robot_exit(command_t* command)
             );
 
             // Revive the queen from the magical **queen tile** and move it to the destination
-            //  TODO: Get a magical queen tile
+            moving_piece = QUEEN;
+            gantry_robot_move_piece(
+                QUEEN_FILE,
+                QUEEN_RANK,
+                p_gantry_command->move.dest_file,
+                p_gantry_command->move.dest_rank,
+                moving_piece
+            );
+
+            // Go to home
+            gantry_home();
+        break;
+
+        case CAPTURE_PROMOTION:
+            // Banish the piece being captured to the graveyard
+            moving_piece = chessboard_get_piece_at_position(p_gantry_command->move.dest_file, p_gantry_command->move.dest_rank);
+            gantry_robot_move_piece(
+                p_gantry_command->move.dest_file,
+                p_gantry_command->move.dest_rank,
+                CAPTURE_FILE,
+                CAPTURE_RANK,
+                moving_piece
+            );
+
+            // Banish the piece being captured to the graveyard
+            moving_piece = chessboard_get_piece_at_position(p_gantry_command->move.source_file, p_gantry_command->move.source_rank);
+            gantry_robot_move_piece(
+                p_gantry_command->move.source_file,
+                p_gantry_command->move.source_rank,
+                CAPTURE_FILE,
+                CAPTURE_RANK,
+                moving_piece
+            );
+
+            // Revive the queen from the magical **queen tile** and move it to the destination
             moving_piece = QUEEN;
             gantry_robot_move_piece(
                 QUEEN_FILE,

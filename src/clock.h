@@ -48,7 +48,7 @@
 #define TIMER_5A_INTERRUPT_NUM                  TIMER5A_IRQn
 
 // Timer 6 defines
-#define TIMER_6A_PERIOD                         119999999   // Period: 1s @ 120MHz
+#define TIMER_6A_PERIOD                         59999999    // Period: 0.5s @ 120MHz
 #define TIMER_6A_RELOAD_VALUE                   (TIMER_6A_PERIOD << NVIC_ST_RELOAD_S)
 #define TIMER_6A_INTERRUPT_NUM                  TIMER6A_IRQn
 

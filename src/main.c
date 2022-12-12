@@ -17,34 +17,19 @@ int main(void)
     command_queue_init();
     gantry_init();
 
-    // Add commands to the queue
-#ifdef SENSOR_NETWORK_DEBUG
-
+#if defined(GANTRY_DEBUG) || defined(STEPPER_DEBUG)
+    // Add specific commands to the queue
     gantry_home();
-    chessboard_reset_all();
-    command_queue_push((command_t*) stepper_build_chess_xy_command(QUEEN_FILE, QUEEN_RANK, 1, 1));
+    command_queue_push((command_t*) stepper_build_chess_xy_command(H, FIRST, 1, 1));
     command_queue_push((command_t*) delay_build_command(1000));
-    command_queue_push((command_t*) stepper_build_chess_z_command(QUEEN_FILE, QUEEN_RANK, QUEEN, 1));
+    command_queue_push((command_t*) stepper_build_chess_z_command(PAWN, 1));
     command_queue_push((command_t*) delay_build_command(1000));
-
-#elif defined(UART_DEBUG)
-    while (1)
-    {
-        uart_out_string(UART_CHANNEL_0, "Hello world!\n", 14);
-    }
-
-#elif defined(STEPPER_DEBUG) || defined(GANTRY_DEBUG)
-    // Test a chess movement
-    command_queue_push((command_t*) delay_build_command(2000));
-    gantry_home();
-    command_queue_push((command_t*) gantry_robot_build_command());
-
-    // Test a switch
-    gpio_set_as_output(SWITCH_TEST_PORT, SWITCH_TEST_PIN);
-    gpio_set_output_high(SWITCH_TEST_PORT, SWITCH_TEST_PIN);
+//    command_queue_push((command_t*) stepper_build_chess_z_command(HOME_PIECE, 1));
 
 #else
+    // Play chess
     command_queue_push((command_t*) gantry_reset_build_command());
+
 #endif
 
     // Main program flow
@@ -86,10 +71,6 @@ int main(void)
             // Free the command memory
             free(p_current_command);
         }
-
-#ifdef GANTRY_DEBUG
-        switch_test(LIMIT_X_MASK);
-#endif
     }
 }
 

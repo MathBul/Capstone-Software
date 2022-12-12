@@ -23,7 +23,6 @@ void rpi_init(void)
 
 /**
  * @brief Uses UART to send data from the MSP432 to the Raspberry Pi
- *  TODO: Replace with call to uart_out_string? Remove delay?
  *
  * @param data Character buffer to be sent
  * @param size Number of characters to transmit (unless a null-terminator is reacher)

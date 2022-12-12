@@ -12,17 +12,13 @@
 #define UTILS_H_
 
 // Debug mode select
-//#define UART_DEBUG
-#define PERIPHERALS_ENABLED
-//#define GANTRY_DEBUG
-//#define STEPPER_DEBUG
-//#define SENSOR_NETWORK_DEBUG
+#define PERIPHERALS_ENABLED         // Enable electromagent and sensor network
+//#define GANTRY_DEBUG                // Run specific gantry commands
+//#define STEPPER_DEBUG               // Debug motion profiling
 
 // Game mode select (define at most one at a time)
-//#define USER_MODE                 // User, through UART0 terminal, sends moves to MSP directly
-//#define THREE_PARTY_MODE          // User sends moves to MSP, which sends moves to RPi, which sends moves back
-#define FINAL_IMPLEMENTATION_MODE // Ideally, final implementation w/board reading
-
+//#define THREE_PARTY_MODE            // User sends moves to MSP, which sends moves to RPi, which sends moves back
+#define FINAL_IMPLEMENTATION_MODE   // Final implementation w/ board reading
 
 // Notes on vports: 
 //  - A virtual port (vport) is a means of accessing a physical port via imaging and a bitfield
@@ -50,7 +46,7 @@
 #define SQUARE_Y_INITIAL                    (26)        // mm
 #define CAPTURE_X                           (-20)       // mm
 #define CAPTURE_Y                           (SQUARE_Y_INITIAL + 5*SQUARE_CENTER_TO_CENTER)
-#define QUEEN_X                             (-30)       // mm
+#define QUEEN_X                             (-26)       // mm
 #define QUEEN_Y                             (SQUARE_Y_INITIAL + 1*SQUARE_CENTER_TO_CENTER)
 #define PIECE_HEIGHT_OFFSET                 (44)
 
@@ -100,74 +96,6 @@ typedef struct utils_bits16_t {
     volatile unsigned bit_16 : 1;
 } utils_bits16_t;
 
-// Bitfield for peripheral imaging (accessing 64-bit volatile memory)
-typedef struct utils_bits64_t {
-    volatile unsigned bit_0  : 1;
-    volatile unsigned bit_1  : 1;
-    volatile unsigned bit_2  : 1;
-    volatile unsigned bit_3  : 1;
-    volatile unsigned bit_4  : 1;
-    volatile unsigned bit_5  : 1;
-    volatile unsigned bit_6  : 1;
-    volatile unsigned bit_7  : 1;
-    volatile unsigned bit_8  : 1;
-    volatile unsigned bit_9  : 1;
-    volatile unsigned bit_10 : 1;
-    volatile unsigned bit_11 : 1;
-    volatile unsigned bit_12 : 1;
-    volatile unsigned bit_13 : 1;
-    volatile unsigned bit_14 : 1;
-    volatile unsigned bit_15 : 1;
-    volatile unsigned bit_16 : 1;
-    volatile unsigned bit_17 : 1;
-    volatile unsigned bit_18 : 1;
-    volatile unsigned bit_19 : 1;
-    volatile unsigned bit_20 : 1;
-    volatile unsigned bit_21 : 1;
-    volatile unsigned bit_22 : 1;
-    volatile unsigned bit_23 : 1;
-    volatile unsigned bit_24 : 1;
-    volatile unsigned bit_25 : 1;
-    volatile unsigned bit_26 : 1;
-    volatile unsigned bit_27 : 1;
-    volatile unsigned bit_28 : 1;
-    volatile unsigned bit_29 : 1;
-    volatile unsigned bit_30 : 1;
-    volatile unsigned bit_31 : 1;
-    volatile unsigned bit_32 : 1;
-    volatile unsigned bit_33 : 1;
-    volatile unsigned bit_34 : 1;
-    volatile unsigned bit_35 : 1;
-    volatile unsigned bit_36 : 1;
-    volatile unsigned bit_37 : 1;
-    volatile unsigned bit_38 : 1;
-    volatile unsigned bit_39 : 1;
-    volatile unsigned bit_40 : 1;
-    volatile unsigned bit_41 : 1;
-    volatile unsigned bit_42 : 1;
-    volatile unsigned bit_43 : 1;
-    volatile unsigned bit_44 : 1;
-    volatile unsigned bit_45 : 1;
-    volatile unsigned bit_46 : 1;
-    volatile unsigned bit_47 : 1;
-    volatile unsigned bit_48 : 1;
-    volatile unsigned bit_49 : 1;
-    volatile unsigned bit_50 : 1;
-    volatile unsigned bit_51 : 1;
-    volatile unsigned bit_52 : 1;
-    volatile unsigned bit_53 : 1;
-    volatile unsigned bit_54 : 1;
-    volatile unsigned bit_55 : 1;
-    volatile unsigned bit_56 : 1;
-    volatile unsigned bit_57 : 1;
-    volatile unsigned bit_58 : 1;
-    volatile unsigned bit_59 : 1;
-    volatile unsigned bit_60 : 1;
-    volatile unsigned bit_61 : 1;
-    volatile unsigned bit_62 : 1;
-    volatile unsigned bit_63 : 1;
-} utils_bits64_t;
-
 // 8-bit virtual port for peripheral imaging
 typedef union utils_vport8_t {
     volatile uint8_t image;
@@ -180,32 +108,27 @@ typedef union utils_vport16_t {
     utils_bits16_t bitfield;
 } utils_vport16_t;
 
-// 64-bit virtual port for peripheral imaging
-typedef union utils_vport64_t {
-    volatile uint64_t image;
-    utils_bits64_t bitfield;
-} utils_vport64_t;
-
 // Tracks move type
 typedef enum chess_move_type_t {
     IDLE, 
     MOVE, 
     CAPTURE, 
-    PROMOTION, 
+    PROMOTION,
+    CAPTURE_PROMOTION,
     EN_PASSENT, 
     CASTLING,
 } chess_move_type_t;
 
 // Translates file on the board to distance in mm
 typedef enum chess_file_t {
-    A            = SQUARE_X_INITIAL,
-    B            = SQUARE_X_INITIAL - 1*SQUARE_CENTER_TO_CENTER,
-    C            = SQUARE_X_INITIAL - 2*SQUARE_CENTER_TO_CENTER + 2,
-    D            = SQUARE_X_INITIAL - 3*SQUARE_CENTER_TO_CENTER + 2,
-    E            = SQUARE_X_INITIAL - 4*SQUARE_CENTER_TO_CENTER + 3,
-    F            = SQUARE_X_INITIAL - 5*SQUARE_CENTER_TO_CENTER + 3,
-    G            = SQUARE_X_INITIAL - 6*SQUARE_CENTER_TO_CENTER + 4,
-    H            = SQUARE_X_INITIAL - 7*SQUARE_CENTER_TO_CENTER + 4,
+    A            = SQUARE_X_INITIAL + 2,
+    B            = SQUARE_X_INITIAL - 1*SQUARE_CENTER_TO_CENTER + 5,
+    C            = SQUARE_X_INITIAL - 2*SQUARE_CENTER_TO_CENTER + 7,
+    D            = SQUARE_X_INITIAL - 3*SQUARE_CENTER_TO_CENTER + 8,
+    E            = SQUARE_X_INITIAL - 4*SQUARE_CENTER_TO_CENTER + 9,
+    F            = SQUARE_X_INITIAL - 5*SQUARE_CENTER_TO_CENTER + 9,
+    G            = SQUARE_X_INITIAL - 6*SQUARE_CENTER_TO_CENTER + 10,
+    H            = SQUARE_X_INITIAL - 7*SQUARE_CENTER_TO_CENTER + 11,
     CAPTURE_FILE = CAPTURE_X,
     QUEEN_FILE   = QUEEN_X,
     HOME_FILE    = HOMING_X_BACKOFF,
@@ -214,14 +137,14 @@ typedef enum chess_file_t {
 
 // Translates rank on the board to distance in mm
 typedef enum chess_rank_t {
-    FIRST        = SQUARE_Y_INITIAL + 7*SQUARE_CENTER_TO_CENTER - 2,
-    SECOND       = SQUARE_Y_INITIAL + 6*SQUARE_CENTER_TO_CENTER,
-    THIRD        = SQUARE_Y_INITIAL + 5*SQUARE_CENTER_TO_CENTER,
-    FOURTH       = SQUARE_Y_INITIAL + 4*SQUARE_CENTER_TO_CENTER,
-    FIFTH        = SQUARE_Y_INITIAL + 3*SQUARE_CENTER_TO_CENTER,
-    SIXTH        = SQUARE_Y_INITIAL + 2*SQUARE_CENTER_TO_CENTER,
+    FIRST        = SQUARE_Y_INITIAL + 7*SQUARE_CENTER_TO_CENTER - 8,
+    SECOND       = SQUARE_Y_INITIAL + 6*SQUARE_CENTER_TO_CENTER - 5,
+    THIRD        = SQUARE_Y_INITIAL + 5*SQUARE_CENTER_TO_CENTER - 3,
+    FOURTH       = SQUARE_Y_INITIAL + 4*SQUARE_CENTER_TO_CENTER - 3,
+    FIFTH        = SQUARE_Y_INITIAL + 3*SQUARE_CENTER_TO_CENTER - 2,
+    SIXTH        = SQUARE_Y_INITIAL + 2*SQUARE_CENTER_TO_CENTER - 1,
     SEVENTH      = SQUARE_Y_INITIAL + 1*SQUARE_CENTER_TO_CENTER,
-    EIGHTH       = SQUARE_Y_INITIAL,
+    EIGHTH       = SQUARE_Y_INITIAL + 2,
     CAPTURE_RANK = CAPTURE_Y,
     QUEEN_RANK   = QUEEN_Y,
     HOME_RANK    = HOMING_Y_BACKOFF,
@@ -229,15 +152,14 @@ typedef enum chess_rank_t {
 } chess_rank_t;
 
 // Translates piece type to distance to lower rack in mm
-//  TODO: FIll in once measured
 typedef enum chess_piece_t {
-    KING        = -65 - PIECE_HEIGHT_OFFSET,
-    QUEEN       = -77 - PIECE_HEIGHT_OFFSET,
-    ROOK        = -94 - PIECE_HEIGHT_OFFSET,
-    BISHOP      = -82 - PIECE_HEIGHT_OFFSET,
-    KNIGHT      = -89 - PIECE_HEIGHT_OFFSET,
-    PAWN        = -95 - PIECE_HEIGHT_OFFSET,
-    HOME_PIECE  = HOMING_Z_BACKOFF,
+    KING        = -55 - PIECE_HEIGHT_OFFSET,
+    QUEEN       = -68 - PIECE_HEIGHT_OFFSET,
+    ROOK        = -91 - PIECE_HEIGHT_OFFSET,
+    BISHOP      = -77 - PIECE_HEIGHT_OFFSET,
+    KNIGHT      = -84 - PIECE_HEIGHT_OFFSET,
+    PAWN        = -90 - PIECE_HEIGHT_OFFSET,
+    HOME_PIECE  = HOMING_Z_BACKOFF - 4,
     EMPTY_PIECE = 1,
 } chess_piece_t;
 
@@ -273,6 +195,6 @@ chess_file_t utils_byte_to_file(uint8_t byte);
 chess_rank_t utils_byte_to_rank(uint8_t byte);
 chess_move_type_t utils_byte_to_move_type(uint8_t byte);
 chess_piece_t utils_byte_to_piece_type(uint8_t byte);
-int16_t utils_vertical_offset(chess_file_t file, chess_rank_t rank, chess_piece_t piece);
+int32_t utils_calculate_offset(int32_t pos_x, int32_t pos_y, int32_t pos_z);
 
 #endif /* UTILS_H_ */
