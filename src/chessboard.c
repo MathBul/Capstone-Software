@@ -612,6 +612,10 @@ static bool chessboard_update_from_presence_capture(chess_board_t* p_board, uint
         uint8_t captured_rank_index = chessboard_presence_index_to_rank_index(index_a);
         p_curr_board->board_pieces[captured_rank_index][captured_file_index] = '\0';
 
+        // Mark in the move when the piece is going to go to
+        move[2] = chessboard_presence_index_to_file_index(index_a);
+        move[3] = chessboard_presence_index_to_rank_index(index_a);
+
         // Mark move gently legal
         legality = true;
     }
@@ -691,7 +695,7 @@ chess_piece_t chessboard_get_piece_at_position(chess_file_t file, chess_rank_t r
  */
 bool chessboard_update_intermediate_board_from_presence(uint64_t board_reading, char move[5])
 {
-    // Reset the intermediate board to the previous board
+    // Reset the previous board to the intermediate board
     chessboard_copy_board(p_prev_board, p_inter_board);
 
     // Update the intermediate board from the given reading
@@ -703,12 +707,12 @@ bool chessboard_update_intermediate_board_from_presence(uint64_t board_reading, 
  * 
  * @param board_reading A board reading
  * @param move Buffer to store move in UCI notation (4-5 characters)
- * @param capture Whether a capture occured (changes which board to update from)
+ * @param capture Whether a capture occurred (changes which board to update from)
  * @return Whether the move was legal
  */
 bool chessboard_update_current_board_from_presence(uint64_t board_reading, char move[5], bool capture)
 {
-    // Reset the current board to the intermediate boad if there was a capture, otherwise reset to previous board
+    // Reset the current board to the intermediate board if there was a capture, otherwise reset to previous board
     if (capture)
     {
         chessboard_copy_board(p_inter_board, p_curr_board);

@@ -252,6 +252,7 @@ void gantry_reset_entry(command_t* command)
     // Clear flags
     sys_limit = false;
     sys_reset = false;
+    human_move_legal = true;
 
 #ifdef FINAL_IMPLEMENTATION_MODE
     // Force an interrupt to fire
@@ -497,7 +498,9 @@ void gantry_human_exit(command_t* command)
     {
         human_move_legal &= chessboard_update_intermediate_board_from_presence(board_reading_intermediate, move);
     }
+
     human_move_legal &= chessboard_update_current_board_from_presence(board_reading_current, move, human_move_capture);
+
 
     // If the move was roughly legal, prepare to transmit. Otherwise, turn on the error LED and wait for a new move
     if (human_move_legal)
