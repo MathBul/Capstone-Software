@@ -6,6 +6,9 @@
  * @date 2022-11-21
  *
  * @copyright Copyright (c) 2022
+ *
+ * This runs on a MSP432e401Y microcontroller, and the accompanying PCB is designed to attach to the launch pad version of the chip.
+ * To deploy this onto the chip, first set the heap and stack size to 4096 in your linker settings before flashing.
  */
 
 #include "msp.h"
