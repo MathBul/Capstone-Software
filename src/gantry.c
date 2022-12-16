@@ -164,16 +164,16 @@ void gantry_start_state_action(command_t* command)
 {
     // Read the board's initial state
     uint64_t initial_presence = sensornetwork_get_reading();
-    uint64_t initial_presence_white = (initial_presence & (~INITIAL_PRESENCE_BLACK));
-    uint64_t initial_presence_black = (initial_presence & (~INITIAL_PRESENCE_WHITE));
+    uint64_t initial_presence_white = initial_presence & (chessboard_get_previous_white_presence());
+    uint64_t initial_presence_black = initial_presence & (chessboard_get_previous_black_presence());
 
     // Check for an invalid state
-    if (initial_presence_white != INITIAL_PRESENCE_WHITE)
+    if (initial_presence_white != chessboard_get_previous_white_presence())
     {
         initial_valid = false;
         led_mode(LED_SCANNING_ERROR_WHITE);
     }
-    else if (initial_presence_black != INITIAL_PRESENCE_BLACK)
+    else if (initial_presence_black != chessboard_get_previous_black_presence())
     {
         initial_valid = false;
         led_mode(LED_SCANNING_ERROR_BLACK);
@@ -391,7 +391,7 @@ void gantry_human_entry(command_t* command)
 void gantry_human_action(command_t* command)
 {
 #ifdef FINAL_IMPLEMENTATION_MODE
-
+    return; // Not used in final implementation
 #elif defined(THREE_PARTY_MODE)
     if (!ready_to_read) {
         return;
@@ -1104,6 +1104,10 @@ void gantry_robot_exit(command_t* command)
     switch (p_gantry_command->game_status) 
     {
         case ONGOING:
+            // First check that the robot actually put things down correctly
+            command_queue_push((command_t*) gantry_start_state_build_command());
+
+            // Then it's the human's turn
             command_queue_push((command_t*) gantry_human_build_command());
         break;
 

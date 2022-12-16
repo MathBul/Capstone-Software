@@ -274,7 +274,7 @@ static board_changes_t chessboard_get_board_changes_from_presence(uint64_t initi
     board_changes.presence_change_index_4 = 0xFF;
 
     // Find which bits are set in the presence change
-    uint8_t i = 0;
+    int i = 0;
     for (i = 0; i < 64; i++)
     {
         // If a set bit is found in some bit position i, store its index
@@ -650,8 +650,8 @@ static void chessboard_copy_board(chess_board_t* p_source_board, chess_board_t* 
     p_dest_board->board_presence = p_source_board->board_presence;
 
     // Copy the pices
-    uint8_t i = 0;
-    uint8_t j = 0;
+    int i = 0;
+    int j = 0;
     for (i = 0; i < 8; i++)
     {
         for (j = 0; j < 8; j++)
@@ -758,5 +758,108 @@ void chessboard_update_current_board_from_move(char move[5])
     chessboard_update_from_move(p_curr_board, move);
 }
 
+/**
+ * @brief Public function to get the presence of all the black pieces
+ *
+ * @returns A mask of all the black pieces in their current position
+ *
+ */
+uint64_t chessboard_get_previous_black_presence()
+{
+    int i,j; // i is the row (rank), j is the column (file)
+    uint64_t mask = 0;
+
+    for (i = 0; i < 8; i++)
+    {
+        for (j = 0; j < 8; j++)
+        {
+            // Check if it's lowercase, that means it's black
+            if (p_prev_board->board_pieces[i][j] >= 'a' && p_prev_board->board_pieces[i][j] <= 'z')
+            {
+                mask |= ((uint64_t)1 << (i*8 + j));
+            }
+        }
+    }
+
+    return mask;
+}
+
+/**
+ * @brief Public function to get the presence of all the black pieces
+ *
+ * @returns A mask of all the white pieces in their current position
+ *
+ */
+uint64_t chessboard_get_previous_white_presence()
+{
+    int i,j; // i is the row (rank), j is the column (file)
+    uint64_t mask = 0;
+
+    for (i = 0; i < 8; i++)
+    {
+        for (j = 0; j < 8; j++)
+        {
+            // Check if it's uppercase, that means it's white
+            if (p_prev_board->board_pieces[i][j] >= 'A' && p_prev_board->board_pieces[i][j] <= 'Z')
+            {
+                mask |= ((uint64_t)1 << (i*8 + j));
+            }
+        }
+    }
+
+    return mask;
+}
+
+/**
+ * @brief Public function to get the presence of all the black pieces
+ *
+ * @returns A mask of all the black pieces in their current position
+ *
+ */
+uint64_t chessboard_get_current_black_presence()
+{
+    int i,j; // i is the row (rank), j is the column (file)
+    uint64_t mask = 0;
+
+    for (i = 0; i < 8; i++)
+    {
+        for (j = 0; j < 8; j++)
+        {
+            // Check if it's lowercase, that means it's black
+            if (p_curr_board->board_pieces[i][j] >= 'a' && p_curr_board->board_pieces[i][j] <= 'z')
+            {
+                mask |= ((uint64_t)1 << (i*8 + j));
+            }
+        }
+    }
+
+    return mask;
+}
+
+/**
+ * @brief Public function to get the presence of all the black pieces
+ *
+ * @returns A mask of all the white pieces in their current position
+ *
+ */
+uint64_t chessboard_get_current_white_presence()
+{
+    int i,j; // i is the row (rank), j is the column (file)
+    uint64_t mask = 0;
+
+    for (i = 0; i < 8; i++)
+    {
+        for (j = 0; j < 8; j++)
+        {
+            // Check if it's uppercase, that means it's white
+            if (p_curr_board->board_pieces[i][j] >= 'A' && p_curr_board->board_pieces[i][j] <= 'Z')
+            {
+                mask |= ((uint64_t)1 << (i*8 + j));
+            }
+        }
+    }
+
+    return mask;
+}
 
 /* End chessboard.c */

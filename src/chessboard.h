@@ -73,5 +73,9 @@ void chessboard_update_previous_board_from_current_board(void);
 void chessboard_update_current_board_from_previous_board(void);
 void chessboard_update_previous_board_from_move(char move[5]);
 void chessboard_update_current_board_from_move(char move[5]);
+uint64_t chessboard_get_previous_black_presence();
+uint64_t chessboard_get_previous_white_presence();
+uint64_t chessboard_get_current_black_presence();
+uint64_t chessboard_get_current_white_presence();
 
 #endif /* CHESSBOARD_H_ */
