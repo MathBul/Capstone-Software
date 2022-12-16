@@ -37,3 +37,8 @@ This repository contains all embedded code for the system, written in C.
 7. Move all of the files in the `Capstone-Software` directory into your CCS project directory
 8. Delete the `Capstone-Software` directory. The `.git` folder should be in your CCS project directory
 9. Go back to CCS and build the project. It should build successfully
+10. Once the project is building correctly, click the top level directory of the project, then go to `File`->`Properties`->`Arm Linker`->`Basic Options`
+11. Set the Heap size and the Stack size to 4096 and click `Apply and Close`
+12. Rebuild the project
+
+If you project builds successfully, you should be all set! 
